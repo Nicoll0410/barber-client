@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 
 const LoginForm = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showRecoveryModal, setShowRecoveryModal] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const navigation = useNavigation();
 
     const handleLogin = () => {
-        console.log('Email:', email);
-        console.log('Password:', password);
+        navigation.navigate('Home');
     };
 
     const togglePasswordVisibility = () => {

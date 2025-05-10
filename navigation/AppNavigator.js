@@ -8,18 +8,18 @@ import DashboardScreen from '../screens/DashboardScreen';
 import CustomDrawer from '../components/CustomDrawer';
 
 // IMPORTAR PANTALLAS EXTRAS
-import ClientesScreen from '../screens/ClientesScreen';
-import BarberosScreen from '../screens/BarberosScreen';
+import ClientesScreen from '../screens/clientes/ClientesScreen';
+import BarberosScreen from '../screens/barberos/BarberosScreen';
 import RolesScreen from '../screens/RolesScreen';
-import ComprasScreen from '../screens/ComprasScreen';
+import ComprasScreen from '../screens/compras/ComprasScreen';
 import ProveedoresScreen from '../screens/ProveedoresScreen';
 import InsumosScreen from '../screens/InsumosScreen';
 import CategoriaInsumosScreen from '../screens/CategoriaInsumosScreen';
 import AgendaScreen from '../screens/AgendaScreen';
-import CitasScreen from '../screens/CitasScreen';
+import CitasScreen from '../screens/citas/CitasScreen';
 import ServiciosScreen from '../screens/ServiciosScreen';
 import MovimientosScreen from '../screens/MovimientosScreen';
-import VentasScreen from '../screens/VentasScreen';
+import VentasScreen from '../screens/ventas/VentasScreen';
 
 const Stack = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();

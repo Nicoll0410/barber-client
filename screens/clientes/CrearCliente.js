@@ -1,9 +1,29 @@
 import React, { useState } from 'react';
-import { View, Text, Modal, TextInput, TouchableOpacity, StyleSheet, ScrollView, Image, Alert } from 'react-native';
+import { View, Text, Modal, TextInput, TouchableOpacity, StyleSheet, ScrollView, Image, Alert, Dimensions } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { BlurView } from 'expo-blur';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { Calendar, LocaleConfig } from 'react-native-calendars';
+
+// Configuración de localización en español
+LocaleConfig.locales['es'] = {
+  monthNames: [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ],
+  monthNamesShort: [
+    'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+    'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
+  ],
+  dayNames: [
+    'Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'
+  ],
+  dayNamesShort: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
+  today: 'Hoy'
+};
+LocaleConfig.defaultLocale = 'es';
+
+const { width } = Dimensions.get('window');
 
 const CrearCliente = ({ visible, onClose, onCreate }) => {
   const [formData, setFormData] = useState({
@@ -19,6 +39,15 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
+  const months = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ];
+
+  const years = Array.from({ length: 81 }, (_, i) => new Date().getFullYear() - i);
 
   const resetForm = () => {
     setFormData({
@@ -39,10 +68,27 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
     });
   };
 
-  const handleDateChange = (event, selectedDate) => {
+  const handleDayPress = (day) => {
+    const selectedDate = new Date(day.year, day.month - 1, day.day);
+    handleChange('fechaNacimiento', selectedDate);
     setShowDatePicker(false);
-    if (selectedDate) {
-      handleChange('fechaNacimiento', selectedDate);
+  };
+
+  const changeMonth = (increment) => {
+    let newMonth = selectedMonth + increment;
+    let newYear = selectedYear;
+    
+    if (newMonth > 11) {
+      newMonth = 0;
+      newYear++;
+    } else if (newMonth < 0) {
+      newMonth = 11;
+      newYear--;
+    }
+    
+    if (newYear <= new Date().getFullYear() && newYear >= (new Date().getFullYear() - 80)) {
+      setSelectedMonth(newMonth);
+      setSelectedYear(newYear);
     }
   };
 
@@ -85,22 +131,12 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
   };
 
   const formatDate = (date) => {
-    if (!date) return 'Seleccionar fecha';
+    if (!date) return 'dd/mm/aaaa';
     return date.toLocaleDateString('es-ES', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'
     });
-  };
-
-  const getMinDate = () => {
-    const date = new Date();
-    date.setFullYear(date.getFullYear() - 80);
-    return date;
-  };
-
-  const getMaxDate = () => {
-    return new Date();
   };
 
   return (
@@ -113,7 +149,6 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
         resetForm();
       }}
     >
-      {/* Fondo con efecto blur */}
       <BlurView
         intensity={15}
         tint="light"
@@ -122,14 +157,15 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
       
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
-          <ScrollView contentContainerStyle={styles.scrollContent}>
-            {/* Encabezado */}
+          <ScrollView 
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+          >
             <View style={styles.header}>
               <Text style={styles.title}>Crear nuevo cliente</Text>
               <Text style={styles.subtitle}>Por favor, proporciona las credenciales del nuevo cliente</Text>
             </View>
             
-            {/* Campos del formulario */}
             <View style={styles.formGroup}>
               <Text style={styles.label}>Nombre <Text style={styles.required}>*</Text></Text>
               <TextInput
@@ -140,7 +176,6 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
               />
             </View>
             
-            {/* Teléfono y Fecha de Nacimiento en misma línea */}
             <View style={styles.doubleRow}>
               <View style={[styles.formGroup, {flex: 1, marginRight: 10}]}>
                 <Text style={styles.label}>Teléfono <Text style={styles.required}>*</Text></Text>
@@ -159,7 +194,10 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
                   style={styles.dateInput}
                   onPress={() => setShowDatePicker(true)}
                 >
-                  <Text style={styles.dateText}>
+                  <Text style={[
+                    styles.dateText, 
+                    formData.fechaNacimiento && styles.dateTextSelected
+                  ]}>
                     {formatDate(formData.fechaNacimiento)}
                   </Text>
                   <MaterialIcons name="calendar-today" size={20} color="#666" />
@@ -168,15 +206,110 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
             </View>
             
             {showDatePicker && (
-              <DateTimePicker
-                value={formData.fechaNacimiento || new Date()}
-                mode="date"
-                display="default"
-                onChange={handleDateChange}
-                minimumDate={getMinDate()}
-                maximumDate={getMaxDate()}
-                locale="es-ES"
-              />
+              <View style={styles.customDatePickerContainer}>
+                <View style={styles.customDatePicker}>
+                  <View style={styles.datePickerHeader}>
+                    <TouchableOpacity onPress={() => changeMonth(-1)}>
+                      <MaterialIcons name="chevron-left" size={24} color="#333" />
+                    </TouchableOpacity>
+                    
+                    <View style={styles.monthYearSelector}>
+                      <Text style={styles.monthYearText}>
+                        {months[selectedMonth]} de {selectedYear}
+                      </Text>
+                    </View>
+                    
+                    <TouchableOpacity onPress={() => changeMonth(1)}>
+                      <MaterialIcons name="chevron-right" size={24} color="#333" />
+                    </TouchableOpacity>
+                  </View>
+                  
+                  <View style={styles.yearSelectorContainer}>
+                    <ScrollView 
+                      horizontal 
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.yearScrollContent}
+                    >
+                      {years.map(year => (
+                        <TouchableOpacity 
+                          key={year}
+                          style={[
+                            styles.yearButton,
+                            selectedYear === year && styles.selectedYearButton
+                          ]}
+                          onPress={() => setSelectedYear(year)}
+                        >
+                          <Text style={[
+                            styles.yearButtonText,
+                            selectedYear === year && styles.selectedYearButtonText
+                          ]}>
+                            {year}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                  
+                  <View style={styles.calendarContainer}>
+                    <Calendar
+                      current={`${selectedYear}-${(selectedMonth + 1).toString().padStart(2, '0')}-01`}
+                      minDate={`${new Date().getFullYear() - 80}-01-01`}
+                      maxDate={new Date().toISOString().split('T')[0]}
+                      onDayPress={handleDayPress}
+                      monthFormat={'MMMM yyyy'}
+                      hideArrows={true}
+                      hideExtraDays={true}
+                      disableMonthChange={true}
+                      theme={{
+                        calendarBackground: 'transparent',
+                        textSectionTitleColor: '#666',
+                        dayTextColor: '#333',
+                        todayTextColor: '#4CAF50',
+                        selectedDayTextColor: '#fff',
+                        selectedDayBackgroundColor: '#4CAF50',
+                        arrowColor: '#4CAF50',
+                        monthTextColor: '#333',
+                        textDayFontWeight: '400',
+                        textMonthFontWeight: 'bold',
+                        textDayHeaderFontWeight: '500',
+                        textDayFontSize: 12,
+                        textMonthFontSize: 14,
+                        textDayHeaderFontSize: 12,
+                        'stylesheet.calendar.header': {
+                          week: {
+                            marginTop: 5,
+                            flexDirection: 'row',
+                            justifyContent: 'space-between'
+                          }
+                        }
+                      }}
+                      style={styles.calendar}
+                    />
+                  </View>
+                  
+                  <View style={styles.datePickerActions}>
+                    <TouchableOpacity 
+                      style={styles.datePickerButton}
+                      onPress={() => {
+                        handleChange('fechaNacimiento', new Date());
+                        setShowDatePicker(false);
+                      }}
+                    >
+                      <Text style={styles.datePickerButtonText}>Hoy</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={styles.datePickerButton}
+                      onPress={() => {
+                        handleChange('fechaNacimiento', null);
+                        setShowDatePicker(false);
+                      }}
+                    >
+                      <Text style={styles.datePickerButtonText}>Borrar</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
             )}
             
             <View style={styles.formGroup}>
@@ -191,7 +324,6 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
               />
             </View>
             
-            {/* Contraseña y Confirmar contraseña */}
             <View style={styles.doubleRow}>
               <View style={[styles.formGroup, {flex: 1, marginRight: 10}]}>
                 <Text style={styles.label}>Contraseña <Text style={styles.required}>*</Text></Text>
@@ -240,7 +372,6 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
               </View>
             </View>
             
-            {/* Selector de Avatar */}
             <View style={styles.formGroup}>
               <Text style={styles.label}>Avatar (Opcional)</Text>
               <TouchableOpacity style={styles.avatarSelector} onPress={pickImage}>
@@ -255,7 +386,6 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
               </TouchableOpacity>
             </View>
             
-            {/* Botones */}
             <View style={styles.buttonContainer}>
               <TouchableOpacity 
                 style={[styles.button, styles.createButton]}
@@ -362,6 +492,9 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 15,
+    color: '#999',
+  },
+  dateTextSelected: {
     color: '#333',
   },
   passwordContainer: {
@@ -437,6 +570,85 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     fontSize: 15,
     color: '#333',
+  },
+  customDatePickerContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    zIndex: 1000,
+  },
+  customDatePicker: {
+    width: width * 0.85,
+    maxWidth: 350,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    maxHeight: '80%',
+  },
+  datePickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  monthYearSelector: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  monthYearText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  yearSelectorContainer: {
+    marginBottom: 10,
+  },
+  yearScrollContent: {
+    paddingHorizontal: 10,
+  },
+  yearButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginHorizontal: 4,
+    borderRadius: 15,
+  },
+  selectedYearButton: {
+    backgroundColor: '#4CAF50',
+  },
+  yearButtonText: {
+    color: '#666',
+  },
+  selectedYearButtonText: {
+    color: 'white',
+  },
+  calendarContainer: {
+    height: 250,
+    overflow: 'hidden',
+  },
+  calendar: {
+    marginBottom: 10,
+  },
+  datePickerActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  datePickerButton: {
+    padding: 10,
+    borderRadius: 5,
+  },
+  datePickerButtonText: {
+    color: '#4CAF50',
+    fontWeight: 'bold',
   },
 });
 

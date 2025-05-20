@@ -10,7 +10,7 @@ import CustomDrawer from '../components/CustomDrawer';
 // IMPORTAR PANTALLAS EXTRAS
 import ClientesScreen from '../screens/clientes/ClientesScreen';
 import BarberosScreen from '../screens/barberos/BarberosScreen';
-import RolesScreen from '../screens/RolesScreen';
+import RolesScreen from '../screens/roles/RolesScreen';
 import ComprasScreen from '../screens/compras/ComprasScreen';
 import ProveedoresScreen from '../screens/ProveedoresScreen';
 import InsumosScreen from '../screens/InsumosScreen';

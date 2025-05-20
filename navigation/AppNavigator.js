@@ -14,7 +14,7 @@ import RolesScreen from '../screens/RolesScreen';
 import ComprasScreen from '../screens/compras/ComprasScreen';
 import ProveedoresScreen from '../screens/ProveedoresScreen';
 import InsumosScreen from '../screens/InsumosScreen';
-import CategoriaInsumosScreen from '../screens/CategoriaInsumosScreen';
+import CategoriaInsumosScreen from '../screens/categoria insumos/CategoriaInsumosScreen';
 import AgendaScreen from '../screens/AgendaScreen';
 import CitasScreen from '../screens/citas/CitasScreen';
 import ServiciosScreen from '../screens/ServiciosScreen';

@@ -12,15 +12,11 @@ import ClientesScreen from '../screens/clientes/ClientesScreen';
 import BarberosScreen from '../screens/barberos/BarberosScreen';
 import RolesScreen from '../screens/roles/RolesScreen';
 import ComprasScreen from '../screens/compras/ComprasScreen';
-<<<<<<< HEAD
+
 import ProveedoresScreen from '../screens/proveedores/ProveedoresScreen';
 import InsumosScreen from '../screens/insumos/InsumosScreen';
-import CategoriaInsumosScreen from '../screens/CategoriaInsumosScreen';
-=======
-import ProveedoresScreen from '../screens/ProveedoresScreen';
-import InsumosScreen from '../screens/InsumosScreen';
 import CategoriaInsumosScreen from '../screens/categoria insumos/CategoriaInsumosScreen';
->>>>>>> 51d062397cb04a5e560a9c9d6e9260f9fd933232
+
 import AgendaScreen from '../screens/AgendaScreen';
 import CitasScreen from '../screens/citas/CitasScreen';
 import ServiciosScreen from '../screens/servicios/ServiciosScreen';

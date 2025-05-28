@@ -20,7 +20,7 @@ import CategoriaInsumosScreen from '../screens/categoria insumos/CategoriaInsumo
 import AgendaScreen from '../screens/AgendaScreen';
 import CitasScreen from '../screens/citas/CitasScreen';
 import ServiciosScreen from '../screens/servicios/ServiciosScreen';
-import MovimientosScreen from '../screens/MovimientosScreen';
+import MovimientosScreen from '../screens/movimientos/MovimientosScreen';
 import VentasScreen from '../screens/ventas/VentasScreen';
 
 const Stack = createNativeStackNavigator();

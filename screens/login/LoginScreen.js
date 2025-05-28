@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Image, StyleSheet } from 'react-native';
-import LoginForm from '../components/LoginForm';
+import LoginForm from '../../components/LoginForm';
 
 const LoginScreen = () => {
   return (

@@ -73,8 +73,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContainer: {
-    width: '80%',
-    maxWidth: 300,
+    width: '40%',
+    minWidth: 300, // Mantenemos un mínimo para buena legibilidad
   },
   modalContent: {
     backgroundColor: 'white',
@@ -108,10 +108,12 @@ const styles = StyleSheet.create({
     marginVertical: 12,
   },
   closeButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#424242',
     padding: 10,
     borderRadius: 4,
     alignItems: 'center',
+    width: '50%', // Hacemos el botón más angosto
+    alignSelf: 'center', // Centramos el botón
   },
   closeButtonText: {
     color: 'white',

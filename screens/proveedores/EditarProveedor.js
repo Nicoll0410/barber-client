@@ -143,6 +143,7 @@ const EditarProveedor = ({ visible, onClose, proveedor, onUpdate }) => {
                       onChangeText={setNumeroDocumento}
                       keyboardType="numeric"
                       placeholder="Ej: 123456789"
+                      placeholderTextColor="#929292"
                     />
                   </View>
 
@@ -153,6 +154,7 @@ const EditarProveedor = ({ visible, onClose, proveedor, onUpdate }) => {
                       value={nombre}
                       onChangeText={setNombre}
                       placeholder="Nombre completo"
+                      placeholderTextColor="#929292"
                     />
                   </View>
                 </>
@@ -166,6 +168,7 @@ const EditarProveedor = ({ visible, onClose, proveedor, onUpdate }) => {
                       onChangeText={setNit}
                       keyboardType="numeric"
                       placeholder="Número de NIT"
+                      placeholderTextColor="#929292"
                     />
                   </View>
 
@@ -176,6 +179,7 @@ const EditarProveedor = ({ visible, onClose, proveedor, onUpdate }) => {
                       value={nombreEmpresa}
                       onChangeText={setNombreEmpresa}
                       placeholder="Razón social"
+                      placeholderTextColor="#929292"
                     />
                   </View>
 
@@ -186,6 +190,7 @@ const EditarProveedor = ({ visible, onClose, proveedor, onUpdate }) => {
                       value={personaContacto}
                       onChangeText={setPersonaContacto}
                       placeholder="Nombre del contacto"
+                      placeholderTextColor="#929292"
                     />
                   </View>
                 </>
@@ -199,6 +204,7 @@ const EditarProveedor = ({ visible, onClose, proveedor, onUpdate }) => {
                   onChangeText={setEmail}
                   keyboardType="email-address"
                   placeholder="Ej: nombre@dominio.com"
+                  placeholderTextColor="#929292"
                 />
               </View>
 
@@ -210,6 +216,7 @@ const EditarProveedor = ({ visible, onClose, proveedor, onUpdate }) => {
                   onChangeText={setTelefono}
                   keyboardType="phone-pad"
                   placeholder="Ej: 1234567890"
+                  placeholderTextColor="#929292"
                 />
               </View>
             </ScrollView>
@@ -247,6 +254,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 4,
+    borderWidth: 1,
+    borderColor: 'black',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -288,21 +297,22 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 8,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#929292',
     borderRadius: 6,
     marginRight: 6,
     alignItems: 'center',
+    backgroundColor: 'white',
   },
   radioButtonSelected: {
-    borderColor: '#4CAF50',
-    backgroundColor: '#E8F5E9',
+    borderColor: '#424242',
+    backgroundColor: '#424242',
   },
   radioButtonText: {
     fontSize: 12,
-    color: '#666',
+    color: 'black',
   },
   radioButtonTextSelected: {
-    color: '#2E7D32',
+    color: 'white',
     fontWeight: '500',
   },
   formGroup: {
@@ -341,18 +351,19 @@ const styles = StyleSheet.create({
     marginRight: 8,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#929292',
     alignItems: 'center',
     minWidth: 80,
+    backgroundColor: 'white',
   },
   cancelButtonText: {
     fontSize: 13,
-    color: '#666',
+    color: 'black',
     fontWeight: '500',
   },
   acceptButton: {
     padding: 8,
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#424242',
     borderRadius: 6,
     alignItems: 'center',
     minWidth: 80,

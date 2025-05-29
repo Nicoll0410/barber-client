@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
-import { MaterialIcons, FontAwesome, Feather, Ionicons, AntDesign } from '@expo/vector-icons';
+import { MaterialIcons, FontAwesome, Feather, Ionicons } from '@expo/vector-icons';
 import Paginacion from '../../components/Paginacion';
 import Buscador from '../../components/Buscador';
 import CrearProveedor from './CrearProveedor';
@@ -26,12 +26,12 @@ const TipoProveedor = ({ tipo }) => (
   <View style={styles.tipoContainer}>
     {tipo === 'Persona' ? (
       <>
-        <MaterialIcons name="person" size={16} color="#5D4037" />
+        <MaterialIcons name="person" size={16} color="black" />
         <Text style={styles.tipoTexto}>Persona</Text>
       </>
     ) : (
       <>
-        <MaterialIcons name="business" size={16} color="#0288D1" />
+        <MaterialIcons name="business" size={16} color="black" />
         <Text style={styles.tipoTexto}>Empresa</Text>
       </>
     )}
@@ -43,17 +43,17 @@ const TipoIdentificacion = ({ tipo }) => (
   <View style={styles.tipoIdContainer}>
     {tipo === 'CC' ? (
       <>
-        <MaterialIcons name="badge" size={16} color="#7B1FA2" />
+        <MaterialIcons name="badge" size={16} color="black" />
         <Text style={styles.tipoIdTexto}>Cédula</Text>
       </>
     ) : tipo === 'CE' ? (
       <>
-        <MaterialIcons name="card-membership" size={16} color="#7B1FA2" />
+        <MaterialIcons name="card-membership" size={16} color="black" />
         <Text style={styles.tipoIdTexto}>Cédula Ext.</Text>
       </>
     ) : (
       <>
-        <MaterialIcons name="receipt" size={16} color="#7B1FA2" />
+        <MaterialIcons name="receipt" size={16} color="black" />
         <Text style={styles.tipoIdTexto}>NIT</Text>
       </>
     )}
@@ -181,9 +181,14 @@ const ProveedoresScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.titulo}>Proveedores ({proveedoresFiltrados.length})</Text>
+        <View style={styles.tituloContainer}>
+          <Text style={styles.titulo}>Proveedores</Text>
+          <View style={styles.contadorContainer}>
+            <Text style={styles.contadorTexto}>{proveedoresFiltrados.length}</Text>
+          </View>
+        </View>
         <TouchableOpacity style={styles.botonCrear} onPress={crearProveedor}>
-          <Ionicons name="add-circle" size={24} color="#4CAF50" />
+          <Ionicons name="add-circle" size={24} color="white" />
           <Text style={styles.textoBoton}>Crear Proveedor</Text>
         </TouchableOpacity>
       </View>
@@ -230,13 +235,13 @@ const ProveedoresScreen = () => {
               <View style={[styles.celda, styles.columnaAcciones]}>
                 <View style={styles.contenedorAcciones}>
                   <TouchableOpacity onPress={() => verProveedor(item.id)} style={styles.botonAccion}>
-                    <FontAwesome name="eye" size={20} color="#2196F3" />
+                    <FontAwesome name="eye" size={20} color="black" />
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => editarProveedor(item.id)} style={styles.botonAccion}>
-                    <Feather name="edit" size={20} color="#FFC107" />
+                    <Feather name="edit" size={20} color="black" />
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => eliminarProveedor(item.id)} style={styles.botonAccion}>
-                    <Feather name="trash-2" size={20} color="#F44336" />
+                    <Feather name="trash-2" size={20} color="black" />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -285,23 +290,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
+  tituloContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   titulo: {
     fontSize: 24,
     fontWeight: 'bold',
+    marginRight: 10,
+  },
+  contadorContainer: {
+    backgroundColor: '#D9D9D9',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  contadorTexto: {
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   botonCrear: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#e8f5e9',
+    backgroundColor: '#424242',
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#c8e6c9',
+    borderColor: '#424242',
   },
   textoBoton: {
     marginLeft: 8,
-    color: '#2e7d32',
+    color: 'white',
     fontWeight: '500',
   },
   tabla: {
@@ -313,7 +335,7 @@ const styles = StyleSheet.create({
   },
   filaEncabezado: {
     flexDirection: 'row',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#424242',
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
@@ -327,8 +349,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: 'black',
     alignItems: 'center',
+    backgroundColor: 'white',
   },
   celda: {
     justifyContent: 'center',
@@ -377,6 +400,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
     fontSize: 12,
+    color: 'white',
   },
   contenedorAcciones: {
     flexDirection: 'row',
@@ -394,6 +418,7 @@ const styles = StyleSheet.create({
   tipoTexto: {
     marginLeft: 4,
     fontSize: 12,
+    color: 'black',
   },
   tipoIdContainer: {
     flexDirection: 'row',
@@ -403,6 +428,7 @@ const styles = StyleSheet.create({
   tipoIdTexto: {
     marginLeft: 4,
     fontSize: 12,
+    color: 'black',
   },
   avatarContainer: {
     width: 36,

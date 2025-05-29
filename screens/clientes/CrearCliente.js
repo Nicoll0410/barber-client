@@ -266,10 +266,10 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
                         calendarBackground: 'transparent',
                         textSectionTitleColor: '#666',
                         dayTextColor: '#333',
-                        todayTextColor: '#4CAF50',
+                        todayTextColor: '#424242',
                         selectedDayTextColor: '#fff',
-                        selectedDayBackgroundColor: '#4CAF50',
-                        arrowColor: '#4CAF50',
+                        selectedDayBackgroundColor: '#424242',
+                        arrowColor: '#424242',
                         monthTextColor: '#333',
                         textDayFontWeight: '400',
                         textMonthFontWeight: 'bold',
@@ -425,7 +425,7 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '90%',
     maxWidth: 500,
-    maxHeight: '85%',
+    maxHeight: '90%',
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 15,
     overflow: 'hidden',
@@ -474,8 +474,8 @@ const styles = StyleSheet.create({
     color: 'red',
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
+    borderWidth: 2,  // Aumentado de 1 a 2
+    borderColor: '#424242',  // Cambiado de #ddd a #424242
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -484,8 +484,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
   },
   dateInput: {
-    borderWidth: 1,
-    borderColor: '#ddd',
+    borderWidth: 2,  // Aumentado de 1 a 2
+    borderColor: '#424242',  // Cambiado de #ddd a #424242
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -506,8 +506,8 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   passwordInput: {
-    borderWidth: 1,
-    borderColor: '#ddd',
+    borderWidth: 2,  // Aumentado de 1 a 2
+    borderColor: '#424242',  // Cambiado de #ddd a #424242
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -522,8 +522,8 @@ const styles = StyleSheet.create({
     top: 12,
   },
   avatarSelector: {
-    borderWidth: 1,
-    borderColor: '#ddd',
+    borderWidth: 2,  // Aumentado de 1 a 2
+    borderColor: '#424242',  // Cambiado de #ddd a #424242
     borderRadius: 8,
     height: 100,
     justifyContent: 'center',
@@ -629,7 +629,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
   },
   selectedYearButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#424242',  // Cambiado de #4CAF50 a #424242
   },
   yearButtonText: {
     color: '#666',
@@ -653,7 +653,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   datePickerButtonText: {
-    color: '#4CAF50',
+    color: '#424242',  // Cambiado de #4CAF50 a #424242
     fontWeight: 'bold',
   },
 });

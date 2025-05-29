@@ -6,7 +6,7 @@ import { BlurView } from 'expo-blur';
 const DetalleCliente = ({ visible, onClose, cliente }) => {
   if (!cliente) return null;
 
-  // Componente para el estado de verificación (igual que en ClientesScreen)
+  // Componente para el estado de verificación
   const EstadoVerificacion = ({ verificado }) => (
     <View style={[
       styles.estadoContainer,
@@ -28,7 +28,7 @@ const DetalleCliente = ({ visible, onClose, cliente }) => {
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
-      <BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFill}>
+      <BlurView intensity={20} tint="light" style={StyleSheet.absoluteFill}>
         <View style={styles.overlay}>
           <View style={styles.modal}>
             <Text style={styles.titulo}>Información del Cliente</Text>
@@ -80,6 +80,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 20,
     elevation: 10,
+    borderWidth: 1, // Borde negro agregado
+    borderColor: 'black', // Color del borde
   },
   titulo: {
     fontSize: 22,
@@ -103,16 +105,16 @@ const styles = StyleSheet.create({
   cerrar: {
     marginTop: 20,
     alignSelf: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 30, // Aumentado el ancho
     paddingVertical: 10,
-    backgroundColor: '#ccc',
-    borderRadius: 20,
+    backgroundColor: '#424242', // Fondo color #424242
+    borderRadius: 15, // Radio de 15
   },
   textoCerrar: {
     fontWeight: 'bold',
-    color: '#333',
+    color: 'white', // Texto blanco
   },
-  // Estilos para el estado de verificación (igual que en ClientesScreen)
+  // Estilos para el estado de verificación
   estadoContainer: {
     flexDirection: 'row',
     alignItems: 'center',

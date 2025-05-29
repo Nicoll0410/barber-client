@@ -15,7 +15,26 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { BlurView } from 'expo-blur';
+import { Calendar, LocaleConfig } from 'react-native-calendars';
 import moment from 'moment';
+
+// Configuración de localización en español
+LocaleConfig.locales['es'] = {
+  monthNames: [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ],
+  monthNamesShort: [
+    'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+    'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
+  ],
+  dayNames: [
+    'Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'
+  ],
+  dayNamesShort: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
+  today: 'Hoy'
+};
+LocaleConfig.defaultLocale = 'es';
 
 const { width } = Dimensions.get('window');
 
@@ -33,6 +52,15 @@ const EditarBarbero = ({ visible, onClose, barbero, onUpdate }) => {
     avatar: barbero?.avatar || null
   });
   
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
+  const months = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ];
+
   const pickImage = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -74,6 +102,26 @@ const EditarBarbero = ({ visible, onClose, barbero, onUpdate }) => {
 
   const formatDate = (fecha) => {
     return fecha ? moment(fecha).format('DD/MM/YYYY') : 'No especificada';
+  };
+
+  const changeMonth = (increment) => {
+    let newMonth = selectedMonth + increment;
+    let newYear = selectedYear;
+    
+    if (newMonth > 11) {
+      newMonth = 0;
+      newYear++;
+    } else if (newMonth < 0) {
+      newMonth = 11;
+      newYear--;
+    }
+    
+    setSelectedMonth(newMonth);
+    setSelectedYear(newYear);
+  };
+
+  const handleDayPress = (day) => {
+    setShowDatePicker(false);
   };
 
   return (
@@ -133,7 +181,6 @@ const EditarBarbero = ({ visible, onClose, barbero, onUpdate }) => {
               </View>
             </View>
 
-            {/* Fila combinada para teléfono y email */}
             <View style={styles.doubleRow}>
               <View style={[styles.formGroup, {flex: 1, marginRight: 10}]}>
                 <Text style={styles.label}>Teléfono <Text style={styles.required}>*</Text></Text>
@@ -161,24 +208,27 @@ const EditarBarbero = ({ visible, onClose, barbero, onUpdate }) => {
               </View>
             </View>
             
-            {/* Fila combinada para fechas */}
             <View style={styles.doubleRow}>
               <View style={[styles.formGroup, {flex: 1, marginRight: 10}]}>
                 <Text style={styles.label}>Fecha de nacimiento</Text>
-                <TextInput
-                  style={[styles.input, styles.disabledInput]}
-                  value={formatDate(barbero?.fechaNacimiento)}
-                  editable={false}
-                />
+                <TouchableOpacity 
+                  style={[styles.input, styles.disabledInput, {justifyContent: 'space-between', flexDirection: 'row', alignItems: 'center'}]}
+                  disabled={true}
+                >
+                  <Text>{formatDate(barbero?.fechaNacimiento)}</Text>
+                  <MaterialIcons name="calendar-today" size={20} color="#666" />
+                </TouchableOpacity>
               </View>
 
               <View style={[styles.formGroup, {flex: 1}]}>
                 <Text style={styles.label}>Fecha de contratación</Text>
-                <TextInput
-                  style={[styles.input, styles.disabledInput]}
-                  value={formatDate(barbero?.fechaContratacion)}
-                  editable={false}
-                />
+                <TouchableOpacity 
+                  style={[styles.input, styles.disabledInput, {justifyContent: 'space-between', flexDirection: 'row', alignItems: 'center'}]}
+                  disabled={true}
+                >
+                  <Text>{formatDate(barbero?.fechaContratacion)}</Text>
+                  <MaterialIcons name="calendar-today" size={20} color="#666" />
+                </TouchableOpacity>
               </View>
             </View>
             
@@ -195,6 +245,76 @@ const EditarBarbero = ({ visible, onClose, barbero, onUpdate }) => {
                 )}
               </TouchableOpacity>
             </View>
+            
+            {showDatePicker && (
+              <View style={styles.customDatePickerContainer}>
+                <View style={styles.customDatePicker}>
+                  <View style={styles.datePickerHeader}>
+                    <TouchableOpacity onPress={() => changeMonth(-1)}>
+                      <MaterialIcons name="chevron-left" size={24} color="#333" />
+                    </TouchableOpacity>
+                    
+                    <View style={styles.monthYearSelector}>
+                      <Text style={styles.monthYearText}>
+                        {months[selectedMonth]} de {selectedYear}
+                      </Text>
+                    </View>
+                    
+                    <TouchableOpacity onPress={() => changeMonth(1)}>
+                      <MaterialIcons name="chevron-right" size={24} color="#333" />
+                    </TouchableOpacity>
+                  </View>
+                  
+                  <View style={styles.calendarContainer}>
+                    <Calendar
+                      current={`${selectedYear}-${(selectedMonth + 1).toString().padStart(2, '0')}-01`}
+                      minDate={'1900-01-01'}
+                      maxDate={new Date().toISOString().split('T')[0]}
+                      onDayPress={handleDayPress}
+                      monthFormat={'MMMM yyyy'}
+                      hideArrows={true}
+                      hideExtraDays={true}
+                      disableMonthChange={true}
+                      theme={{
+                        calendarBackground: 'transparent',
+                        textSectionTitleColor: '#666',
+                        dayTextColor: '#333',
+                        todayTextColor: '#424242',
+                        selectedDayTextColor: '#fff',
+                        selectedDayBackgroundColor: '#424242',
+                        arrowColor: '#424242',
+                        monthTextColor: '#333',
+                        textDayFontWeight: '400',
+                        textMonthFontWeight: 'bold',
+                        textDayHeaderFontWeight: '500',
+                        textDayFontSize: 12,
+                        textMonthFontSize: 14,
+                        textDayHeaderFontSize: 12,
+                        'stylesheet.calendar.header': {
+                          week: {
+                            marginTop: 5,
+                            flexDirection: 'row',
+                            justifyContent: 'space-between'
+                          }
+                        }
+                      }}
+                      style={styles.calendar}
+                    />
+                  </View>
+                  
+                  <View style={styles.datePickerActions}>
+                    <TouchableOpacity 
+                      style={styles.datePickerButton}
+                      onPress={() => {
+                        setShowDatePicker(false);
+                      }}
+                    >
+                      <Text style={styles.datePickerButtonText}>Cerrar</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            )}
             
             <View style={styles.buttonContainer}>
               <TouchableOpacity 
@@ -227,7 +347,7 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '90%',
     maxWidth: 500,
-    maxHeight: '85%',
+    maxHeight: '90%',
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 15,
     overflow: 'hidden',
@@ -276,8 +396,8 @@ const styles = StyleSheet.create({
     color: 'red',
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
+    borderWidth: 2,
+    borderColor: '#424242',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -290,8 +410,8 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   pickerContainer: {
-    borderWidth: 1,
-    borderColor: '#ddd',
+    borderWidth: 2,
+    borderColor: '#424242',
     borderRadius: 8,
     overflow: 'hidden',
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
@@ -301,8 +421,8 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   avatarSelector: {
-    borderWidth: 1,
-    borderColor: '#ddd',
+    borderWidth: 2,
+    borderColor: '#424242',
     borderRadius: 8,
     height: 100,
     justifyContent: 'center',
@@ -355,6 +475,85 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     fontSize: 15,
     color: 'black',
+  },
+  customDatePickerContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    zIndex: 1000,
+  },
+  customDatePicker: {
+    width: width * 0.85,
+    maxWidth: 350,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    maxHeight: '80%',
+  },
+  datePickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  monthYearSelector: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  monthYearText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  yearSelectorContainer: {
+    marginBottom: 10,
+  },
+  yearScrollContent: {
+    paddingHorizontal: 10,
+  },
+  yearButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginHorizontal: 4,
+    borderRadius: 15,
+  },
+  selectedYearButton: {
+    backgroundColor: '#424242',
+  },
+  yearButtonText: {
+    color: '#666',
+  },
+  selectedYearButtonText: {
+    color: 'white',
+  },
+  calendarContainer: {
+    height: 250,
+    overflow: 'hidden',
+  },
+  calendar: {
+    marginBottom: 10,
+  },
+  datePickerActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  datePickerButton: {
+    padding: 10,
+    borderRadius: 5,
+  },
+  datePickerButtonText: {
+    color: '#424242',
+    fontWeight: 'bold',
   },
 });
 

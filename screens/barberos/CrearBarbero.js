@@ -1,9 +1,22 @@
 import React, { useState } from 'react';
-import { View, Text, Modal, TextInput, TouchableOpacity, StyleSheet, ScrollView, Image, Alert, Dimensions, Picker } from 'react-native';
+import { 
+  View, 
+  Text, 
+  Modal,
+  TouchableOpacity, 
+  TextInput, 
+  Image, 
+  Alert,
+  StyleSheet,
+  ScrollView,
+  Dimensions,
+  Picker
+} from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { BlurView } from 'expo-blur';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
+import moment from 'moment';
 
 // Configuración de localización en español
 LocaleConfig.locales['es'] = {
@@ -26,7 +39,7 @@ LocaleConfig.defaultLocale = 'es';
 const { width } = Dimensions.get('window');
 
 const CrearBarbero = ({ visible, onClose, onCreate }) => {
-  // Roles de ejemplo (deberías obtenerlos de tu vista de roles)
+  // Roles de ejemplo
   const [roles, setRoles] = useState([
     { id: 1, nombre: 'Barbero Master' },
     { id: 2, nombre: 'Barbero Senior' },
@@ -53,7 +66,7 @@ const CrearBarbero = ({ visible, onClose, onCreate }) => {
   const [showDatePickerContratacion, setShowDatePickerContratacion] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [pickerType, setPickerType] = useState('nacimiento'); // 'nacimiento' o 'contratacion'
+  const [pickerType, setPickerType] = useState('nacimiento');
 
   const months = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -373,10 +386,10 @@ const CrearBarbero = ({ visible, onClose, onCreate }) => {
                         calendarBackground: 'transparent',
                         textSectionTitleColor: '#666',
                         dayTextColor: '#333',
-                        todayTextColor: '#4CAF50',
+                        todayTextColor: '#424242',
                         selectedDayTextColor: '#fff',
-                        selectedDayBackgroundColor: '#4CAF50',
-                        arrowColor: '#4CAF50',
+                        selectedDayBackgroundColor: '#424242',
+                        arrowColor: '#424242',
                         monthTextColor: '#333',
                         textDayFontWeight: '400',
                         textMonthFontWeight: 'bold',
@@ -531,7 +544,7 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '90%',
     maxWidth: 500,
-    maxHeight: '85%',
+    maxHeight: '90%',
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 15,
     overflow: 'hidden',
@@ -580,8 +593,8 @@ const styles = StyleSheet.create({
     color: 'red',
   },
   pickerContainer: {
-    borderWidth: 1,
-    borderColor: '#ddd',
+    borderWidth: 2,
+    borderColor: '#424242',
     borderRadius: 8,
     overflow: 'hidden',
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
@@ -591,8 +604,8 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
+    borderWidth: 2,
+    borderColor: '#424242',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -601,8 +614,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
   },
   dateInput: {
-    borderWidth: 1,
-    borderColor: '#ddd',
+    borderWidth: 2,
+    borderColor: '#424242',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -623,8 +636,8 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   passwordInput: {
-    borderWidth: 1,
-    borderColor: '#ddd',
+    borderWidth: 2,
+    borderColor: '#424242',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -639,8 +652,8 @@ const styles = StyleSheet.create({
     top: 12,
   },
   avatarSelector: {
-    borderWidth: 1,
-    borderColor: '#ddd',
+    borderWidth: 2,
+    borderColor: '#424242',
     borderRadius: 8,
     height: 100,
     justifyContent: 'center',
@@ -746,7 +759,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
   },
   selectedYearButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#424242',
   },
   yearButtonText: {
     color: '#666',
@@ -770,7 +783,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   datePickerButtonText: {
-    color: '#4CAF50',
+    color: '#424242',
     fontWeight: 'bold',
   },
 });

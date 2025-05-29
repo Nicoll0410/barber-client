@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '90%',
     maxWidth: 500,
-    maxHeight: '85%',
+    maxHeight: '90%',
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 15,
     overflow: 'hidden',
@@ -232,8 +232,8 @@ const styles = StyleSheet.create({
     color: 'red',
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
+    borderWidth: 2,
+    borderColor: '#424242',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -246,8 +246,8 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   avatarSelector: {
-    borderWidth: 1,
-    borderColor: '#ddd',
+    borderWidth: 2,
+    borderColor: '#424242',
     borderRadius: 8,
     height: 100,
     justifyContent: 'center',

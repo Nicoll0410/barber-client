@@ -2,8 +2,8 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createDrawerNavigator } from '@react-navigation/drawer';
-import LoginScreen from '../screens/LoginScreen';
-import DashboardScreen from '../screens/DashboardScreen';
+import LoginScreen from '../screens/login/LoginScreen';
+import DashboardScreen from '../screens/dashboard/DashboardScreen';
 import CustomDrawer from '../components/CustomDrawer';
 
 // IMPORTAR PANTALLAS EXTRAS
@@ -12,12 +12,12 @@ import BarberosScreen from '../screens/barberos/BarberosScreen';
 import RolesScreen from '../screens/roles/RolesScreen';
 import ComprasScreen from '../screens/compras/ComprasScreen';
 import ProveedoresScreen from '../screens/proveedores/ProveedoresScreen';
-import InsumosScreen from '../screens/insumos/InsumosScreen'; 
+import InsumosScreen from '../screens/insumos/InsumosScreen';
 import CategoriaInsumosScreen from '../screens/categoria insumos/CategoriaInsumosScreen';
-import AgendaScreen from '../screens/AgendaScreen';
+import AgendaScreen from '../screens/agenda/AgendaScreen';
 import CitasScreen from '../screens/citas/CitasScreen';
 import ServiciosScreen from '../screens/servicios/ServiciosScreen';
-import MovimientosScreen from '../screens/MovimientosScreen';
+import MovimientosScreen from '../screens/movimientos/MovimientosScreen';
 import VentasScreen from '../screens/ventas/VentasScreen';
 import ControlInsumos from '../screens/insumos/ControlInsumos';
 

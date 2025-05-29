@@ -1,202 +1,185 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Dimensions } from 'react-native';
+import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
 import { AntDesign, FontAwesome, MaterialIcons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 
 const { width } = Dimensions.get('window');
 
 const DetalleVenta = ({ visible, onClose, venta }) => {
   return (
-    <Modal
-      animationType="fade"
-      transparent={true}
-      visible={visible}
-      onRequestClose={onClose}
-    >
-      <View style={styles.modalContainer}>
-        <View style={styles.modalContent}>
-          {/* Encabezado del modal */}
-          <View style={styles.header}>
-            <Text style={styles.tituloServicio}>Masaje con crema de coco</Text>
-            <Text style={styles.descripcionServicio}>masajedfgdfgdfg</Text>
-          </View>
-
-          {/* Detalles de la venta */}
-          <View style={styles.detalleContainer}>
-            <View style={styles.itemDetalle}>
-              <MaterialIcons name="date-range" size={16} color="#555" style={styles.icono} />
-              <Text style={styles.textoDetalle}>10 de septiembre de 2024</Text>
-            </View>
-
-            <View style={styles.itemDetalle}>
-              <FontAwesome name="clock-o" size={16} color="#555" style={styles.icono} />
-              <Text style={styles.textoDetalle}>08:00 a.m. - 08:30 a.m. (30 minutos de duración)</Text>
-            </View>
-
-            <View style={styles.precioWrapper}>
-              <View style={styles.precioContainer}>
-                <Text style={styles.precio}>$ 14.000.000</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Información del profesional y paciente */}
-          <View style={styles.infoContainer}>
-            <View style={styles.clienteContainer}>
-              <View style={styles.avatarCliente}>
-                <Text style={styles.avatarText}>A</Text>
-              </View>
-              <Text style={styles.nombrePaciente}>Paciente</Text>
-            </View>
+    <Modal visible={visible} animationType="slide" transparent>
+      <BlurView intensity={20} tint="light" style={StyleSheet.absoluteFill}>
+        <View style={styles.overlay}>
+          <View style={styles.modal}>
+            <Text style={styles.titulo}>Detalle de la Venta</Text>
             
-            <View style={styles.barberoContainer}>
-              <Text style={styles.nombreProfesional}>Martha Cosmetólogo</Text>
-              <View style={styles.avatarBarbero}>
-                <Text style={styles.avatarText}>M</Text>
+            <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
+              {/* Encabezado del servicio */}
+              <View style={styles.item}>
+                <Text style={styles.label}>Servicio</Text>
+                <Text style={[styles.value, { fontWeight: '600' }]}>Masaje con crema de coco</Text>
+                <Text style={[styles.value, { fontSize: 14, color: '#777' }]}>masajedfgdfgdfg</Text>
               </View>
-            </View>
-          </View>
 
-          {/* Botón de cerrar */}
-          <TouchableOpacity style={styles.botonCerrar} onPress={onClose}>
-            <Text style={styles.textoBotonCerrar}>Cerrar</Text>
-          </TouchableOpacity>
+              {/* Detalles de fecha y hora */}
+              <View style={styles.item}>
+                <Text style={styles.label}>Fecha y Hora</Text>
+                <View style={styles.detailRow}>
+                  <MaterialIcons name="date-range" size={16} color="#555" style={styles.icono} />
+                  <Text style={styles.value}>10 de septiembre de 2024</Text>
+                </View>
+                <View style={styles.detailRow}>
+                  <FontAwesome name="clock-o" size={16} color="#555" style={styles.icono} />
+                  <Text style={styles.value}>08:00 a.m. - 08:30 a.m. (30 minutos de duración)</Text>
+                </View>
+              </View>
+
+              {/* Precio */}
+              <View style={styles.item}>
+                <Text style={styles.label}>Precio</Text>
+                <View style={styles.precioContainer}>
+                  <Text style={styles.precio}>$ 14.000.000</Text>
+                </View>
+              </View>
+
+              {/* Información del profesional y paciente */}
+              <View style={styles.item}>
+                <Text style={styles.label}>Participantes</Text>
+                <View style={styles.participantesContainer}>
+                  <View style={styles.participante}>
+                    <View style={[styles.avatar, styles.avatarPaciente]}>
+                      <Text style={styles.avatarText}>A</Text>
+                    </View>
+                    <Text style={styles.participanteNombre}>Paciente</Text>
+                  </View>
+                  
+                  <View style={styles.participante}>
+                    <Text style={styles.participanteNombre}>Martha Cosmetólogo</Text>
+                    <View style={[styles.avatar, styles.avatarProfesional]}>
+                      <Text style={styles.avatarText}>M</Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </ScrollView>
+
+            <TouchableOpacity style={styles.cerrar} onPress={onClose}>
+              <Text style={styles.textoCerrar}>Cerrar</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      </BlurView>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  modalContainer: {
+  overlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
   },
-  modalContent: {
+  modal: {
     width: width * 0.4,
-    backgroundColor: 'white',
+    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 5,
+    elevation: 10,
+    borderWidth: 1,
+    borderColor: 'black',
+    maxHeight: '80%',
   },
-  header: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    paddingBottom: 12,
-    marginBottom: 12,
+  scrollContainer: {
+    flexGrow: 1,
   },
-  tituloServicio: {
-    fontSize: 18,
-    fontWeight: '600',
+  scrollContent: {
+    paddingBottom: 10,
+  },
+  titulo: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  item: {
+    marginBottom: 14,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#555',
     marginBottom: 4,
-    textAlign: 'center',
-    color: '#333',
   },
-  descripcionServicio: {
-    fontSize: 13,
-    color: '#777',
-    textAlign: 'center',
+  value: {
+    fontSize: 16,
+    color: '#222',
+    marginBottom: 4,
   },
-  detalleContainer: {
-    marginBottom: 16,
-  },
-  itemDetalle: {
+  detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   icono: {
     marginRight: 10,
     width: 20,
     textAlign: 'center',
   },
-  textoDetalle: {
-    fontSize: 14,
-    flex: 1,
-    color: '#444',
-  },
-  precioWrapper: {
-    flexDirection: 'row',
-    marginTop: 8,
-  },
   precioContainer: {
     backgroundColor: '#e8f5e9',
     borderRadius: 6,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    alignSelf: 'flex-start', // Esto hace que el contenedor se ajuste al contenido
+    alignSelf: 'flex-start',
   },
   precio: {
     fontSize: 16,
     fontWeight: '600',
     color: '#2e7d32',
   },
-  infoContainer: {
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-    paddingTop: 12,
-    marginBottom: 16,
+  participantesContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    marginTop: 10,
   },
-  clienteContainer: {
+  participante: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  barberoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  nombreProfesional: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginRight: 8,
-  },
-  nombrePaciente: {
+  participanteNombre: {
     fontSize: 14,
     color: '#333',
-    marginLeft: 8,
+    marginHorizontal: 8,
   },
-  avatarCliente: {
+  avatar: {
     width: 30,
     height: 30,
     borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarPaciente: {
     backgroundColor: '#2196F3',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
-  avatarBarbero: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+  avatarProfesional: {
     backgroundColor: '#FF9800',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   avatarText: {
     color: 'white',
     fontWeight: 'bold',
     fontSize: 14,
   },
-  botonCerrar: {
-    backgroundColor: '#f8f8f8',
-    padding: 10,
-    borderRadius: 6,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+  cerrar: {
+    marginTop: 20,
+    alignSelf: 'center',
+    paddingHorizontal: 30,
+    paddingVertical: 10,
+    backgroundColor: '#424242',
+    borderRadius: 15,
   },
-  textoBotonCerrar: {
-    color: '#333',
-    fontWeight: '500',
-    fontSize: 14,
+  textoCerrar: {
+    fontWeight: 'bold',
+    color: 'white',
   },
 });
 

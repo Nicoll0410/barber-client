@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 
 const CrearServicio = ({ visible, onClose, onCreate }) => {
   const [nombre, setNombre] = useState('');
@@ -49,172 +50,204 @@ const CrearServicio = ({ visible, onClose, onCreate }) => {
   if (paso === 1) {
     return (
       <Modal visible={visible} animationType="fade" transparent={true}>
-        <View style={styles.centeredView}>
-          <View style={styles.modalView}>
-            <ScrollView contentContainerStyle={styles.scrollContainer}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Crear nuevo servicio</Text>
-                <TouchableOpacity onPress={() => { onClose(); resetForm(); }}>
-                  <Ionicons name="close" size={20} color="#777" />
-                </TouchableOpacity>
-              </View>
+        <BlurView intensity={20} style={styles.blurContainer}>
+          <View style={styles.centeredView}>
+            <View style={styles.modalView}>
+              <ScrollView contentContainerStyle={styles.scrollContainer}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Crear nuevo servicio</Text>
+                  <TouchableOpacity onPress={() => { onClose(); resetForm(); }}>
+                    <Ionicons name="close" size={20} color="#777" />
+                  </TouchableOpacity>
+                </View>
 
-              <Text style={styles.subtitle}>Información del servicio</Text>
+                <Text style={styles.subtitle}>Información del servicio</Text>
 
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Nombre *</Text>
-                <TextInput
-                  style={styles.input}
-                  value={nombre}
-                  onChangeText={setNombre}
-                  placeholder="Ej: Masajes"
-                />
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Descripción *</Text>
-                <TextInput
-                  style={[styles.input, styles.textArea]}
-                  value={descripcion}
-                  onChangeText={setDescripcion}
-                  placeholder="Descripción breve"
-                  multiline
-                />
-              </View>
-
-              <View style={styles.formRow}>
-                <View style={[styles.formGroup, { flex: 1, marginRight: 8 }]}>
-                  <Text style={styles.label}>Duración *</Text>
+                <View style={styles.formGroup}>
+                  <Text style={styles.label}>
+                    <Text style={styles.labelText}>Nombre </Text>
+                    <Text style={styles.required}>*</Text>
+                  </Text>
                   <TextInput
                     style={styles.input}
-                    value={duracion}
-                    onChangeText={setDuracion}
-                    placeholder="HH:MM"
+                    value={nombre}
+                    onChangeText={setNombre}
+                    placeholder="Ej: Masajes"
+                    placeholderTextColor="#D9D9D9"
                   />
                 </View>
-                <View style={[styles.formGroup, { flex: 1 }]}>
-                  <Text style={styles.label}>Precio *</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={precio}
-                    onChangeText={setPrecio}
-                    placeholder="COP"
-                    keyboardType="numeric"
-                  />
-                </View>
-              </View>
 
-              <TouchableOpacity 
-                style={[styles.nextButton, (!nombre || !descripcion || !duracion || !precio) && styles.disabledButton]} 
-                onPress={() => setPaso(2)}
-                disabled={!nombre || !descripcion || !duracion || !precio}
-              >
-                <Text style={styles.nextButtonText}>Continuar</Text>
-                <Ionicons name="arrow-forward" size={16} color="white" style={{ marginLeft: 5 }} />
-              </TouchableOpacity>
-            </ScrollView>
+                <View style={styles.formGroup}>
+                  <Text style={styles.label}>
+                    <Text style={styles.labelText}>Descripción </Text>
+                    <Text style={styles.required}>*</Text>
+                  </Text>
+                  <TextInput
+                    style={[styles.input, styles.textArea]}
+                    value={descripcion}
+                    onChangeText={setDescripcion}
+                    placeholder="Descripción breve"
+                    placeholderTextColor="#D9D9D9"
+                    multiline
+                  />
+                </View>
+
+                <View style={styles.formRow}>
+                  <View style={[styles.formGroup, { flex: 1, marginRight: 8 }]}>
+                    <Text style={styles.label}>
+                      <Text style={styles.labelText}>Duración </Text>
+                      <Text style={styles.required}>*</Text>
+                    </Text>
+                    <TextInput
+                      style={styles.input}
+                      value={duracion}
+                      onChangeText={setDuracion}
+                      placeholder="HH:MM"
+                      placeholderTextColor="#D9D9D9"
+                    />
+                  </View>
+                  <View style={[styles.formGroup, { flex: 1 }]}>
+                    <Text style={styles.label}>
+                      <Text style={styles.labelText}>Precio </Text>
+                      <Text style={styles.required}>*</Text>
+                    </Text>
+                    <TextInput
+                      style={styles.input}
+                      value={precio}
+                      onChangeText={setPrecio}
+                      placeholder="COP"
+                      placeholderTextColor="#D9D9D9"
+                      keyboardType="numeric"
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.buttonContainer}>
+                  <TouchableOpacity 
+                    style={[styles.nextButton, (!nombre || !descripcion || !duracion || !precio) && styles.disabledButton]} 
+                    onPress={() => setPaso(2)}
+                    disabled={!nombre || !descripcion || !duracion || !precio}
+                  >
+                    <Text style={styles.nextButtonText}>Continuar</Text>
+                    <Ionicons name="arrow-forward" size={16} color="white" style={{ marginLeft: 5 }} />
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            </View>
           </View>
-        </View>
+        </BlurView>
       </Modal>
     );
   }
 
   return (
     <Modal visible={visible} animationType="fade" transparent={true}>
-      <View style={styles.centeredView}>
-        <View style={styles.modalView}>
-          <ScrollView contentContainerStyle={styles.scrollContainer}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Insumos del servicio</Text>
-              <TouchableOpacity onPress={() => setPaso(1)}>
-                <Ionicons name="arrow-back" size={20} color="#777" />
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.subtitle}>Agrega los insumos requeridos</Text>
-
-            <View style={styles.insumoForm}>
-              <Text style={styles.label}>Nombre del insumo *</Text>
-              <TextInput
-                style={styles.input}
-                value={nuevoInsumo}
-                onChangeText={setNuevoInsumo}
-                placeholder="Ej: Toallas"
-              />
-
-              <Text style={styles.label}>Cantidad *</Text>
-              <TextInput
-                style={styles.input}
-                value={cantidad}
-                onChangeText={setCantidad}
-                placeholder="0"
-                keyboardType="numeric"
-              />
-
-              <TouchableOpacity 
-                style={[styles.addButton, (!nuevoInsumo || !cantidad) && styles.disabledButton]}
-                onPress={agregarInsumo}
-                disabled={!nuevoInsumo || !cantidad}
-              >
-                <Text style={styles.addButtonText}>Agregar insumo</Text>
-              </TouchableOpacity>
-            </View>
-
-            {insumos.map((insumo, index) => (
-              <View key={index} style={styles.insumoItem}>
-                <View>
-                  <Text style={styles.insumoNombre}>{insumo.nombre}</Text>
-                  <Text style={styles.insumoCantidad}>Cantidad: {insumo.cantidad}</Text>
-                </View>
-                <TouchableOpacity 
-                  style={styles.deleteButton}
-                  onPress={() => eliminarInsumo(index)}
-                >
-                  <Ionicons name="trash-outline" size={18} color="#ff4444" />
+      <BlurView intensity={20} style={styles.blurContainer}>
+        <View style={styles.centeredView}>
+          <View style={styles.modalView}>
+            <ScrollView contentContainerStyle={styles.scrollContainer}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Insumos del servicio</Text>
+                <TouchableOpacity onPress={() => setPaso(1)}>
+                  <Ionicons name="arrow-back" size={20} color="#777" />
                 </TouchableOpacity>
               </View>
-            ))}
 
-            <View style={styles.footerButtons}>
-              <TouchableOpacity 
-                style={[styles.actionButton, styles.backButton]}
-                onPress={() => setPaso(1)}
-              >
-                <Text style={styles.backButtonText}>Regresar</Text>
-              </TouchableOpacity>
+              <Text style={styles.subtitle}>Agrega los insumos requeridos</Text>
 
-              <TouchableOpacity 
-                style={[styles.actionButton, styles.submitButton]}
-                onPress={handleCreate}
-              >
-                <Text style={styles.submitButtonText}>Guardar</Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
+              <View style={styles.insumoForm}>
+                <Text style={styles.label}>
+                  <Text style={styles.labelText}>Nombre del insumo </Text>
+                  <Text style={styles.required}>*</Text>
+                </Text>
+                <TextInput
+                  style={styles.input}
+                  value={nuevoInsumo}
+                  onChangeText={setNuevoInsumo}
+                  placeholder="Ej: Toallas"
+                  placeholderTextColor="#D9D9D9"
+                />
+
+                <Text style={styles.label}>
+                  <Text style={styles.labelText}>Cantidad </Text>
+                  <Text style={styles.required}>*</Text>
+                </Text>
+                <TextInput
+                  style={styles.input}
+                  value={cantidad}
+                  onChangeText={setCantidad}
+                  placeholder="0"
+                  placeholderTextColor="#D9D9D9"
+                  keyboardType="numeric"
+                />
+
+                <TouchableOpacity 
+                  style={[styles.addButton, (!nuevoInsumo || !cantidad) ? styles.disabledAddButton : styles.activeAddButton]}
+                  onPress={agregarInsumo}
+                  disabled={!nuevoInsumo || !cantidad}
+                >
+                  <Text style={styles.addButtonText}>Agregar insumo</Text>
+                </TouchableOpacity>
+              </View>
+
+              {insumos.map((insumo, index) => (
+                <View key={index} style={styles.insumoItem}>
+                  <View>
+                    <Text style={styles.insumoNombre}>{insumo.nombre}</Text>
+                    <Text style={styles.insumoCantidad}>Cantidad: {insumo.cantidad}</Text>
+                  </View>
+                  <TouchableOpacity 
+                    style={styles.deleteButton}
+                    onPress={() => eliminarInsumo(index)}
+                  >
+                    <Ionicons name="trash-outline" size={18} color="#ff4444" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+
+              <View style={styles.footerButtons}>
+                <TouchableOpacity 
+                  style={styles.backButton}
+                  onPress={() => setPaso(1)}
+                >
+                  <Text style={styles.backButtonText}>Regresar</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={styles.submitButton}
+                  onPress={handleCreate}
+                >
+                  <Text style={styles.submitButtonText}>Guardar</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
         </View>
-      </View>
+      </BlurView>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  centeredView: {
+  blurContainer: {
     flex: 1,
+    width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  centeredView: {
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalView: {
-    width: '40%', // Porcentaje directo
-    maxHeight: '80%',
+    width: '40%',
+    height: '100%', // Cambiado de maxHeight a height y aumentado a 85%
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'black',
   },
   scrollContainer: {
     flexGrow: 1,
@@ -244,13 +277,18 @@ const styles = StyleSheet.create({
   },
   label: {
     marginBottom: 4,
-    fontWeight: '500',
-    color: '#555',
     fontSize: 13,
   },
+  labelText: {
+    fontWeight: '500',
+    color: 'black',
+  },
+  required: {
+    color: 'red',
+  },
   input: {
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderWidth: 1.5,
+    borderColor: '#424242',
     borderRadius: 6,
     padding: 10,
     fontSize: 14,
@@ -261,17 +299,21 @@ const styles = StyleSheet.create({
     height: 70,
     textAlignVertical: 'top',
   },
+  buttonContainer: {
+    alignItems: 'center',
+    marginTop: 12,
+  },
   nextButton: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#424242',
     padding: 10,
     borderRadius: 6,
-    marginTop: 12,
+    width: '60%',
   },
   disabledButton: {
-    backgroundColor: '#a5d6a7',
+    backgroundColor: '#D9D9D9',
   },
   nextButtonText: {
     color: 'white',
@@ -279,11 +321,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   addButton: {
-    backgroundColor: '#2196F3',
     padding: 10,
     borderRadius: 6,
     alignItems: 'center',
     marginTop: 8,
+  },
+  disabledAddButton: {
+    backgroundColor: '#D9D9D9',
+  },
+  activeAddButton: {
+    backgroundColor: '#424242',
   },
   addButtonText: {
     color: 'white',
@@ -326,23 +373,25 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 16,
   },
-  actionButton: {
+  backButton: {
     padding: 10,
     borderRadius: 6,
     width: '48%',
     alignItems: 'center',
-  },
-  backButton: {
-    backgroundColor: '#f1f3f5',
+    backgroundColor: 'white',
     borderWidth: 1,
-    borderColor: '#dee2e6',
+    borderColor: '#D9D9D9',
   },
   backButtonText: {
-    color: '#495057',
+    color: 'black',
     fontWeight: '500',
   },
   submitButton: {
-    backgroundColor: '#4CAF50',
+    padding: 10,
+    borderRadius: 6,
+    width: '48%',
+    alignItems: 'center',
+    backgroundColor: '#424242',
   },
   submitButtonText: {
     color: 'white',

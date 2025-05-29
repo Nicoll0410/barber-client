@@ -130,9 +130,14 @@ const ServiciosScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.titulo}>Servicios ({serviciosFiltrados.length})</Text>
+        <View style={styles.tituloContainer}>
+          <Text style={styles.titulo}>Servicios</Text>
+          <View style={styles.contadorContainer}>
+            <Text style={styles.contadorTexto}>{serviciosFiltrados.length}</Text>
+          </View>
+        </View>
         <TouchableOpacity style={styles.botonCrear} onPress={crearServicio}>
-          <Ionicons name="add-circle" size={24} color="#4CAF50" />
+          <Ionicons name="add-circle" size={24} color="white" />
           <Text style={styles.textoBoton}>Crear Servicio</Text>
         </TouchableOpacity>
       </View>
@@ -167,18 +172,20 @@ const ServiciosScreen = () => {
                 <Text style={styles.textoDuracion}>{item.duracion}</Text>
               </View>
               <View style={[styles.celda, styles.columnaPrecio]}>
-                <Text style={styles.textoPrecio}>{item.precio}</Text>
+                <View style={styles.precioContainer}>
+                  <Text style={styles.textoPrecio}>{item.precio}</Text>
+                </View>
               </View>
               <View style={[styles.celda, styles.columnaAcciones]}>
                 <View style={styles.contenedorAcciones}>
                   <TouchableOpacity onPress={() => verServicio(item.id)} style={styles.botonAccion}>
-                    <FontAwesome name="eye" size={20} color="#2196F3" />
+                    <FontAwesome name="eye" size={20} color="black" />
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => editarServicio(item.id)} style={styles.botonAccion}>
-                    <Feather name="edit" size={20} color="#FFC107" />
+                    <Feather name="edit" size={20} color="black" />
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => eliminarServicio(item.id)} style={styles.botonAccion}>
-                    <Feather name="trash-2" size={20} color="#F44336" />
+                    <Feather name="trash-2" size={20} color="black" />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -227,23 +234,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
+  tituloContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   titulo: {
     fontSize: 24,
+    fontWeight: 'bold',
+    marginRight: 10,
+  },
+  contadorContainer: {
+    backgroundColor: '#D9D9D9',
+    borderRadius: 50,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  contadorTexto: {
+    fontSize: 14,
     fontWeight: 'bold',
   },
   botonCrear: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#e8f5e9',
+    backgroundColor: '#424242',
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#c8e6c9',
   },
   textoBoton: {
     marginLeft: 8,
-    color: '#2e7d32',
+    color: 'white',
     fontWeight: '500',
   },
   tabla: {
@@ -255,21 +277,26 @@ const styles = StyleSheet.create({
   },
   filaEncabezado: {
     flexDirection: 'row',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#424242',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
+    borderBottomColor: 'black',
   },
   celdaEncabezado: {
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 8,
   },
+  encabezado: {
+    fontWeight: 'bold',
+    textAlign: 'center',
+    color: 'white',
+  },
   fila: {
     flexDirection: 'row',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: 'black',
     alignItems: 'center',
   },
   celda: {
@@ -306,13 +333,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     width: '100%',
   },
-  textoPrecio: {
-    textAlign: 'center',
-    width: '100%',
-    fontWeight: '500',
+  precioContainer: {
+    backgroundColor: 'rgba(76, 175, 80, 0.2)', // Verde con 20% de transparencia
+    borderRadius: 15,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
   },
-  encabezado: {
-    fontWeight: 'bold',
+  textoPrecio: {
+    color: '#4CAF50', // Verde
+    fontWeight: '500',
     textAlign: 'center',
   },
   contenedorAcciones: {

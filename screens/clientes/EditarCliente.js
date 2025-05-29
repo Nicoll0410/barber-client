@@ -97,28 +97,30 @@ const EditarCliente = ({ visible, onClose, cliente, onUpdate }) => {
                 style={[styles.input, styles.disabledInput]}
                 value={cliente?.nombre || ''}
                 editable={false}
+                placeholderTextColor="#929292"
               />
             </View>
 
-            {/* Fila combinada para teléfono y fecha de nacimiento */}
-            <View style={styles.rowContainer}>
-              <View style={[styles.formGroup, styles.flex1, styles.rightMargin]}>
+            <View style={styles.doubleRow}>
+              <View style={[styles.formGroup, {flex: 1, marginRight: 10}]}>
                 <Text style={styles.label}>Teléfono <Text style={styles.required}>*</Text></Text>
                 <TextInput
                   style={styles.input}
                   placeholder="3001234567"
+                  placeholderTextColor="#929292"
                   keyboardType="phone-pad"
                   value={formData.telefono}
                   onChangeText={(text) => setFormData({...formData, telefono: text})}
                 />
               </View>
 
-              <View style={[styles.formGroup, styles.flex1]}>
+              <View style={[styles.formGroup, {flex: 1}]}>
                 <Text style={styles.label}>Fecha de nacimiento</Text>
                 <TextInput
                   style={[styles.input, styles.disabledInput]}
                   value={formatFechaNacimiento(cliente?.fechaNacimiento)}
                   editable={false}
+                  placeholderTextColor="#929292"
                 />
               </View>
             </View>
@@ -128,6 +130,7 @@ const EditarCliente = ({ visible, onClose, cliente, onUpdate }) => {
               <TextInput
                 style={styles.input}
                 placeholder="cliente@email.com"
+                placeholderTextColor="#929292"
                 keyboardType="email-address"
                 autoCapitalize="none"
                 value={formData.email}
@@ -180,19 +183,26 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '90%',
     maxWidth: 500,
+    maxHeight: '85%',
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 15,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    overflow: 'hidden',
+    borderWidth: 3,
+    borderColor: 'black',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 10,
   },
+  scrollContent: {
+    padding: 20,
+  },
   header: {
-    marginBottom: 20,
+    marginBottom: 15,
     alignItems: 'flex-start',
   },
   title: {
@@ -205,19 +215,12 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 5,
   },
-  // Nuevos estilos para la fila combinada
-  rowContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  flex1: {
-    flex: 1,
-  },
-  rightMargin: {
-    marginRight: 10,
-  },
   formGroup: {
     marginBottom: 15,
+  },
+  doubleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   label: {
     fontSize: 14,
@@ -274,28 +277,29 @@ const styles = StyleSheet.create({
   button: {
     flex: 1,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 15,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   cancelButton: {
-    backgroundColor: 'rgba(241, 241, 241, 0.9)',
+    backgroundColor: 'white',
     borderWidth: 1,
-    borderColor: 'rgba(221, 221, 221, 0.5)',
+    borderColor: '#929292',
     marginLeft: 10,
   },
   createButton: {
-    backgroundColor: 'rgba(76, 175, 80, 0.9)',
+    backgroundColor: '#424242',
     marginRight: 10,
   },
   buttonText: {
     fontWeight: '500',
     fontSize: 15,
-    color: '#fff',
+    color: 'white',
   },
   cancelButtonText: {
     fontWeight: '500',
     fontSize: 15,
-    color: '#333',
+    color: 'black',
   },
 });
 

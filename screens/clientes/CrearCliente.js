@@ -171,6 +171,7 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
               <TextInput
                 style={styles.input}
                 placeholder="Ej: Carlos Gómez"
+                placeholderTextColor="#929292"
                 value={formData.nombre}
                 onChangeText={(text) => handleChange('nombre', text)}
               />
@@ -182,6 +183,7 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
                 <TextInput
                   style={styles.input}
                   placeholder="3001234567"
+                  placeholderTextColor="#929292"
                   keyboardType="phone-pad"
                   value={formData.telefono}
                   onChangeText={(text) => handleChange('telefono', text)}
@@ -317,6 +319,7 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
               <TextInput
                 style={styles.input}
                 placeholder="cliente@email.com"
+                placeholderTextColor="#929292"
                 keyboardType="email-address"
                 autoCapitalize="none"
                 value={formData.email}
@@ -331,6 +334,7 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
                   <TextInput
                     style={styles.passwordInput}
                     placeholder="••••••••"
+                    placeholderTextColor="#929292"
                     secureTextEntry={!showPassword}
                     value={formData.password}
                     onChangeText={(text) => handleChange('password', text)}
@@ -354,6 +358,7 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
                   <TextInput
                     style={styles.passwordInput}
                     placeholder="••••••••"
+                    placeholderTextColor="#929292"
                     secureTextEntry={!showConfirmPassword}
                     value={formData.confirmPassword}
                     onChangeText={(text) => handleChange('confirmPassword', text)}
@@ -424,8 +429,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 15,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderWidth: 3,
+    borderColor: 'black',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -548,28 +553,29 @@ const styles = StyleSheet.create({
   button: {
     flex: 1,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 15,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   cancelButton: {
-    backgroundColor: 'rgba(241, 241, 241, 0.9)',
+    backgroundColor: 'white',
     borderWidth: 1,
-    borderColor: 'rgba(221, 221, 221, 0.5)',
+    borderColor: '#929292',
     marginLeft: 10,
   },
   createButton: {
-    backgroundColor: 'rgba(76, 175, 80, 0.9)',
+    backgroundColor: '#424242',
     marginRight: 10,
   },
   buttonText: {
     fontWeight: '500',
     fontSize: 15,
-    color: '#fff',
+    color: 'white',
   },
   cancelButtonText: {
     fontWeight: '500',
     fontSize: 15,
-    color: '#333',
+    color: 'black',
   },
   customDatePickerContainer: {
     position: 'absolute',

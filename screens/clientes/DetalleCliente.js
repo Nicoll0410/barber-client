@@ -1,11 +1,30 @@
-// components/DetalleCliente.js
 import React from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { AntDesign } from '@expo/vector-icons';
+import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 
 const DetalleCliente = ({ visible, onClose, cliente }) => {
   if (!cliente) return null;
+
+  // Componente para el estado de verificación (igual que en ClientesScreen)
+  const EstadoVerificacion = ({ verificado }) => (
+    <View style={[
+      styles.estadoContainer,
+      verificado ? styles.verificado : styles.noVerificado
+    ]}>
+      {verificado ? (
+        <>
+          <MaterialIcons name="verified" size={20} color="#2e7d32" />
+          <Text style={[styles.estadoTexto, styles.textoVerificado]}>Verificado</Text>
+        </>
+      ) : (
+        <>
+          <MaterialIcons name="warning" size={20} color="#d32f2f" />
+          <Text style={[styles.estadoTexto, styles.textoNoVerificado]}>No verificado</Text>
+        </>
+      )}
+    </View>
+  );
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
@@ -36,19 +55,7 @@ const DetalleCliente = ({ visible, onClose, cliente }) => {
 
             <View style={styles.item}>
               <Text style={styles.label}>Verificación</Text>
-              <View style={[
-                styles.verificacionBadge,
-                cliente.emailVerificado ? styles.verificado : styles.noVerificado
-              ]}>
-                <Text style={styles.verificacionTexto}>
-                  {cliente.emailVerificado ? 'Verificado' : 'No verificado'}{' '}
-                  {cliente.emailVerificado ? (
-                    <AntDesign name="check" size={14} color="#fff" />
-                  ) : (
-                    <AntDesign name="close" size={14} color="#fff" />
-                  )}
-                </Text>
-              </View>
+              <EstadoVerificacion verificado={cliente.emailVerificado} />
             </View>
 
             <TouchableOpacity style={styles.cerrar} onPress={onClose}>
@@ -68,7 +75,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modal: {
-    width: '30%', // Más angosto
+    width: '30%',
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 20,
@@ -93,24 +100,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#222',
   },
-  verificacionBadge: {
-    alignSelf: 'flex-start',
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-    marginTop: 4,
-  },
-  verificacionTexto: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  verificado: {
-    backgroundColor: '#4caf50',
-  },
-  noVerificado: {
-    backgroundColor: '#f44336',
-  },
   cerrar: {
     marginTop: 20,
     alignSelf: 'center',
@@ -122,6 +111,33 @@ const styles = StyleSheet.create({
   textoCerrar: {
     fontWeight: 'bold',
     color: '#333',
+  },
+  // Estilos para el estado de verificación (igual que en ClientesScreen)
+  estadoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  verificado: {
+    backgroundColor: '#e8f5e9',
+  },
+  noVerificado: {
+    backgroundColor: '#ffebee',
+  },
+  estadoTexto: {
+    marginLeft: 4,
+    fontWeight: 'bold',
+  },
+  textoVerificado: {
+    color: '#2e7d32',
+  },
+  textoNoVerificado: {
+    color: '#d32f2f',
   },
 });
 

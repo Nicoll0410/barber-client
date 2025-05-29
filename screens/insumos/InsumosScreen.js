@@ -80,7 +80,6 @@ const InsumosScreen = ({ navigation }) => {
     setPaginaActual(1);
   }, [busqueda, insumos]);
 
-  // Función para navegar a ControlInsumos CORREGIDA
   const controlInsumos = () => {
     if (insumos.length === 0) {
       Alert.alert('Advertencia', 'No hay insumos para controlar');
@@ -91,7 +90,6 @@ const InsumosScreen = ({ navigation }) => {
       insumos: insumos,
       onGoBack: () => {
         console.log('Regresó de ControlInsumos');
-        // Aquí puedes actualizar datos si es necesario
       }
     });
   };
@@ -149,7 +147,12 @@ const InsumosScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.titulo}>Insumos ({insumosFiltrados.length})</Text>
+        <View style={styles.tituloContainer}>
+          <Text style={styles.titulo}>Insumos</Text>
+          <View style={styles.contadorContainer}>
+            <Text style={styles.contadorTexto}>{insumosFiltrados.length}</Text>
+          </View>
+        </View>
         <View style={styles.botonesHeader}>
           <TouchableOpacity 
             style={[styles.botonHeader, styles.botonControl]} 
@@ -158,7 +161,7 @@ const InsumosScreen = ({ navigation }) => {
             disabled={insumos.length === 0}
           >
             <MaterialIcons name="inventory" size={20} color="#fff" />
-            <Text style={[styles.textoBoton, styles.textoBotonControl]}>Control</Text>
+            <Text style={[styles.textoBoton, styles.textoBotonControl]}>Control de insumos</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.botonHeader} 
@@ -214,26 +217,31 @@ const InsumosScreen = ({ navigation }) => {
                 <Text style={styles.textoCategoria}>{item.categoria}</Text>
               </View>
               <View style={[styles.celda, styles.columnaUnidad]}>
-                <Text style={styles.textoUnidad}>{item.unidad}</Text>
+                <View style={styles.unidadContainer}>
+                  <Text style={styles.textoUnidad}>{item.unidad}</Text>
+                </View>
               </View>
               <View style={[styles.celda, styles.columnaCantidad]}>
-                <Text style={styles.textoCantidad}>{item.cantidad}</Text>
+                <View style={styles.cantidadContainer}>
+                  <Text style={styles.textoCantidad}>{item.cantidad}</Text>
+                </View>
               </View>
               <View style={[styles.celda, styles.columnaAcciones]}>
                 <View style={styles.contenedorAcciones}>
                   <TouchableOpacity onPress={() => verInsumo(item.id)} style={styles.botonAccion}>
-                    <FontAwesome name="eye" size={18} color="#2196F3" />
+                    <FontAwesome name="eye" size={18} color="#000" />
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => editarInsumo(item.id)} style={styles.botonAccion}>
-                    <Feather name="edit" size={18} color="#FFC107" />
+                    <Feather name="edit" size={18} color="#000" />
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => eliminarInsumo(item.id)} style={styles.botonAccion}>
-                    <Feather name="trash-2" size={18} color="#F44336" />
+                    <Feather name="trash-2" size={18} color="#000" />
                   </TouchableOpacity>
                 </View>
               </View>
             </View>
           )}
+          ItemSeparatorComponent={() => <View style={styles.separador} />}
         />
       </View>
 
@@ -277,9 +285,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
+  tituloContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   titulo: {
     fontSize: 24,
     fontWeight: 'bold',
+    marginRight: 8,
+  },
+  contadorContainer: {
+    backgroundColor: '#D9D9D9',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  contadorTexto: {
+    fontWeight: 'bold',
+    fontSize: 14,
   },
   botonesHeader: {
     flexDirection: 'row',
@@ -288,14 +313,14 @@ const styles = StyleSheet.create({
   botonHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#424242',
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 20,
     marginLeft: 10,
   },
   botonControl: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#424242',
   },
   textoBoton: {
     marginLeft: 8,
@@ -314,7 +339,7 @@ const styles = StyleSheet.create({
   },
   filaEncabezado: {
     flexDirection: 'row',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#424242',
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
@@ -324,12 +349,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 4,
   },
+  encabezado: {
+    fontWeight: 'bold',
+    textAlign: 'center',
+    fontSize: 12,
+    color: '#fff',
+  },
   fila: {
     flexDirection: 'row',
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
     alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  separador: {
+    height: 1,
+    backgroundColor: '#000',
+    width: '100%',
   },
   celda: {
     justifyContent: 'center',
@@ -369,16 +404,29 @@ const styles = StyleSheet.create({
     color: '#555',
     fontWeight: '500',
   },
+  unidadContainer: {
+    backgroundColor: '#D9D9D9',
+    borderRadius: 15,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   textoUnidad: {
-    color: '#555',
+    color: '#000',
+    fontSize: 12,
+  },
+  cantidadContainer: {
+    backgroundColor: '#D9D9D9',
+    borderRadius: 15,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   textoCantidad: {
     fontWeight: 'bold',
-    color: '#2e7d32',
-  },
-  encabezado: {
-    fontWeight: 'bold',
-    textAlign: 'center',
+    color: '#000',
     fontSize: 12,
   },
   contenedorAcciones: {

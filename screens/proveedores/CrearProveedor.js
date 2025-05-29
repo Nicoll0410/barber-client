@@ -129,6 +129,7 @@ const CrearProveedor = ({ visible, onClose, onCreate }) => {
                       onChangeText={setNumeroDocumento}
                       keyboardType="numeric"
                       placeholder="Ej: 123456789"
+                      placeholderTextColor="#929292"
                     />
                   </View>
 
@@ -139,6 +140,7 @@ const CrearProveedor = ({ visible, onClose, onCreate }) => {
                       value={nombre}
                       onChangeText={setNombre}
                       placeholder="Nombre completo"
+                      placeholderTextColor="#929292"
                     />
                   </View>
                 </>
@@ -152,6 +154,7 @@ const CrearProveedor = ({ visible, onClose, onCreate }) => {
                       onChangeText={setNit}
                       keyboardType="numeric"
                       placeholder="Número de NIT"
+                      placeholderTextColor="#929292"
                     />
                   </View>
 
@@ -162,6 +165,7 @@ const CrearProveedor = ({ visible, onClose, onCreate }) => {
                       value={nombreEmpresa}
                       onChangeText={setNombreEmpresa}
                       placeholder="Razón social"
+                      placeholderTextColor="#929292"
                     />
                   </View>
 
@@ -172,6 +176,7 @@ const CrearProveedor = ({ visible, onClose, onCreate }) => {
                       value={personaContacto}
                       onChangeText={setPersonaContacto}
                       placeholder="Nombre del contacto"
+                      placeholderTextColor="#929292"
                     />
                   </View>
                 </>
@@ -185,6 +190,7 @@ const CrearProveedor = ({ visible, onClose, onCreate }) => {
                   onChangeText={setEmail}
                   keyboardType="email-address"
                   placeholder="Ej: nombre@dominio.com"
+                  placeholderTextColor="#929292"
                 />
               </View>
 
@@ -196,6 +202,7 @@ const CrearProveedor = ({ visible, onClose, onCreate }) => {
                   onChangeText={setTelefono}
                   keyboardType="phone-pad"
                   placeholder="Ej: 1234567890"
+                  placeholderTextColor="#929292"
                 />
               </View>
             </ScrollView>
@@ -223,7 +230,7 @@ const styles = StyleSheet.create({
     padding: 15,
   },
   modalContent: {
-    width: '50%', // Reducido significativamente de 85% a 70%
+    width: '50%',
     maxHeight: '80%',
     backgroundColor: 'white',
     borderRadius: 14,
@@ -233,6 +240,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 4,
+    borderWidth: 1,
+    borderColor: 'black',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -241,12 +250,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   modalTitle: {
-    fontSize: 16, // Reducido de 18
+    fontSize: 16,
     fontWeight: '600',
     color: '#333',
   },
   subtitle: {
-    fontSize: 12, // Reducido de 13
+    fontSize: 12,
     color: '#666',
     marginBottom: 12,
   },
@@ -260,7 +269,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 13, // Reducido de 14
+    fontSize: 13,
     fontWeight: '500',
     marginBottom: 6,
     color: '#333',
@@ -272,31 +281,32 @@ const styles = StyleSheet.create({
   },
   radioButton: {
     flex: 1,
-    padding: 8, // Reducido de 10
+    padding: 8,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#929292',
     borderRadius: 6,
-    marginRight: 6, // Reducido de 8
+    marginRight: 6,
     alignItems: 'center',
+    backgroundColor: 'white',
   },
   radioButtonSelected: {
-    borderColor: '#4CAF50',
-    backgroundColor: '#E8F5E9',
+    borderColor: '#424242',
+    backgroundColor: '#424242',
   },
   radioButtonText: {
-    fontSize: 12, // Reducido de 13
-    color: '#666',
+    fontSize: 12,
+    color: 'black',
   },
   radioButtonTextSelected: {
-    color: '#2E7D32',
+    color: 'white',
     fontWeight: '500',
   },
   formGroup: {
-    marginBottom: 12, // Reducido de 15
+    marginBottom: 12,
   },
   label: {
-    fontSize: 12, // Reducido de 13
-    marginBottom: 4, // Reducido de 6
+    fontSize: 12,
+    marginBottom: 4,
     color: '#555',
     fontWeight: '500',
   },
@@ -304,8 +314,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e0e0e0',
     borderRadius: 6,
-    padding: 8, // Reducido de 10
-    fontSize: 13, // Reducido de 14
+    padding: 8,
+    fontSize: 13,
     backgroundColor: '#fafafa',
   },
   pickerContainer: {
@@ -315,36 +325,37 @@ const styles = StyleSheet.create({
     backgroundColor: '#fafafa',
   },
   picker: {
-    height: 40, // Reducido de 44
+    height: 40,
   },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginTop: 12, // Reducido de 15
+    marginTop: 12,
   },
   cancelButton: {
-    padding: 8, // Reducido de 10
-    marginRight: 8, // Reducido de 10
+    padding: 8,
+    marginRight: 8,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#929292',
     alignItems: 'center',
-    minWidth: 80, // Reducido de 90
+    minWidth: 80,
+    backgroundColor: 'white',
   },
   cancelButtonText: {
-    fontSize: 13, // Reducido de 14
-    color: '#666',
+    fontSize: 13,
+    color: 'black',
     fontWeight: '500',
   },
   acceptButton: {
-    padding: 8, // Reducido de 10
-    backgroundColor: '#4CAF50',
+    padding: 8,
+    backgroundColor: '#424242',
     borderRadius: 6,
     alignItems: 'center',
-    minWidth: 80, // Reducido de 90
+    minWidth: 80,
   },
   acceptButtonText: {
-    fontSize: 13, // Reducido de 14
+    fontSize: 13,
     color: 'white',
     fontWeight: '500',
   },

@@ -186,6 +186,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 20,
+    borderWidth: 1,
+    borderColor: 'black',
   },
   leftContainer: {
     width: '50%',
@@ -255,23 +257,25 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   acceptButton: {
-    backgroundColor: '#6e3eff',
+    backgroundColor: '#424242',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
   },
   cancelButton: {
-    backgroundColor: '#e0e0e0',
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: '#929292',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
   },
   buttonText: {
-    color: '#fff',
+    color: 'white',
     fontWeight: 'bold',
   },
   cancelButtonText: {
-    color: '#333',
+    color: 'black',
     fontWeight: 'bold',
   },
   permisosContainer: {
@@ -282,22 +286,23 @@ const styles = StyleSheet.create({
   },
   permisoButton: {
     borderWidth: 1,
-    borderColor: '#999',
+    borderColor: '#929292',
     borderRadius: 6,
     paddingHorizontal: 12,
     paddingVertical: 8,
     margin: 5,
+    backgroundColor: 'white',
   },
   permisoButtonSelected: {
-    backgroundColor: '#6e3eff',
-    borderColor: '#6e3eff',
+    backgroundColor: '#424242',
+    borderColor: '#424242',
   },
   permisoText: {
     fontSize: 13,
-    color: '#333',
+    color: 'black',
   },
   permisoTextSelected: {
-    color: '#fff',
+    color: 'white',
   },
 });
 

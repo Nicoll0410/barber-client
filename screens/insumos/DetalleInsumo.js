@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Modal, TouchableOpacity, StyleSheet } from 'react-native';
+import { BlurView } from 'expo-blur';
 
 const DetalleInsumo = ({ visible, onClose, insumo }) => {
   // Función para formatear la fecha
@@ -16,6 +17,13 @@ const DetalleInsumo = ({ visible, onClose, insumo }) => {
       transparent={true}
       onRequestClose={onClose}
     >
+      {/* Fondo con BlurView de Expo */}
+      <BlurView
+        style={styles.absolute}
+        intensity={20}
+        tint="dark"
+      />
+      
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
           <Text style={styles.modalTitle}>Detalles del Insumo</Text>
@@ -82,10 +90,16 @@ const DetalleInsumo = ({ visible, onClose, insumo }) => {
 };
 
 const styles = StyleSheet.create({
+  absolute: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    bottom: 0,
+    right: 0,
+  },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.4)',
     paddingHorizontal: 24
   },
   modalContent: {
@@ -97,10 +111,12 @@ const styles = StyleSheet.create({
     maxHeight: '80%',
     alignSelf: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: 'black'
   },
   modalTitle: {
     fontSize: 18,
@@ -138,11 +154,13 @@ const styles = StyleSheet.create({
     marginVertical: 4
   },
   closeButton: {
-    backgroundColor: '#4a90e2',
+    backgroundColor: '#424242',
     paddingVertical: 10,
     borderRadius: 8,
     marginTop: 16,
-    alignItems: 'center'
+    alignItems: 'center',
+    width: '30%',
+    alignSelf: 'center'
   },
   closeButtonText: {
     color: 'white',

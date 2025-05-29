@@ -38,7 +38,9 @@ const CrearInsumo = ({ visible, onClose, onCreate, categoriasExistentes = [] }) 
     >
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Crear nuevo insumo</Text>
+          <View style={styles.headerContainer}>
+            <Text style={styles.modalTitle}>Crear nuevo insumo</Text>
+          </View>
           <Text style={styles.subtitle}>Por favor, proporciona la información del nuevo insumo</Text>
 
           <View style={styles.formContainer}>
@@ -47,6 +49,7 @@ const CrearInsumo = ({ visible, onClose, onCreate, categoriasExistentes = [] }) 
               <TextInput
                 style={styles.input}
                 placeholder="Mascarilla"
+                placeholderTextColor="#D9D9D9"
                 value={nombre}
                 onChangeText={setNombre}
               />
@@ -57,6 +60,7 @@ const CrearInsumo = ({ visible, onClose, onCreate, categoriasExistentes = [] }) 
               <TextInput
                 style={styles.input}
                 placeholder="Descripción de mascarilla"
+                placeholderTextColor="#D9D9D9"
                 value={descripcion}
                 onChangeText={setDescripcion}
                 multiline={true}
@@ -101,17 +105,17 @@ const CrearInsumo = ({ visible, onClose, onCreate, categoriasExistentes = [] }) 
 
           <View style={styles.buttonContainer}>
             <TouchableOpacity 
-              style={styles.cancelButton}
-              onPress={onClose}
-            >
-              <Text style={styles.cancelButtonText}>Cancelar</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
               style={styles.submitButton}
               onPress={handleSubmit}
             >
               <Text style={styles.submitButtonText}>Aceptar</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.cancelButton}
+              onPress={onClose}
+            >
+              <Text style={styles.cancelButtonText}>Cancelar</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -131,24 +135,28 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 20,
-    width: '100%',
-    maxWidth: 400,
+    width: '40%', // Cambiado a 40%
     alignSelf: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 3
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'black'
+  },
+  headerContainer: {
+    alignItems: 'flex-start', // Alineación a la izquierda
+    marginBottom: 8
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 4,
-    textAlign: 'center'
+    textAlign: 'left' // Alineación a la izquierda
   },
   subtitle: {
-    textAlign: 'center',
+    textAlign: 'left', // Alineación a la izquierda
     marginBottom: 16,
     color: '#666',
     fontSize: 14
@@ -157,7 +165,7 @@ const styles = StyleSheet.create({
     marginBottom: 12
   },
   formGroup: {
-    marginBottom: 12
+    marginBottom: 16 // Aumentado el margen inferior
   },
   label: {
     fontWeight: '500',
@@ -166,8 +174,8 @@ const styles = StyleSheet.create({
     fontSize: 14
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderWidth: 1.5, // Aumentado el grosor del borde
+    borderColor: '#b0b0b0', // Color de borde más oscuro
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 12,
@@ -175,8 +183,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9f9f9'
   },
   pickerContainer: {
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderWidth: 1.5, // Aumentado el grosor del borde
+    borderColor: '#b0b0b0', // Color de borde más oscuro
     borderRadius: 8,
     overflow: 'hidden',
     backgroundColor: '#f9f9f9'
@@ -189,31 +197,31 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 8
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: '#f0f0f0',
-    marginRight: 8,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ddd'
+    marginTop: 12
   },
   submitButton: {
     flex: 1,
     paddingVertical: 10,
     borderRadius: 8,
-    backgroundColor: '#4a90e2',
-    alignItems: 'center'
+    backgroundColor: '#424242',
+    alignItems: 'center',
+    marginRight: 8
   },
-  cancelButtonText: {
-    color: '#555',
-    fontWeight: '500'
+  cancelButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: 'white',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#929292'
   },
   submitButtonText: {
     color: 'white',
+    fontWeight: '500'
+  },
+  cancelButtonText: {
+    color: 'black',
     fontWeight: '500'
   }
 });

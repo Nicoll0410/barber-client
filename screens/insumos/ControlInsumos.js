@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, TextInput } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, FontAwesome, Feather, Ionicons } from '@expo/vector-icons';
 import Paginacion from '../../components/Paginacion';
 import Buscador from '../../components/Buscador';
 
@@ -10,7 +10,7 @@ const ControlInsumos = ({ route, navigation }) => {
   const [insumos, setInsumos] = useState(insumosIniciales);
   const [insumosFiltrados, setInsumosFiltrados] = useState(insumosIniciales);
   const [paginaActual, setPaginaActual] = useState(1);
-  const [insumosPorPagina] = useState(4);
+  const [insumosPorPagina] = useState(5);
   const [busqueda, setBusqueda] = useState('');
   const [cantidadReducir, setCantidadReducir] = useState({});
 
@@ -121,11 +121,16 @@ const ControlInsumos = ({ route, navigation }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.titulo}>Control de insumos ({insumosFiltrados.length})</Text>
+        <View style={styles.tituloContainer}>
+          <Text style={styles.titulo}>Control de insumos</Text>
+          <View style={styles.contadorContainer}>
+            <Text style={styles.contadorTexto}>{insumosFiltrados.length}</Text>
+          </View>
+        </View>
       </View>
 
       <Buscador
-        placeholder="Buscar por nombre o descripción"
+        placeholder="Buscar insumos por nombre o descripción"
         value={busqueda}
         onChangeText={handleSearchChange}
       />
@@ -137,6 +142,9 @@ const ControlInsumos = ({ route, navigation }) => {
           </View>
           <View style={[styles.celdaEncabezado, styles.columnaDescripcion]}>
             <Text style={styles.encabezado}>Descripción</Text>
+          </View>
+          <View style={[styles.celdaEncabezado, styles.columnaCategoria]}>
+            <Text style={styles.encabezado}>Categoría</Text>
           </View>
           <View style={[styles.celdaEncabezado, styles.columnaCantidad]}>
             <Text style={styles.encabezado}>Cantidad</Text>
@@ -152,13 +160,18 @@ const ControlInsumos = ({ route, navigation }) => {
           renderItem={({ item }) => (
             <View style={styles.fila}>
               <View style={[styles.celda, styles.columnaNombre]}>
-                <Text style={styles.textoNombre}>{item.nombre}</Text>
+                <Text style={styles.textoNombre} numberOfLines={1}>{item.nombre}</Text>
               </View>
               <View style={[styles.celda, styles.columnaDescripcion]}>
-                <Text style={styles.textoDescripcion}>{item.descripcion}</Text>
+                <Text style={styles.textoDescripcion} numberOfLines={1}>{item.descripcion}</Text>
+              </View>
+              <View style={[styles.celda, styles.columnaCategoria]}>
+                <Text style={styles.textoCategoria}>{item.categoria}</Text>
               </View>
               <View style={[styles.celda, styles.columnaCantidad]}>
-                <Text style={styles.textoCantidad}>{item.cantidad}</Text>
+                <View style={styles.cantidadContainer}>
+                  <Text style={styles.textoCantidad}>{item.cantidad}</Text>
+                </View>
               </View>
               <View style={[styles.celda, styles.columnaAcciones]}>
                 <View style={styles.contenedorAcciones}>
@@ -174,12 +187,13 @@ const ControlInsumos = ({ route, navigation }) => {
                     style={[styles.botonReducir, item.cantidad <= 0 && styles.botonDisabled]}
                     disabled={item.cantidad <= 0}
                   >
-                    <Text style={styles.textoBotonReducir}>Reducir Insumos</Text>
+                    <MaterialIcons name="remove" size={18} color="#fff" />
                   </TouchableOpacity>
                 </View>
               </View>
             </View>
           )}
+          ItemSeparatorComponent={() => <View style={styles.separador} />}
         />
       </View>
 
@@ -199,12 +213,31 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 16,
+  },
+  tituloContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   titulo: {
     fontSize: 24,
     fontWeight: 'bold',
-    textAlign: 'left',
+    marginRight: 8,
+  },
+  contadorContainer: {
+    backgroundColor: '#D9D9D9',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  contadorTexto: {
+    fontWeight: 'bold',
+    fontSize: 14,
   },
   tabla: {
     borderWidth: 1,
@@ -215,7 +248,7 @@ const styles = StyleSheet.create({
   },
   filaEncabezado: {
     flexDirection: 'row',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#424242',
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
@@ -223,18 +256,28 @@ const styles = StyleSheet.create({
   celdaEncabezado: {
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 4,
+  },
+  encabezado: {
+    fontWeight: 'bold',
+    textAlign: 'center',
+    fontSize: 12,
+    color: '#fff',
   },
   fila: {
     flexDirection: 'row',
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
     alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  separador: {
+    height: 1,
+    backgroundColor: '#000',
+    width: '100%',
   },
   celda: {
     justifyContent: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 4,
   },
   columnaNombre: {
     flex: 2,
@@ -244,59 +287,66 @@ const styles = StyleSheet.create({
     flex: 3,
     alignItems: 'flex-start',
   },
+  columnaCategoria: {
+    flex: 2,
+    alignItems: 'center',
+  },
   columnaCantidad: {
     flex: 1,
     alignItems: 'center',
   },
   columnaAcciones: {
-    flex: 2,
-    alignItems: 'flex-end',
+    flex: 1.5,
+    alignItems: 'center',
   },
   textoNombre: {
-    fontSize: 14,
+    fontWeight: '500',
   },
   textoDescripcion: {
-    fontSize: 14,
     color: '#666',
   },
-  textoCantidad: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    textAlign: 'center',
+  textoCategoria: {
+    color: '#555',
+    fontWeight: '500',
   },
-  encabezado: {
+  cantidadContainer: {
+    backgroundColor: '#D9D9D9',
+    borderRadius: 15,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  textoCantidad: {
     fontWeight: 'bold',
-    textAlign: 'center',
+    color: '#000',
+    fontSize: 12,
   },
   contenedorAcciones: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
     alignItems: 'center',
-    width: '100%',
   },
   inputCantidad: {
     width: 60,
-    height: 40,
+    height: 30,
     borderWidth: 1,
     borderColor: '#ddd',
-    borderRadius: 4,
+    borderRadius: 15,
     paddingHorizontal: 8,
     marginRight: 8,
     textAlign: 'center',
+    fontSize: 12,
   },
   botonReducir: {
     backgroundColor: '#424242',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 4,
+    borderRadius: 15,
+    padding: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   botonDisabled: {
     backgroundColor: '#cccccc',
-  },
-  textoBotonReducir: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '500',
   },
 });
 

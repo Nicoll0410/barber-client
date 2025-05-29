@@ -51,7 +51,9 @@ const EditarInsumo = ({ visible, onClose, insumo, categoriasExistentes = [], onU
     >
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Actualizar insumo</Text>
+          <View style={styles.headerContainer}>
+            <Text style={styles.modalTitle}>Actualizar insumo</Text>
+          </View>
           <Text style={styles.subtitle}>Por favor, proporciona la información para actualizar el insumo</Text>
 
           <ScrollView 
@@ -64,6 +66,7 @@ const EditarInsumo = ({ visible, onClose, insumo, categoriasExistentes = [], onU
               <TextInput
                 style={styles.input}
                 placeholder="crema chocolate"
+                placeholderTextColor="#D9D9D9"
                 value={nombre}
                 onChangeText={setNombre}
               />
@@ -74,6 +77,7 @@ const EditarInsumo = ({ visible, onClose, insumo, categoriasExistentes = [], onU
               <TextInput
                 style={styles.input}
                 placeholder="crema actualizada"
+                placeholderTextColor="#D9D9D9"
                 value={descripcion}
                 onChangeText={setDescripcion}
                 multiline={true}
@@ -125,17 +129,17 @@ const EditarInsumo = ({ visible, onClose, insumo, categoriasExistentes = [], onU
 
           <View style={styles.buttonContainer}>
             <TouchableOpacity 
-              style={styles.cancelButton}
-              onPress={onClose}
-            >
-              <Text style={styles.cancelButtonText}>Cancelar</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
               style={styles.submitButton}
               onPress={handleSubmit}
             >
               <Text style={styles.submitButtonText}>Aceptar</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.cancelButton}
+              onPress={onClose}
+            >
+              <Text style={styles.cancelButtonText}>Cancelar</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -154,16 +158,33 @@ const styles = StyleSheet.create({
   modalContent: {
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 24,
-    width: '100%',
-    maxWidth: 400,
-    maxHeight: '85%', // Aumentado de 70% a 85%
+    padding: 20,
+    width: '40%',
     alignSelf: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 5
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'black',
+    maxHeight: '85%'
+  },
+  headerContainer: {
+    alignItems: 'flex-start',
+    marginBottom: 8
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    textAlign: 'left'
+  },
+  subtitle: {
+    textAlign: 'left',
+    marginBottom: 16,
+    color: '#666',
+    fontSize: 14
   },
   scrollContainer: {
     flex: 1,
@@ -171,94 +192,76 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 15
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-    textAlign: 'center'
-  },
-  subtitle: {
-    textAlign: 'center',
-    marginBottom: 20,
-    color: '#666',
-    fontSize: 15
-  },
   formGroup: {
     marginBottom: 16
   },
   label: {
     fontWeight: '500',
-    marginBottom: 8,
+    marginBottom: 6,
     color: '#444',
-    fontSize: 15
+    fontSize: 14
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderWidth: 1.5,
+    borderColor: '#b0b0b0',
     borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    fontSize: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    fontSize: 15,
     backgroundColor: '#f9f9f9'
   },
   quantityContainer: {
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderWidth: 1.5,
+    borderColor: '#b0b0b0',
     borderRadius: 8,
-    padding: 12,
+    padding: 10,
     backgroundColor: '#f9f9f9'
   },
   quantityText: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#333'
   },
   pickerContainer: {
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderWidth: 1.5,
+    borderColor: '#b0b0b0',
     borderRadius: 8,
     overflow: 'hidden',
     backgroundColor: '#f9f9f9'
   },
   picker: {
-    height: 50,
+    height: 46,
     width: '100%',
-    fontSize: 16
+    fontSize: 15
   },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#eee'
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: '#f0f0f0',
-    marginRight: 10,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ddd'
+    marginTop: 12
   },
   submitButton: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderRadius: 8,
-    backgroundColor: '#4a90e2',
-    alignItems: 'center'
+    backgroundColor: '#424242',
+    alignItems: 'center',
+    marginRight: 8
   },
-  cancelButtonText: {
-    color: '#555',
-    fontWeight: '500',
-    fontSize: 16
+  cancelButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: 'white',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#929292'
   },
   submitButtonText: {
     color: 'white',
-    fontWeight: '500',
-    fontSize: 16
+    fontWeight: '500'
+  },
+  cancelButtonText: {
+    color: 'black',
+    fontWeight: '500'
   }
 });
 

@@ -147,9 +147,14 @@ const CategoriaInsumosScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.titulo}>Categoría de insumos ({categoriasFiltradas.length})</Text>
+        <View style={styles.tituloContainer}>
+          <Text style={styles.titulo}>Categoría de insumos</Text>
+          <View style={styles.contadorContainer}>
+            <Text style={styles.contadorTexto}>{categoriasFiltradas.length}</Text>
+          </View>
+        </View>
         <TouchableOpacity style={styles.botonCrear} onPress={crearCategoria}>
-          <Ionicons name="add-circle" size={24} color="#4CAF50" />
+          <Ionicons name="add-circle" size={24} color="white" />
           <Text style={styles.textoBoton}>Crear Categoría</Text>
         </TouchableOpacity>
       </View>
@@ -184,18 +189,20 @@ const CategoriaInsumosScreen = () => {
                 <Text style={styles.textoFecha}>{item.fechaCreacion}</Text>
               </View>
               <View style={[styles.celda, styles.columnaInsumos]}>
-                <Text style={styles.textoInsumos}>{item.insumosAsociados}</Text>
+                <View style={styles.insumosContainer}>
+                  <Text style={styles.textoInsumos}>{item.insumosAsociados}</Text>
+                </View>
               </View>
               <View style={[styles.celda, styles.columnaAcciones]}>
                 <View style={styles.contenedorAcciones}>
                   <TouchableOpacity onPress={() => verDetallesCategoria(item.id)} style={styles.botonAccion}>
-                    <FontAwesome name="eye" size={20} color="#2196F3" />
+                    <FontAwesome name="eye" size={20} color="black" />
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => editarCategoria(item.id)} style={styles.botonAccion}>
-                    <Feather name="edit" size={20} color="#FFC107" />
+                    <Feather name="edit" size={20} color="black" />
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => eliminarCategoria(item.id)} style={styles.botonAccion}>
-                    <Feather name="trash-2" size={20} color="#F44336" />
+                    <Feather name="trash-2" size={20} color="black" />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -244,23 +251,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
+  tituloContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   titulo: {
     fontSize: 24,
+    fontWeight: 'bold',
+    marginRight: 10,
+  },
+  contadorContainer: {
+    backgroundColor: '#D9D9D9',
+    borderRadius: 50,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  contadorTexto: {
+    fontSize: 14,
     fontWeight: 'bold',
   },
   botonCrear: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#e8f5e9',
+    backgroundColor: '#424242',
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#c8e6c9',
   },
   textoBoton: {
     marginLeft: 8,
-    color: '#2e7d32',
+    color: 'white',
     fontWeight: '500',
   },
   tabla: {
@@ -272,21 +294,26 @@ const styles = StyleSheet.create({
   },
   filaEncabezado: {
     flexDirection: 'row',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#424242',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
+    borderBottomColor: 'black',
   },
   celdaEncabezado: {
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 8,
   },
+  encabezado: {
+    fontWeight: 'bold',
+    textAlign: 'center',
+    color: 'white',
+  },
   fila: {
     flexDirection: 'row',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: 'black',
     alignItems: 'center',
   },
   celda: {
@@ -323,13 +350,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#666',
   },
-  textoInsumos: {
-    textAlign: 'center',
-    fontWeight: 'bold',
+  insumosContainer: {
+    backgroundColor: '#D9D9D9',
+    borderRadius: 15,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  encabezado: {
+  textoInsumos: {
     fontWeight: 'bold',
-    textAlign: 'center',
   },
   contenedorAcciones: {
     flexDirection: 'row',

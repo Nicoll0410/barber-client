@@ -120,7 +120,7 @@ const EditarBarbero = ({ visible, onClose, barbero, onUpdate }) => {
 
             <View style={styles.formGroup}>
               <Text style={styles.label}>Rol</Text>
-              <View style={[styles.input, styles.pickerContainer]}>
+              <View style={styles.pickerContainer}>
                 <Picker
                   selectedValue={formData.rol}
                   style={styles.picker}
@@ -140,6 +140,7 @@ const EditarBarbero = ({ visible, onClose, barbero, onUpdate }) => {
                 <TextInput
                   style={styles.input}
                   placeholder="3001234567"
+                  placeholderTextColor="#929292"
                   keyboardType="phone-pad"
                   value={formData.telefono}
                   onChangeText={(text) => setFormData({...formData, telefono: text})}
@@ -151,6 +152,7 @@ const EditarBarbero = ({ visible, onClose, barbero, onUpdate }) => {
                 <TextInput
                   style={styles.input}
                   placeholder="barbero@email.com"
+                  placeholderTextColor="#929292"
                   keyboardType="email-address"
                   autoCapitalize="none"
                   value={formData.email}
@@ -229,8 +231,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 15,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderWidth: 3,
+    borderColor: 'black',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -288,13 +290,15 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   pickerContainer: {
-    padding: 0,
-    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
   },
   picker: {
-    width: '100%',
     height: 45,
-    color: '#333',
+    width: '100%',
   },
   avatarSelector: {
     borderWidth: 1,
@@ -328,28 +332,29 @@ const styles = StyleSheet.create({
   button: {
     flex: 1,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 15,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   cancelButton: {
-    backgroundColor: 'rgba(241, 241, 241, 0.9)',
+    backgroundColor: 'white',
     borderWidth: 1,
-    borderColor: 'rgba(221, 221, 221, 0.5)',
+    borderColor: '#929292',
     marginLeft: 10,
   },
   createButton: {
-    backgroundColor: 'rgba(76, 175, 80, 0.9)',
+    backgroundColor: '#424242',
     marginRight: 10,
   },
   buttonText: {
     fontWeight: '500',
     fontSize: 15,
-    color: '#fff',
+    color: 'white',
   },
   cancelButtonText: {
     fontWeight: '500',
     fontSize: 15,
-    color: '#333',
+    color: 'black',
   },
 });
 

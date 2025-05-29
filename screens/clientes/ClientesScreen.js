@@ -29,12 +29,12 @@ const EstadoVerificacion = ({ verificado }) => (
   ]}>
     {verificado ? (
       <>
-        <AntDesign name="check" size={16} color="#2e7d32" />
+        <MaterialIcons name="verified" size={20} color="#2e7d32" />
         <Text style={[styles.estadoTexto, styles.textoVerificado]}>Verificado</Text>
       </>
     ) : (
       <>
-        <AntDesign name="close" size={16} color="#d32f2f" />
+        <MaterialIcons name="warning" size={20} color="#d32f2f" />
         <Text style={[styles.estadoTexto, styles.textoNoVerificado]}>No verificado</Text>
       </>
     )}
@@ -160,9 +160,14 @@ const ClientesScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.titulo}>Clientes ({clientesFiltrados.length})</Text>
+        <View style={styles.tituloContainer}>
+          <Text style={styles.titulo}>Clientes</Text>
+          <View style={styles.contadorContainer}>
+            <Text style={styles.contadorTexto}>{clientesFiltrados.length}</Text>
+          </View>
+        </View>
         <TouchableOpacity style={styles.botonCrear} onPress={crearCliente}>
-          <Ionicons name="add-circle" size={24} color="#4CAF50" />
+          <Ionicons name="add-circle" size={24} color="white" />
           <Text style={styles.textoBoton}>Crear Cliente</Text>
         </TouchableOpacity>
       </View>
@@ -202,17 +207,17 @@ const ClientesScreen = () => {
                 <View style={styles.contenedorAcciones}>
                   {!item.emailVerificado && (
                     <TouchableOpacity onPress={() => reenviarEmail(item.id)} style={styles.botonAccion}>
-                      <MaterialIcons name="email" size={20} color="#4CAF50" />
+                      <MaterialIcons name="email" size={20} color="black" />
                     </TouchableOpacity>
                   )}
                   <TouchableOpacity onPress={() => verCliente(item.id)} style={styles.botonAccion}>
-                    <FontAwesome name="eye" size={20} color="#2196F3" />
+                    <FontAwesome name="eye" size={20} color="black" />
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => editarCliente(item.id)} style={styles.botonAccion}>
-                    <Feather name="edit" size={20} color="#FFC107" />
+                    <Feather name="edit" size={20} color="black" />
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => eliminarCliente(item.id)} style={styles.botonAccion}>
-                    <Feather name="trash-2" size={20} color="#F44336" />
+                    <Feather name="trash-2" size={20} color="black" />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -261,23 +266,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
+  tituloContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   titulo: {
     fontSize: 24,
     fontWeight: 'bold',
+    marginRight: 10,
+  },
+  contadorContainer: {
+    backgroundColor: '#D9D9D9',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  contadorTexto: {
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   botonCrear: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#e8f5e9',
+    backgroundColor: '#424242',
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 20,
+    borderRadius: 15,
     borderWidth: 1,
-    borderColor: '#c8e6c9',
+    borderColor: '#424242',
   },
   textoBoton: {
     marginLeft: 8,
-    color: '#2e7d32',
+    color: 'white',
     fontWeight: '500',
   },
   tabla: {
@@ -289,7 +311,7 @@ const styles = StyleSheet.create({
   },
   filaEncabezado: {
     flexDirection: 'row',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#424242',
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
@@ -303,8 +325,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: 'black',
     alignItems: 'center',
+    backgroundColor: 'white',
   },
   celda: {
     justifyContent: 'center',
@@ -340,6 +363,7 @@ const styles = StyleSheet.create({
   encabezado: {
     fontWeight: 'bold',
     textAlign: 'center',
+    color: 'white',
   },
   contenedorAcciones: {
     flexDirection: 'row',

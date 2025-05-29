@@ -43,72 +43,76 @@ const EditarCategoriaInsumos = ({ visible, onClose, categoria, onUpdate }) => {
       onRequestClose={onClose}
     >
       <BlurView intensity={20} style={styles.blurContainer}>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Editar categoría</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeIcon}>
-              <Ionicons name="close" size={24} color="#6B7280" />
-            </TouchableOpacity>
-          </View>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Editar categoría</Text>
+              <TouchableOpacity onPress={onClose}>
+                <Ionicons name="close" size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
 
-          <Text style={styles.subtitle}>
-            Actualiza la información de la categoría
-          </Text>
-
-          <View style={styles.formSection}>
-            <Text style={styles.sectionTitle}>Nombre*</Text>
-            <TextInput
-              style={styles.input}
-              value={nombre}
-              onChangeText={setNombre}
-              placeholder="Nuevo nombre"
-            />
-          </View>
-
-          <View style={styles.formSection}>
-            <Text style={styles.sectionTitle}>Descripción*</Text>
-            <TextInput
-              style={styles.multilineInput}
-              value={descripcion}
-              onChangeText={setDescripcion}
-              placeholder="Nueva descripción"
-              multiline
-              numberOfLines={3}
-            />
-          </View>
-
-          <View style={styles.formSection}>
-            <Text style={styles.sectionTitle}>Avatar</Text>
-            <Text style={styles.avatarSubtitle}>
-              Recomendamos usar íconos
+            <Text style={styles.subtitle}>
+              Actualiza la información de la categoría
             </Text>
-            
-            <TouchableOpacity style={styles.avatarSelector} onPress={selectImage}>
-              {avatar ? (
-                <Image source={{ uri: avatar }} style={styles.avatarImage} />
-              ) : (
-                <View style={styles.avatarPlaceholder}>
-                  <MaterialIcons name="add-photo-alternate" size={36} color="#9CA3AF" />
-                  <Text style={styles.avatarPlaceholderText}>Seleccionar imagen</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          </View>
 
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity 
-              style={styles.cancelButton} 
-              onPress={onClose}
-            >
-              <Text style={styles.cancelButtonText}>Cancelar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.updateButton, (!nombre || !descripcion) && styles.disabledButton]} 
-              onPress={handleUpdate}
-              disabled={!nombre || !descripcion}
-            >
-              <Text style={styles.updateButtonText}>Guardar</Text>
-            </TouchableOpacity>
+            <View style={styles.formSection}>
+              <Text style={styles.sectionTitle}>Nombre*</Text>
+              <TextInput
+                style={styles.input}
+                value={nombre}
+                onChangeText={setNombre}
+                placeholder="Nombre de la categoría"
+                placeholderTextColor="#D9D9D9"
+              />
+            </View>
+
+            <View style={styles.formSection}>
+              <Text style={styles.sectionTitle}>Descripción*</Text>
+              <TextInput
+                style={styles.multilineInput}
+                value={descripcion}
+                onChangeText={setDescripcion}
+                placeholder="Descripción de la categoría"
+                placeholderTextColor="#D9D9D9"
+                multiline
+                numberOfLines={3}
+              />
+            </View>
+
+            <View style={styles.formSection}>
+              <Text style={styles.sectionTitle}>Avatar</Text>
+              <Text style={styles.avatarSubtitle}>
+                Te recomendamos usar íconos
+              </Text>
+              
+              <TouchableOpacity style={styles.avatarSelector} onPress={selectImage}>
+                {avatar ? (
+                  <Image source={{ uri: avatar }} style={styles.avatarImage} />
+                ) : (
+                  <View style={styles.avatarPlaceholder}>
+                    <MaterialIcons name="add-photo-alternate" size={40} color="#9CA3AF" />
+                    <Text style={styles.avatarPlaceholderText}>Selecciona una imagen</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity 
+                style={styles.updateButton} 
+                onPress={handleUpdate}
+                disabled={!nombre || !descripcion}
+              >
+                <Text style={styles.updateButtonText}>Guardar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.cancelButton} 
+                onPress={onClose}
+              >
+                <Text style={styles.cancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </BlurView>
@@ -122,12 +126,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modalContainer: {
+  modalOverlay: {
     width: '85%',
     maxWidth: 400,
+  },
+  modalContainer: {
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 20,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: 'black',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -140,34 +149,36 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#111827',
   },
-  closeIcon: {
-    padding: 4,
-  },
   subtitle: {
     color: '#6B7280',
-    marginBottom: 16,
+    marginBottom: 20,
     fontSize: 14,
   },
   formSection: {
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 14,
     fontWeight: '600',
     color: '#111827',
     marginBottom: 6,
+    fontSize: 14,
+  },
+  avatarSubtitle: {
+    color: '#6B7280',
+    fontSize: 12,
+    marginBottom: 8,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderWidth: 1.5,
+    borderColor: '#424242',
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
     marginBottom: 8,
   },
   multilineInput: {
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderWidth: 1.5,
+    borderColor: '#424242',
     borderRadius: 8,
     padding: 12,
     height: 80,
@@ -175,15 +186,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 8,
   },
-  avatarSubtitle: {
-    color: '#6B7280',
-    fontSize: 12,
-    marginBottom: 8,
-  },
   avatarSelector: {
     height: 100,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderWidth: 1.5,
+    borderColor: '#424242',
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
@@ -208,32 +214,34 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 16,
   },
-  cancelButton: {
-    backgroundColor: '#F3F4F6',
+  updateButton: {
+    backgroundColor: '#424242',
     padding: 12,
     borderRadius: 8,
     flex: 1,
     marginRight: 8,
     alignItems: 'center',
   },
-  updateButton: {
-    backgroundColor: '#4F46E5',
+  cancelButton: {
+    backgroundColor: 'white',
     padding: 12,
     borderRadius: 8,
     flex: 1,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#929292',
   },
   disabledButton: {
     backgroundColor: '#9CA3AF',
     opacity: 0.7,
   },
-  cancelButtonText: {
-    color: '#111827',
+  updateButtonText: {
+    color: 'white',
     fontWeight: '600',
     fontSize: 14,
   },
-  updateButtonText: {
-    color: 'white',
+  cancelButtonText: {
+    color: 'black',
     fontWeight: '600',
     fontSize: 14,
   },

@@ -55,6 +55,7 @@ const CrearCategoriaInsumos = ({ visible, onClose, onCreate }) => {
                 value={nombre}
                 onChangeText={setNombre}
                 placeholder="Nombre de la categoría"
+                placeholderTextColor="#D9D9D9"
               />
             </View>
 
@@ -65,6 +66,7 @@ const CrearCategoriaInsumos = ({ visible, onClose, onCreate }) => {
                 value={descripcion}
                 onChangeText={setDescripcion}
                 placeholder="Descripción de la categoría"
+                placeholderTextColor="#D9D9D9"
                 multiline
                 numberOfLines={3}
               />
@@ -90,17 +92,17 @@ const CrearCategoriaInsumos = ({ visible, onClose, onCreate }) => {
 
             <View style={styles.buttonContainer}>
               <TouchableOpacity 
-                style={styles.cancelButton} 
-                onPress={onClose}
-              >
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.createButton, (!nombre || !descripcion) && styles.disabledButton]} 
+                style={styles.createButton} 
                 onPress={handleCreate}
                 disabled={!nombre || !descripcion}
               >
                 <Text style={styles.createButtonText}>Aceptar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.cancelButton} 
+                onPress={onClose}
+              >
+                <Text style={styles.cancelButtonText}>Cancelar</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -125,6 +127,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 20,
     width: '100%',
+    borderWidth: 1,
+    borderColor: 'black',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -157,16 +161,16 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderWidth: 1.5,  // Aumentado el grosor del borde
+    borderColor: '#424242',  // Cambiado a color más oscuro
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
     marginBottom: 8,
   },
   multilineInput: {
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderWidth: 1.5,  // Aumentado el grosor del borde
+    borderColor: '#424242',  // Cambiado a color más oscuro
     borderRadius: 8,
     padding: 12,
     height: 80,
@@ -176,8 +180,8 @@ const styles = StyleSheet.create({
   },
   avatarSelector: {
     height: 100,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderWidth: 1.5,  // Aumentado el grosor del borde
+    borderColor: '#424242',  // Cambiado a color más oscuro
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
@@ -202,32 +206,34 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 16,
   },
-  cancelButton: {
-    backgroundColor: '#F3F4F6',
+  createButton: {
+    backgroundColor: '#424242',
     padding: 12,
     borderRadius: 8,
     flex: 1,
     marginRight: 8,
     alignItems: 'center',
   },
-  createButton: {
-    backgroundColor: '#4F46E5',
+  cancelButton: {
+    backgroundColor: 'white',
     padding: 12,
     borderRadius: 8,
     flex: 1,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#929292',
   },
   disabledButton: {
     backgroundColor: '#9CA3AF',
     opacity: 0.7,
   },
-  cancelButtonText: {
-    color: '#111827',
+  createButtonText: {
+    color: 'white',
     fontWeight: '600',
     fontSize: 14,
   },
-  createButtonText: {
-    color: 'white',
+  cancelButtonText: {
+    color: 'black',
     fontWeight: '600',
     fontSize: 14,
   },

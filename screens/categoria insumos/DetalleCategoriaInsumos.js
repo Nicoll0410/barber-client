@@ -73,6 +73,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 20,
+    borderWidth: 1,  // Borde negro agregado
+    borderColor: 'black',  // Color del borde
   },
   header: {
     flexDirection: 'row',
@@ -108,13 +110,15 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   closeButton: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#424242',  // Color de fondo cambiado
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
+    width: '30%',  // Ancho reducido
+    alignSelf: 'center',  // Centrado
   },
   closeButtonText: {
-    color: 'white',
+    color: 'white',  // Texto en blanco
     fontSize: 14,
     fontWeight: '600',
   },

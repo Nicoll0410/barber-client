@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Modal, TouchableOpacity, StyleSheet } from 'react-native';
+import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 
@@ -7,57 +7,67 @@ const DetalleProveedor = ({ visible, onClose, proveedor }) => {
   if (!proveedor) return null;
 
   return (
-    <Modal
-      animationType="fade"
-      transparent={true}
-      visible={visible}
-      onRequestClose={onClose}
-    >
-      <BlurView intensity={20} style={styles.blurContainer}>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Proveedor</Text>
+    <Modal visible={visible} animationType="slide" transparent>
+      <BlurView intensity={20} tint="light" style={StyleSheet.absoluteFill}>
+        <View style={styles.overlay}>
+          <View style={styles.modal}>
+            <Text style={styles.titulo}>Información del Proveedor</Text>
             
-            <View style={styles.detailSection}>
-              <Text style={styles.detailLabel}>Tipo De Proveedor</Text>
-              <Text style={styles.detailValue}>{proveedor.tipo || 'Persona'}</Text>
-              
-              <Text style={styles.detailLabel}>Tipo De Documento</Text>
-              <Text style={styles.detailValue}>
-                {proveedor.tipoDocumento === 'CC' ? 'Cédula de ciudadanía' : 
-                 proveedor.tipoDocumento === 'CE' ? 'Cédula de extranjería' : 'NIT'}
-              </Text>
-              
-              <Text style={styles.detailLabel}>Identificación</Text>
-              <Text style={styles.detailValue}>{proveedor.identificacion || 'N/A'}</Text>
-              
-              <Text style={styles.detailLabel}>Nombre</Text>
-              <Text style={styles.detailValue}>{proveedor.nombre || 'N/A'}</Text>
-              
-              <Text style={styles.detailLabel}>Teléfono</Text>
-              <Text style={styles.detailValue}>{proveedor.telefono || 'N/A'}</Text>
-              
-              <Text style={styles.detailLabel}>Email</Text>
-              <Text style={styles.detailValue}>{proveedor.email || 'N/A'}</Text>
-              
+            <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
+              <View style={styles.item}>
+                <Text style={styles.label}>Tipo de Proveedor</Text>
+                <Text style={styles.value}>{proveedor.tipo || 'Persona'}</Text>
+              </View>
+
+              <View style={styles.item}>
+                <Text style={styles.label}>Tipo de Documento</Text>
+                <Text style={styles.value}>
+                  {proveedor.tipoDocumento === 'CC' ? 'Cédula de ciudadanía' : 
+                   proveedor.tipoDocumento === 'CE' ? 'Cédula de extranjería' : 
+                   proveedor.tipoDocumento === 'NIT' ? 'NIT' : 'No especificado'}
+                </Text>
+              </View>
+
+              <View style={styles.item}>
+                <Text style={styles.label}>Identificación</Text>
+                <Text style={styles.value}>{proveedor.identificacion || 'No registrada'}</Text>
+              </View>
+
+              <View style={styles.item}>
+                <Text style={styles.label}>Nombre</Text>
+                <Text style={styles.value}>{proveedor.nombre || 'No registrado'}</Text>
+              </View>
+
+              <View style={styles.item}>
+                <Text style={styles.label}>Teléfono</Text>
+                <Text style={styles.value}>{proveedor.telefono || 'No registrado'}</Text>
+              </View>
+
+              <View style={styles.item}>
+                <Text style={styles.label}>Email</Text>
+                <Text style={styles.value}>{proveedor.email || 'No registrado'}</Text>
+              </View>
+
               {proveedor.tipo === 'Empresa' && (
-                <>
-                  <Text style={styles.detailLabel}>Persona De Contacto</Text>
-                  <Text style={styles.detailValue}>{proveedor.personaContacto || 'N/A'}</Text>
-                </>
+                <View style={styles.item}>
+                  <Text style={styles.label}>Persona de Contacto</Text>
+                  <Text style={styles.value}>{proveedor.personaContacto || 'No registrada'}</Text>
+                </View>
               )}
-              
-              <Text style={styles.detailLabel}>Fecha De Creación</Text>
-              <Text style={styles.detailValue}>{proveedor.fechaCreacion || 'N/A'}</Text>
-              
-              <Text style={styles.detailLabel}>Fecha De Última Actualización</Text>
-              <Text style={styles.detailValue}>{proveedor.fechaActualizacion || 'N/A'}</Text>
-            </View>
-            
-            <View style={styles.separator} />
-            
-            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-              <Text style={styles.closeButtonText}>Cerrar</Text>
+
+              <View style={styles.item}>
+                <Text style={styles.label}>Fecha de Creación</Text>
+                <Text style={styles.value}>{proveedor.fechaCreacion || 'No registrada'}</Text>
+              </View>
+
+              <View style={styles.item}>
+                <Text style={styles.label}>Fecha de Actualización</Text>
+                <Text style={styles.value}>{proveedor.fechaActualizacion || 'No registrada'}</Text>
+              </View>
+            </ScrollView>
+
+            <TouchableOpacity style={styles.cerrar} onPress={onClose}>
+              <Text style={styles.textoCerrar}>Cerrar</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -67,58 +77,57 @@ const DetalleProveedor = ({ visible, onClose, proveedor }) => {
 };
 
 const styles = StyleSheet.create({
-  blurContainer: {
+  overlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modalContainer: {
-    width: '40%',
-    minWidth: 300, // Mantenemos un mínimo para buena legibilidad
+  modal: {
+    width: '30%',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    elevation: 10,
+    borderWidth: 1,
+    borderColor: 'black',
+    maxHeight: '80%',
   },
-  modalContent: {
-    backgroundColor: 'white',
-    borderRadius: 8,
-    padding: 16,
+  scrollContainer: {
+    flexGrow: 1,
   },
-  modalTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 12,
+  scrollContent: {
+    paddingBottom: 10,
+  },
+  titulo: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 20,
     textAlign: 'center',
   },
-  detailSection: {
-    marginBottom: 12,
+  item: {
+    marginBottom: 14,
   },
-  detailLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 8,
-  },
-  detailValue: {
+  label: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#333',
+    fontWeight: 'bold',
+    color: '#555',
     marginBottom: 4,
   },
-  separator: {
-    height: 1,
-    backgroundColor: '#eee',
-    marginVertical: 12,
+  value: {
+    fontSize: 16,
+    color: '#222',
   },
-  closeButton: {
+  cerrar: {
+    marginTop: 20,
+    alignSelf: 'center',
+    paddingHorizontal: 30,
+    paddingVertical: 10,
     backgroundColor: '#424242',
-    padding: 10,
-    borderRadius: 4,
-    alignItems: 'center',
-    width: '50%', // Hacemos el botón más angosto
-    alignSelf: 'center', // Centramos el botón
+    borderRadius: 15,
   },
-  closeButtonText: {
+  textoCerrar: {
+    fontWeight: 'bold',
     color: 'white',
-    fontWeight: '500',
-    fontSize: 14,
   },
 });
 

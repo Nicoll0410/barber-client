@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, Modal, TouchableOpacity, StyleSheet, TextInput, Picker, ScrollView } from 'react-native';
+import { BlurView } from 'expo-blur';
 
 const EditarInsumo = ({ visible, onClose, insumo, categoriasExistentes = [], onUpdate }) => {
   const [nombre, setNombre] = useState('');
@@ -49,101 +50,103 @@ const EditarInsumo = ({ visible, onClose, insumo, categoriasExistentes = [], onU
       transparent={true}
       onRequestClose={onClose}
     >
-      <View style={styles.modalContainer}>
-        <View style={styles.modalContent}>
-          <View style={styles.headerContainer}>
-            <Text style={styles.modalTitle}>Actualizar insumo</Text>
-          </View>
-          <Text style={styles.subtitle}>Por favor, proporciona la información para actualizar el insumo</Text>
-
-          <ScrollView 
-            style={styles.scrollContainer}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Nombre*</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="crema chocolate"
-                placeholderTextColor="#D9D9D9"
-                value={nombre}
-                onChangeText={setNombre}
-              />
+      <BlurView intensity={20} tint="light" style={StyleSheet.absoluteFill}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <View style={styles.headerContainer}>
+              <Text style={styles.modalTitle}>Actualizar insumo</Text>
             </View>
+            <Text style={styles.subtitle}>Por favor, proporciona la información para actualizar el insumo</Text>
 
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Descripción*</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="crema actualizada"
-                placeholderTextColor="#D9D9D9"
-                value={descripcion}
-                onChangeText={setDescripcion}
-                multiline={true}
-                numberOfLines={3}
-              />
-            </View>
-
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Cantidad disponible</Text>
-              <View style={styles.quantityContainer}>
-                <Text style={styles.quantityText}>{insumo?.cantidad || 0}</Text>
-              </View>
-            </View>
-
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Categoría*</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={categoria}
-                  style={styles.picker}
-                  onValueChange={(itemValue) => setCategoria(itemValue)}
-                  dropdownIconColor="#666"
-                >
-                  <Picker.Item label="Seleccione categoría" value="" />
-                  {categoriasExistentes.map((cat) => (
-                    <Picker.Item key={cat.id} label={cat.nombre} value={cat.nombre} />
-                  ))}
-                </Picker>
-              </View>
-            </View>
-
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Unidad de medida*</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={unidadMedida}
-                  style={styles.picker}
-                  onValueChange={(itemValue) => setUnidadMedida(itemValue)}
-                  dropdownIconColor="#666"
-                >
-                  <Picker.Item label="Seleccione unidad" value="" />
-                  {unidadesMedida.map((unidad) => (
-                    <Picker.Item key={unidad.value} label={unidad.label} value={unidad.value} />
-                  ))}
-                </Picker>
-              </View>
-            </View>
-          </ScrollView>
-
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity 
-              style={styles.submitButton}
-              onPress={handleSubmit}
+            <ScrollView 
+              style={styles.scrollContainer}
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
             >
-              <Text style={styles.submitButtonText}>Aceptar</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.cancelButton}
-              onPress={onClose}
-            >
-              <Text style={styles.cancelButtonText}>Cancelar</Text>
-            </TouchableOpacity>
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Nombre*</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="crema chocolate"
+                  placeholderTextColor="#D9D9D9"
+                  value={nombre}
+                  onChangeText={setNombre}
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Descripción*</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="crema actualizada"
+                  placeholderTextColor="#D9D9D9"
+                  value={descripcion}
+                  onChangeText={setDescripcion}
+                  multiline={true}
+                  numberOfLines={3}
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Cantidad disponible</Text>
+                <View style={styles.quantityContainer}>
+                  <Text style={styles.quantityText}>{insumo?.cantidad || 0}</Text>
+                </View>
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Categoría*</Text>
+                <View style={styles.pickerContainer}>
+                  <Picker
+                    selectedValue={categoria}
+                    style={styles.picker}
+                    onValueChange={(itemValue) => setCategoria(itemValue)}
+                    dropdownIconColor="#666"
+                  >
+                    <Picker.Item label="Seleccione categoría" value="" />
+                    {categoriasExistentes.map((cat) => (
+                      <Picker.Item key={cat.id} label={cat.nombre} value={cat.nombre} />
+                    ))}
+                  </Picker>
+                </View>
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Unidad de medida*</Text>
+                <View style={styles.pickerContainer}>
+                  <Picker
+                    selectedValue={unidadMedida}
+                    style={styles.picker}
+                    onValueChange={(itemValue) => setUnidadMedida(itemValue)}
+                    dropdownIconColor="#666"
+                  >
+                    <Picker.Item label="Seleccione unidad" value="" />
+                    {unidadesMedida.map((unidad) => (
+                      <Picker.Item key={unidad.value} label={unidad.label} value={unidad.value} />
+                    ))}
+                  </Picker>
+                </View>
+              </View>
+            </ScrollView>
+
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity 
+                style={styles.submitButton}
+                onPress={handleSubmit}
+              >
+                <Text style={styles.submitButtonText}>Aceptar</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.cancelButton}
+                onPress={onClose}
+              >
+                <Text style={styles.cancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-      </View>
+      </BlurView>
     </Modal>
   );
 };
@@ -152,7 +155,6 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.4)',
     paddingHorizontal: 20
   },
   modalContent: {

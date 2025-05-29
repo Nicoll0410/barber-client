@@ -9,7 +9,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur'; // 👈 Importamos BlurView
+import { BlurView } from 'expo-blur';
 
 const DetalleRol = ({ visible, onClose, rol }) => {
   if (!rol) return null;
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   badge: {
-    backgroundColor: '#a78bfa',
+    backgroundColor: '#D9D9D9',
     borderRadius: 12,
     alignSelf: 'flex-start',
     paddingHorizontal: 10,
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   badgeText: {
-    color: '#fff',
+    color: '#000',
     fontWeight: 'bold',
   },
   permisosContainer: {
@@ -119,10 +119,10 @@ const styles = StyleSheet.create({
   permisoItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#a78bfa',
+    backgroundColor: '#424242',
     paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    paddingHorizontal: 15,
+    borderRadius: 15,
     margin: 4,
   },
   permisoText: {

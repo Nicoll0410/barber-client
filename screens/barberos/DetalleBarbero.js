@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { AntDesign } from '@expo/vector-icons';
+import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 
 const DetalleBarbero = ({ visible, onClose, barbero }) => {
@@ -58,25 +58,30 @@ const DetalleBarbero = ({ visible, onClose, barbero }) => {
                 <View style={styles.item}>
                   <Text style={styles.label}>Verificación</Text>
                   <View style={[
-                    styles.verificacionBadge,
+                    styles.estadoContainer,
                     barbero.emailVerificado ? styles.verificado : styles.noVerificado
                   ]}>
-                    <Text style={styles.verificacionTexto}>
-                      {barbero.emailVerificado ? 'Verificado' : 'No verificado'}{' '}
-                      {barbero.emailVerificado ? (
-                        <AntDesign name="check" size={16} color="#fff" />
-                      ) : (
-                        <AntDesign name="close" size={16} color="#fff" />
-                      )}
-                    </Text>
+                    {barbero.emailVerificado ? (
+                      <>
+                        <MaterialIcons name="verified" size={20} color="#2e7d32" />
+                        <Text style={[styles.estadoTexto, styles.textoVerificado]}>Verificado</Text>
+                      </>
+                    ) : (
+                      <>
+                        <MaterialIcons name="warning" size={20} color="#d32f2f" />
+                        <Text style={[styles.estadoTexto, styles.textoNoVerificado]}>No verificado</Text>
+                      </>
+                    )}
                   </View>
                 </View>
               </View>
             </ScrollView>
 
-            <TouchableOpacity style={styles.cerrar} onPress={onClose}>
-              <Text style={styles.textoCerrar}>Cerrar</Text>
-            </TouchableOpacity>
+            <View style={styles.contenedorBoton}>
+              <TouchableOpacity style={styles.cerrar} onPress={onClose}>
+                <Text style={styles.textoCerrar}>Cerrar</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </BlurView>
@@ -126,30 +131,44 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#222',
   },
-  verificacionBadge: {
-    alignSelf: 'flex-start',
-    paddingVertical: 5,
-    paddingHorizontal: 10,
+  estadoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
     borderRadius: 12,
+    alignSelf: 'flex-start',
     marginTop: 5,
   },
-  verificacionTexto: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
-  },
   verificado: {
-    backgroundColor: '#4caf50',
+    backgroundColor: '#e8f5e9',
   },
   noVerificado: {
-    backgroundColor: '#f44336',
+    backgroundColor: '#ffebee',
   },
-  cerrar: {
-    padding: 14,
-    backgroundColor: '#eee',
+  estadoTexto: {
+    marginLeft: 4,
+    fontWeight: 'bold',
+  },
+  textoVerificado: {
+    color: '#2e7d32',
+  },
+  textoNoVerificado: {
+    color: '#d32f2f',
+  },
+  contenedorBoton: {
     alignItems: 'center',
+    paddingVertical: 10,
     borderTopWidth: 1,
     borderTopColor: '#ddd',
+  },
+  cerrar: {
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    backgroundColor: '#eee',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#ddd',
   },
   textoCerrar: {
     fontWeight: '600',

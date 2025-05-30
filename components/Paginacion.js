@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 const Paginacion = ({ paginaActual, totalPaginas, cambiarPagina }) => {
   const mostrarNumeros = totalPaginas > 1;
+  const mostrarNavegacion = totalPaginas > 1;
   const numerosPaginas = [];
 
   // Mostrar máximo 3 números de página centrados en la página actual
@@ -24,14 +25,16 @@ const Paginacion = ({ paginaActual, totalPaginas, cambiarPagina }) => {
 
   return (
     <View style={styles.contenedor}>
-      <TouchableOpacity 
-        onPress={() => cambiarPagina(paginaActual - 1)}
-        disabled={paginaActual === 1}
-        style={[styles.botonNavegacion, styles.botonAnterior]}
-      >
-        <Ionicons name="chevron-back" size={18} color="white" />
-        <Text style={styles.textoBoton}>Anterior</Text>
-      </TouchableOpacity>
+      {mostrarNavegacion && (
+        <TouchableOpacity 
+          onPress={() => cambiarPagina(paginaActual - 1)}
+          disabled={paginaActual === 1}
+          style={[styles.botonNavegacion, styles.botonAnterior]}
+        >
+          <Ionicons name="chevron-back" size={18} color="white" />
+          <Text style={styles.textoBoton}>Anterior</Text>
+        </TouchableOpacity>
+      )}
       
       {mostrarNumeros && (
         <View style={styles.contenedorNumeros}>
@@ -47,14 +50,16 @@ const Paginacion = ({ paginaActual, totalPaginas, cambiarPagina }) => {
         </View>
       )}
       
-      <TouchableOpacity 
-        onPress={() => cambiarPagina(paginaActual + 1)}
-        disabled={paginaActual === totalPaginas}
-        style={[styles.botonNavegacion, styles.botonSiguiente]}
-      >
-        <Text style={styles.textoBoton}>Siguiente</Text>
-        <Ionicons name="chevron-forward" size={18} color="white" />
-      </TouchableOpacity>
+      {mostrarNavegacion && (
+        <TouchableOpacity 
+          onPress={() => cambiarPagina(paginaActual + 1)}
+          disabled={paginaActual === totalPaginas}
+          style={[styles.botonNavegacion, styles.botonSiguiente]}
+        >
+          <Text style={styles.textoBoton}>Siguiente</Text>
+          <Ionicons name="chevron-forward" size={18} color="white" />
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -96,7 +101,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#D9D9D9',
     width: 36,
     height: 36,
-    borderRadius: 10, // Cambiado de 18 (redondo) a 10 (cuadrado con bordes redondeados)
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     marginHorizontal: 4,
@@ -109,7 +114,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   paginaActual: {
-    backgroundColor: '#424242', // Cambiado de #2196F3 (azul) a #424242 (gris oscuro)
+    backgroundColor: '#424242',
     borderColor: '#424242',
   },
   textoPaginaActual: {

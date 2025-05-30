@@ -1,97 +1,113 @@
 import React from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 
 const DetalleServicio = ({ visible, onClose, servicio }) => {
   if (!visible || !servicio) return null;
 
   return (
     <Modal visible={visible} animationType="fade" transparent={true}>
-      <View style={styles.centeredView}>
-        <View style={styles.modalView}>
-          <ScrollView 
-            contentContainerStyle={styles.scrollContainer}
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{servicio.nombre}</Text>
-              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <Ionicons name="close" size={20} color="#6b7280" />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.contentContainer}>
-              {/* Sección de Descripción */}
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Descripción</Text>
-                <Text style={styles.description}>
-                  {servicio.descripcion || 'No hay descripción disponible'}
-                </Text>
+      <BlurView intensity={20} style={styles.blurContainer}>
+        <View style={styles.centeredView}>
+          <View style={styles.modalView}>
+            <ScrollView 
+              contentContainerStyle={styles.scrollContainer}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>{servicio.nombre}</Text>
+                <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                  <Ionicons name="close" size={20} color="#6b7280" />
+                </TouchableOpacity>
               </View>
 
-              {/* Detalles de Duración y Precio */}
-              <View style={styles.detailsContainer}>
-                <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>Duración</Text>
-                  <Text style={styles.detailValue}>
-                    {servicio.duracion || 'No especificada'}
+              <View style={styles.contentContainer}>
+                {/* Sección de Descripción */}
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Descripción</Text>
+                  <Text style={styles.description}>
+                    {servicio.descripcion || 'No hay descripción disponible'}
                   </Text>
                 </View>
-                <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>Precio</Text>
-                  <Text style={[styles.detailValue, styles.priceText]}>
-                    {servicio.precio || 'No especificado'}
-                  </Text>
-                </View>
-              </View>
 
-              {/* Sección de Insumos - Verificación mejorada */}
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Insumos utilizados</Text>
-                
-                {servicio.insumos && servicio.insumos.length > 0 ? (
-                  <>
-                    <View style={styles.insumosHeader}>
-                      <Text style={styles.insumoHeaderText}>Nombre</Text>
-                      <Text style={styles.insumoHeaderText}>Cantidad</Text>
-                    </View>
-                    
-                    {servicio.insumos.map((insumo, index) => (
-                      <View key={`insumo-${index}`} style={styles.insumoRow}>
-                        <Text style={styles.insumoName}>
-                          {insumo.nombre || 'Insumo sin nombre'}
-                        </Text>
-                        <Text style={styles.insumoQuantity}>
-                          {insumo.cantidad || '0'}
+                {/* Detalles de Duración y Precio */}
+                <View style={styles.detailsContainer}>
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailLabel}>Duración</Text>
+                    <Text style={styles.detailValue}>
+                      {servicio.duracion || 'No especificada'}
+                    </Text>
+                  </View>
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailLabel}>Precio</Text>
+                    <View style={styles.priceWrapper}>
+                      <View style={styles.priceContainer}>
+                        <Text style={styles.priceText}>
+                          {servicio.precio || 'No especificado'}
                         </Text>
                       </View>
-                    ))}
-                  </>
-                ) : (
-                  <Text style={styles.noInsumosText}>No se registraron insumos</Text>
-                )}
+                    </View>
+                  </View>
+                </View>
+
+                {/* Sección de Insumos */}
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Insumos utilizados</Text>
+                  
+                  {servicio.insumos && servicio.insumos.length > 0 ? (
+                    <>
+                      <View style={styles.insumosHeader}>
+                        <Text style={[styles.insumoHeaderText, { textAlign: 'left' }]}>Nombre</Text>
+                        <Text style={[styles.insumoHeaderText, { textAlign: 'right', paddingRight: 15 }]}>Cantidad</Text>
+                      </View>
+                      
+                      {servicio.insumos.map((insumo, index) => (
+                        <View key={`insumo-${index}`} style={styles.insumoRow}>
+                          <Text style={styles.insumoName}>
+                            {insumo.nombre || 'Insumo sin nombre'}
+                          </Text>
+                          <View style={styles.quantityContainer}>
+                            <Text style={styles.insumoQuantity}>
+                              {insumo.cantidad || '0'}
+                            </Text>
+                          </View>
+                        </View>
+                      ))}
+                    </>
+                  ) : (
+                    <Text style={styles.noInsumosText}>No se registraron insumos</Text>
+                  )}
+                </View>
               </View>
-            </View>
-          </ScrollView>
+            </ScrollView>
+          </View>
         </View>
-      </View>
+      </BlurView>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  centeredView: {
+  blurContainer: {
     flex: 1,
+    width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  centeredView: {
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalView: {
     width: '40%',
-    maxHeight: '70%',
+    height: '100%',
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 20,
+    borderWidth: 1,
+    borderColor: 'black',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -129,7 +145,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#111827',
+    color: 'black',
     marginBottom: 12,
   },
   description: {
@@ -149,7 +165,7 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 12,
-    color: '#6b7280',
+    color: 'black',
     marginBottom: 4,
     fontWeight: '500',
     textTransform: 'uppercase',
@@ -159,6 +175,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: '#111827',
+  },
+  priceWrapper: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+  },
+  priceContainer: {
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    alignSelf: 'flex-start',
   },
   priceText: {
     color: '#10b981',
@@ -170,15 +197,14 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     paddingBottom: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: 'black',
   },
   insumoHeaderText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6b7280',
+    color: 'black',
     textTransform: 'uppercase',
     flex: 1,
-    textAlign: 'center',
   },
   insumoRow: {
     flexDirection: 'row',
@@ -195,11 +221,17 @@ const styles = StyleSheet.create({
     color: '#111827',
     flex: 1,
   },
+  quantityContainer: {
+    backgroundColor: '#D9D9D9',
+    borderRadius: 15,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    marginRight: 3, // Añadido para alinear mejor con el encabezado
+  },
   insumoQuantity: {
     fontSize: 13,
-    color: '#10b981',
+    color: 'black',
     fontWeight: '600',
-    flex: 1,
     textAlign: 'center',
   },
   noInsumosText: {

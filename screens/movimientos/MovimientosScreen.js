@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { MaterialIcons, FontAwesome, Feather, Ionicons } from '@expo/vector-icons';
 import Paginacion from '../../components/Paginacion';
 import Buscador from '../../components/Buscador';
 
@@ -85,7 +86,12 @@ const MovimientosScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.titulo}>Registro de movimientos ({movimientosFiltrados.length})</Text>
+        <View style={styles.tituloContainer}>
+          <Text style={styles.titulo}>Registro de movimientos</Text>
+          <View style={styles.contadorContainer}>
+            <Text style={styles.contadorTexto}>{movimientosFiltrados.length}</Text>
+          </View>
+        </View>
       </View>
 
       <Buscador
@@ -97,16 +103,16 @@ const MovimientosScreen = () => {
       <View style={styles.tabla}>
         {/* Encabezados de la tabla */}
         <View style={styles.filaEncabezado}>
-          <View style={[styles.celda, styles.columnaInsumo]}>
+          <View style={[styles.celdaEncabezado, styles.columnaInsumo]}>
             <Text style={styles.encabezado}>Insumo</Text>
           </View>
-          <View style={[styles.celda, styles.columnaDescripcion]}>
+          <View style={[styles.celdaEncabezado, styles.columnaDescripcion]}>
             <Text style={styles.encabezado}>Descripción</Text>
           </View>
-          <View style={[styles.celda, styles.columnaUnidades]}>
+          <View style={[styles.celdaEncabezado, styles.columnaUnidades]}>
             <Text style={styles.encabezado}>Unidades</Text>
           </View>
-          <View style={[styles.celda, styles.columnaFecha]}>
+          <View style={[styles.celdaEncabezado, styles.columnaFecha]}>
             <Text style={styles.encabezado}>Fecha</Text>
           </View>
         </View>
@@ -118,16 +124,20 @@ const MovimientosScreen = () => {
           renderItem={({ item }) => (
             <View style={styles.fila}>
               <View style={[styles.celda, styles.columnaInsumo]}>
-                <Text style={styles.textoNegrita}>{item.insumo}</Text>
+                <Text style={styles.textoNombre}>{item.insumo}</Text>
               </View>
               <View style={[styles.celda, styles.columnaDescripcion]}>
-                <Text style={styles.textoNormal}>{item.descripcion}</Text>
+                <Text style={styles.textoDescripcion}>{item.descripcion}</Text>
               </View>
               <View style={[styles.celda, styles.columnaUnidades]}>
-                <Text style={styles.textoNormal}>{item.unidades}</Text>
+                <View style={styles.unidadesContainer}>
+                  <Text style={styles.textoUnidades}>{item.unidades}</Text>
+                </View>
               </View>
               <View style={[styles.celda, styles.columnaFecha]}>
-                <Text style={styles.textoNormal}>{item.fecha}</Text>
+                <View style={styles.fechaContainer}>
+                  <Text style={styles.textoFecha}>{item.fecha}</Text>
+                </View>
               </View>
             </View>
           )}
@@ -151,10 +161,30 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 16,
+  },
+  tituloContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   titulo: {
     fontSize: 24,
+    fontWeight: 'bold',
+    marginRight: 10,
+  },
+  contadorContainer: {
+    backgroundColor: '#D9D9D9',
+    borderRadius: 50,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  contadorTexto: {
+    fontSize: 14,
     fontWeight: 'bold',
   },
   tabla: {
@@ -166,26 +196,39 @@ const styles = StyleSheet.create({
   },
   filaEncabezado: {
     flexDirection: 'row',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#424242',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
+    borderBottomColor: 'black',
+  },
+  celdaEncabezado: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+  },
+  encabezado: {
+    fontWeight: 'bold',
+    textAlign: 'center',
+    color: 'white',
   },
   fila: {
     flexDirection: 'row',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: 'black',
+    alignItems: 'center',
   },
   celda: {
-    paddingHorizontal: 8,
     justifyContent: 'center',
+    paddingHorizontal: 8,
   },
   columnaInsumo: {
     flex: 2,
+    alignItems: 'flex-start',
   },
   columnaDescripcion: {
-    flex: 2,
+    flex: 3,
+    alignItems: 'flex-start',
   },
   columnaUnidades: {
     flex: 1,
@@ -193,15 +236,37 @@ const styles = StyleSheet.create({
   },
   columnaFecha: {
     flex: 2,
+    alignItems: 'center',
   },
-  encabezado: {
-    fontWeight: 'bold',
+  textoNombre: {
+    fontWeight: '500',
   },
-  textoNegrita: {
-    fontWeight: 'bold',
+  textoDescripcion: {
+    color: '#666',
   },
-  textoNormal: {
-    fontWeight: 'normal',
+  unidadesContainer: {
+    backgroundColor: '#D9D9D9',
+    borderRadius: 15,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    minWidth: 50, // Ancho mínimo para alinear con el encabezado
+  },
+  textoUnidades: {
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  fechaContainer: {
+    backgroundColor: '#D9D9D9',
+    borderRadius: 15,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    minWidth: 150, // Ancho mínimo para alinear con el encabezado
+  },
+  textoFecha: {
+    fontWeight: '500',
+    textAlign: 'center',
   },
 });
 

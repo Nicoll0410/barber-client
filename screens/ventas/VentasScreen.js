@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native
 import { FontAwesome } from '@expo/vector-icons';
 import Paginacion from '../../components/Paginacion';
 import Buscador from '../../components/Buscador';
-import DetalleVenta from './DetalleVenta'; // Importamos el componente del modal
+import DetalleVenta from './DetalleVenta';
 
 const VentasScreen = () => {
   const [ventas, setVentas] = useState([]);
@@ -15,7 +15,6 @@ const VentasScreen = () => {
   const [ventaSeleccionada, setVentaSeleccionada] = useState(null);
 
   useEffect(() => {
-    // Datos de ejemplo ampliados para incluir los detalles del modal
     const datosEjemplo = [
       { 
         id: 1,
@@ -41,7 +40,6 @@ const VentasScreen = () => {
         direccion: 'Calle 72',
         profesional: 'Ana Terapeuta'
       },
-      // ... otros datos de ejemplo
     ];
     setVentas(datosEjemplo);
     setVentasFiltradas(datosEjemplo);
@@ -84,23 +82,40 @@ const VentasScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.titulo}>Ventas ({ventasFiltradas.length})</Text>
+        <View style={styles.tituloContainer}>
+          <Text style={styles.titulo}>Ventas</Text>
+          <View style={styles.contadorContainer}>
+            <Text style={styles.contadorTexto}>{ventasFiltradas.length}</Text>
+          </View>
+        </View>
       </View>
 
       <Buscador
-        placeholder="Buscar ventas"
+        placeholder="Buscar ventas por paciente, servicio o fecha"
         value={busqueda}
         onChangeText={handleSearchChange}
       />
 
       <View style={styles.tabla}>
         <View style={styles.filaEncabezado}>
-          <View style={[styles.celda, styles.columnaFecha]}><Text style={styles.encabezado}>Fecha</Text></View>
-          <View style={[styles.celda, styles.columnaHora]}><Text style={styles.encabezado}>Hora</Text></View>
-          <View style={[styles.celda, styles.columnaPaciente]}><Text style={styles.encabezado}>Paciente</Text></View>
-          <View style={[styles.celda, styles.columnaPrecio]}><Text style={styles.encabezado}>Precio</Text></View>
-          <View style={[styles.celda, styles.columnaServicio]}><Text style={styles.encabezado}>Servicio</Text></View>
-          <View style={[styles.celda, styles.columnaAcciones]}><Text style={styles.encabezado}>Acciones</Text></View>
+          <View style={[styles.celdaEncabezado, styles.columnaFecha]}>
+            <Text style={styles.encabezado}>Fecha</Text>
+          </View>
+          <View style={[styles.celdaEncabezado, styles.columnaHora]}>
+            <Text style={styles.encabezado}>Hora</Text>
+          </View>
+          <View style={[styles.celdaEncabezado, styles.columnaPaciente]}>
+            <Text style={styles.encabezado}>Paciente</Text>
+          </View>
+          <View style={[styles.celdaEncabezado, styles.columnaPrecio]}>
+            <Text style={styles.encabezado}>Precio</Text>
+          </View>
+          <View style={[styles.celdaEncabezado, styles.columnaServicio]}>
+            <Text style={styles.encabezado}>Servicio</Text>
+          </View>
+          <View style={[styles.celdaEncabezado, styles.columnaAcciones]}>
+            <Text style={styles.encabezado}>Acciones</Text>
+          </View>
         </View>
 
         <FlatList
@@ -109,27 +124,31 @@ const VentasScreen = () => {
           renderItem={({ item }) => (
             <View style={styles.fila}>
               <View style={[styles.celda, styles.columnaFecha]}>
-                <Text style={styles.textoNormal}>{item.fecha}</Text>
+                <Text style={styles.textoNombre}>{item.fecha}</Text>
               </View>
               <View style={[styles.celda, styles.columnaHora]}>
-                <Text style={styles.textoNormal}>{item.hora}</Text>
+                <Text style={styles.textoNombre}>{item.hora}</Text>
               </View>
               <View style={[styles.celda, styles.columnaPaciente]}>
-                <Text style={styles.textoNormal}>{item.paciente}</Text>
+                <Text style={styles.textoNombre}>{item.paciente}</Text>
               </View>
               <View style={[styles.celda, styles.columnaPrecio]}>
-                <Text style={styles.textoNormal}>{item.precio}</Text>
+                <View style={styles.precioContainer}>
+                  <Text style={styles.textoPrecio}>{item.precio}</Text>
+                </View>
               </View>
               <View style={[styles.celda, styles.columnaServicio]}>
-                <Text style={styles.textoNormal}>{item.servicio}</Text>
+                <Text style={styles.textoDescripcion} numberOfLines={1}>{item.servicio}</Text>
               </View>
               <View style={[styles.celda, styles.columnaAcciones]}>
-                <TouchableOpacity 
-                  onPress={() => verVenta(item)} 
-                  style={styles.botonAccion}
-                >
-                  <FontAwesome name="eye" size={20} color="#2196F3" />
-                </TouchableOpacity>
+                <View style={styles.contenedorAcciones}>
+                  <TouchableOpacity 
+                    onPress={() => verVenta(item)} 
+                    style={styles.botonAccion}
+                  >
+                    <FontAwesome name="eye" size={20} color="black" />
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           )}
@@ -142,7 +161,6 @@ const VentasScreen = () => {
         cambiarPagina={cambiarPagina}
       />
 
-      {/* Modal de detalle de venta */}
       <DetalleVenta
         visible={modalDetalleVisible}
         onClose={() => setModalDetalleVisible(false)}
@@ -152,7 +170,6 @@ const VentasScreen = () => {
   );
 };
 
-// Estilos (se mantienen iguales)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -160,10 +177,30 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 16,
+  },
+  tituloContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   titulo: {
     fontSize: 24,
+    fontWeight: 'bold',
+    marginRight: 10,
+  },
+  contadorContainer: {
+    backgroundColor: '#D9D9D9',
+    borderRadius: 50,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  contadorTexto: {
+    fontSize: 14,
     fontWeight: 'bold',
   },
   tabla: {
@@ -175,46 +212,77 @@ const styles = StyleSheet.create({
   },
   filaEncabezado: {
     flexDirection: 'row',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#424242',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
+    borderBottomColor: 'black',
+  },
+  celdaEncabezado: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+  },
+  encabezado: {
+    fontWeight: 'bold',
+    textAlign: 'center',
+    color: 'white',
   },
   fila: {
     flexDirection: 'row',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: 'black',
     alignItems: 'center',
   },
   celda: {
-    paddingHorizontal: 8,
     justifyContent: 'center',
+    paddingHorizontal: 8,
   },
   columnaFecha: {
-    flex: 2,
+    flex: 1.5,
+    alignItems: 'flex-start',
   },
   columnaHora: {
     flex: 1,
+    alignItems: 'center',
   },
   columnaPaciente: {
     flex: 1.5,
+    alignItems: 'flex-start',
   },
   columnaPrecio: {
     flex: 1.5,
+    alignItems: 'center',
   },
   columnaServicio: {
     flex: 2,
+    alignItems: 'flex-start',
   },
   columnaAcciones: {
-    flex: 0.5,
-    alignItems: 'center',
+    flex: 0.8,
+    alignItems: 'flex-end',
   },
-  encabezado: {
-    fontWeight: 'bold',
+  textoNombre: {
+    fontWeight: '500',
   },
-  textoNormal: {
-    fontWeight: 'normal',
+  textoDescripcion: {
+    color: '#666',
+  },
+  precioContainer: {
+    backgroundColor: 'rgba(76, 175, 80, 0.2)',
+    borderRadius: 15,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  textoPrecio: {
+    color: '#4CAF50',
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  contenedorAcciones: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    width: '100%',
   },
   botonAccion: {
     marginHorizontal: 6,

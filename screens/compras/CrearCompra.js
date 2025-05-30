@@ -324,10 +324,10 @@ const CrearCompra = ({ visible, onClose, onCreate }) => {
                             calendarBackground: 'transparent',
                             textSectionTitleColor: '#666',
                             dayTextColor: '#333',
-                            todayTextColor: '#4CAF50',
+                            todayTextColor: '#424242',
                             selectedDayTextColor: '#fff',
-                            selectedDayBackgroundColor: '#4CAF50',
-                            arrowColor: '#4CAF50',
+                            selectedDayBackgroundColor: '#424242',
+                            arrowColor: '#424242',
                             monthTextColor: '#333',
                             textDayFontWeight: '400',
                             textMonthFontWeight: 'bold',
@@ -378,7 +378,7 @@ const CrearCompra = ({ visible, onClose, onCreate }) => {
                   style={styles.botonAgregarInsumo}
                   onPress={agregarInsumo}
                 >
-                  <MaterialIcons name="add" size={24} color="#4CAF50" />
+                  <MaterialIcons name="add" size={24} color="#424242" />
                   <Text style={styles.textoBotonAgregar}>Agregar insumo</Text>
                 </TouchableOpacity>
 
@@ -411,6 +411,7 @@ const CrearCompra = ({ visible, onClose, onCreate }) => {
                           <TextInput
                             style={styles.input}
                             placeholder="Ej: 5"
+                            placeholderTextColor="#929292"
                             keyboardType="numeric"
                             value={item.cantidad}
                             onChangeText={(text) => actualizarInsumo(item.id, 'cantidad', text)}
@@ -422,6 +423,7 @@ const CrearCompra = ({ visible, onClose, onCreate }) => {
                           <TextInput
                             style={styles.input}
                             placeholder="Ej: 25000"
+                            placeholderTextColor="#929292"
                             keyboardType="numeric"
                             value={item.precioUnitario}
                             onChangeText={(text) => actualizarInsumo(item.id, 'precioUnitario', text)}
@@ -444,7 +446,7 @@ const CrearCompra = ({ visible, onClose, onCreate }) => {
                           style={styles.botonEliminarInsumo}
                           onPress={() => eliminarInsumo(item.id)}
                         >
-                          <Feather name="trash-2" size={20} color="#F44336" />
+                          <Feather name="trash-2" size={20} color="#424242" />
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -503,12 +505,12 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '90%',
     maxWidth: 500,
-    maxHeight: '85%',
+    maxHeight: '90%',
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 15,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderWidth: 3,
+    borderColor: 'black',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -541,7 +543,6 @@ const styles = StyleSheet.create({
   doubleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
   },
   label: {
     fontSize: 14,
@@ -553,8 +554,8 @@ const styles = StyleSheet.create({
     color: 'red',
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
+    borderWidth: 2,
+    borderColor: '#424242',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -563,8 +564,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
   },
   pickerContainer: {
-    borderWidth: 1,
-    borderColor: '#ddd',
+    borderWidth: 2,
+    borderColor: '#424242',
     borderRadius: 8,
     overflow: 'hidden',
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
@@ -574,8 +575,8 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   dateInput: {
-    borderWidth: 1,
-    borderColor: '#ddd',
+    borderWidth: 2,
+    borderColor: '#424242',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -600,7 +601,9 @@ const styles = StyleSheet.create({
   botonAgregarInsumo: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#e8f5e9',
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    borderWidth: 2,
+    borderColor: '#424242',
     paddingVertical: 10,
     paddingHorizontal: 15,
     borderRadius: 8,
@@ -609,16 +612,16 @@ const styles = StyleSheet.create({
   },
   textoBotonAgregar: {
     marginLeft: 8,
-    color: '#2e7d32',
+    color: '#424242',
     fontWeight: '500',
   },
   insumoContainer: {
-    backgroundColor: '#f9f9f9',
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
     borderRadius: 8,
     padding: 15,
     marginBottom: 15,
-    borderWidth: 1,
-    borderColor: '#eee',
+    borderWidth: 2,
+    borderColor: '#424242',
   },
   subtituloInsumo: {
     fontSize: 15,
@@ -642,8 +645,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 15,
     paddingTop: 15,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopWidth: 2,
+    borderTopColor: '#424242',
   },
   labelTotal: {
     fontSize: 16,
@@ -653,7 +656,7 @@ const styles = StyleSheet.create({
   valorTotal: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#2e7d32',
+    color: '#424242',
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -661,42 +664,42 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   button: {
+    flex: 1,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 15,
     alignItems: 'center',
-    minWidth: 100,
+    justifyContent: 'center',
   },
   primaryButton: {
-    backgroundColor: 'rgba(76, 175, 80, 0.9)',
-    flex: 1,
-    marginHorizontal: 5,
+    backgroundColor: '#424242',
+    marginRight: 10,
   },
   secondaryButton: {
-    backgroundColor: 'rgba(241, 241, 241, 0.9)',
+    backgroundColor: 'white',
     borderWidth: 1,
-    borderColor: 'rgba(221, 221, 221, 0.5)',
-    marginRight: 5,
+    borderColor: '#929292',
+    marginRight: 10,
   },
   cancelButton: {
-    backgroundColor: 'rgba(241, 241, 241, 0.9)',
+    backgroundColor: 'white',
     borderWidth: 1,
-    borderColor: 'rgba(221, 221, 221, 0.5)',
-    marginLeft: 5,
+    borderColor: '#929292',
+    marginLeft: 10,
   },
   buttonText: {
     fontWeight: '500',
     fontSize: 15,
-    color: '#fff',
+    color: 'white',
   },
   secondaryButtonText: {
     fontWeight: '500',
     fontSize: 15,
-    color: '#333',
+    color: 'black',
   },
   cancelButtonText: {
     fontWeight: '500',
     fontSize: 15,
-    color: '#333',
+    color: 'black',
   },
   customDatePickerContainer: {
     position: 'absolute',
@@ -753,7 +756,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   datePickerButtonText: {
-    color: '#4CAF50',
+    color: '#424242',
     fontWeight: 'bold',
   },
 });

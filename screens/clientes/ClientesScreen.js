@@ -6,6 +6,7 @@ import Buscador from '../../components/Buscador';
 import CrearCliente from '../clientes/CrearCliente';
 import DetalleCliente from './DetalleCliente';
 import EditarCliente from './EditarCliente';
+import Footer from '../../components/Footer';
 
 // Componente para el avatar del cliente
 const Avatar = ({ nombre }) => {
@@ -250,6 +251,7 @@ const ClientesScreen = () => {
         cliente={clienteSeleccionado}
         onUpdate={handleUpdateClient}
       />
+      <Footer />
     </View>
   );
 };
@@ -355,10 +357,12 @@ const styles = StyleSheet.create({
   },
   textoNombre: {
     marginLeft: 10,
+    fontWeight: 'bold', // Añadido negrita para el nombre
   },
   textoTelefono: {
     textAlign: 'center',
     width: '100%',
+    fontWeight: 'bold', // Añadido negrita para el teléfono
   },
   encabezado: {
     fontWeight: 'bold',

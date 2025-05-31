@@ -14,8 +14,8 @@ const servicios = [
 
 const clientes = [
   { id: '1', nombre: 'Santiago Pérez', avatar: require('../../assets/avatar.png') },
-  { id: '2', nombre: 'Carolina López', avatar: require('../../assets/avatar.png') },
-  { id: '3', nombre: 'María José García', avatar: require('../../assets/avatar.png') },
+  { id: '2', nombre: 'Carlos López', avatar: require('../../assets/avatar.png') },
+  { id: '3', nombre: 'Mario García', avatar: require('../../assets/avatar.png') },
   { id: '4', nombre: 'Andrés Rodríguez', avatar: require('../../assets/avatar.png') },
 ];
 

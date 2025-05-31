@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import Footer from '../../components/Footer';
 
 const LoginForm = () => {
     const [email, setEmail] = useState('');
@@ -99,6 +100,7 @@ const LoginForm = () => {
                     </View>
                 </View>
             </Modal>
+            <Footer />
         </View>
     );
 };

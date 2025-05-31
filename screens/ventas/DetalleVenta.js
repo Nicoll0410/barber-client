@@ -2,6 +2,7 @@ import React from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
 import { AntDesign, FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import Footer from '../../components/Footer';
 
 const { width } = Dimensions.get('window');
 
@@ -17,8 +18,8 @@ const DetalleVenta = ({ visible, onClose, venta }) => {
               {/* Encabezado del servicio */}
               <View style={styles.item}>
                 <Text style={styles.label}>Servicio</Text>
-                <Text style={[styles.value, { fontWeight: '600' }]}>Masaje con crema de coco</Text>
-                <Text style={[styles.value, { fontSize: 14, color: '#777' }]}>masajedfgdfgdfg</Text>
+                <Text style={[styles.value, { fontWeight: '600' }]}>Corte clásico</Text>
+                <Text style={[styles.value, { fontSize: 14, color: '#777' }]}>Corte con tijera y máquina</Text>
               </View>
 
               {/* Detalles de fecha y hora */}
@@ -26,11 +27,11 @@ const DetalleVenta = ({ visible, onClose, venta }) => {
                 <Text style={styles.label}>Fecha y Hora</Text>
                 <View style={styles.detailRow}>
                   <MaterialIcons name="date-range" size={16} color="#555" style={styles.icono} />
-                  <Text style={styles.value}>10 de septiembre de 2024</Text>
+                  <Text style={styles.value}>15 de septiembre de 2024</Text>
                 </View>
                 <View style={styles.detailRow}>
                   <FontAwesome name="clock-o" size={16} color="#555" style={styles.icono} />
-                  <Text style={styles.value}>08:00 a.m. - 08:30 a.m. (30 minutos de duración)</Text>
+                  <Text style={styles.value}>10:00 a.m. - 10:30 a.m. (30 minutos de duración)</Text>
                 </View>
               </View>
 
@@ -38,25 +39,25 @@ const DetalleVenta = ({ visible, onClose, venta }) => {
               <View style={styles.item}>
                 <Text style={styles.label}>Precio</Text>
                 <View style={styles.precioContainer}>
-                  <Text style={styles.precio}>$ 14.000.000</Text>
+                  <Text style={styles.precio}>$ 45.000</Text>
                 </View>
               </View>
 
-              {/* Información del profesional y paciente */}
+              {/* Información del profesional y cliente */}
               <View style={styles.item}>
                 <Text style={styles.label}>Participantes</Text>
                 <View style={styles.participantesContainer}>
                   <View style={styles.participante}>
-                    <View style={[styles.avatar, styles.avatarPaciente]}>
-                      <Text style={styles.avatarText}>A</Text>
+                    <View style={[styles.avatar, styles.avatarCliente]}>
+                      <Text style={styles.avatarText}>C</Text>
                     </View>
-                    <Text style={styles.participanteNombre}>Paciente</Text>
+                    <Text style={styles.participanteNombre}>Cliente</Text>
                   </View>
                   
                   <View style={styles.participante}>
-                    <Text style={styles.participanteNombre}>Martha Cosmetólogo</Text>
+                    <Text style={styles.participanteNombre}>Carlos Barbero</Text>
                     <View style={[styles.avatar, styles.avatarProfesional]}>
-                      <Text style={styles.avatarText}>M</Text>
+                      <Text style={styles.avatarText}>C</Text>
                     </View>
                   </View>
                 </View>
@@ -158,7 +159,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  avatarPaciente: {
+  avatarCliente: {
     backgroundColor: '#2196F3',
   },
   avatarProfesional: {

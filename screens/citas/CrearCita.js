@@ -20,8 +20,8 @@ const barberos = [
 
 const clientes = [
   { id: '1', nombre: 'Santiago Pérez', avatar: require('../../assets/avatar.png') },
-  { id: '2', nombre: 'Carolina López', avatar: require('../../assets/avatar.png') },
-  { id: '3', nombre: 'María José García', avatar: require('../../assets/avatar.png') },
+  { id: '2', nombre: 'Carlos López', avatar: require('../../assets/avatar.png') },
+  { id: '3', nombre: 'Mario García', avatar: require('../../assets/avatar.png') },
   { id: '4', nombre: 'Andrés Rodríguez', avatar: require('../../assets/avatar.png') },
 ];
 
@@ -276,7 +276,7 @@ const CrearCita = ({ visible, onClose, onCreate }) => {
   // Paso 3: Selección de cliente
   const Paso3 = () => (
     <View style={styles.pasoContainer}>
-      <Text style={styles.subtitulo}>Por favor, selecciona el paciente al que se realizará la cita</Text>
+      <Text style={styles.subtitulo}>Por favor, selecciona el cliente al que se realizará la cita</Text>
       
       <View style={styles.buscadorContainer}>
         <MaterialIcons name="search" size={20} color="#666" style={styles.buscadorIcono} />

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert } from 'react-native';
 import { MaterialIcons, FontAwesome, Feather, Ionicons } from '@expo/vector-icons';
 import Paginacion from '../../components/Paginacion';
 import Buscador from '../../components/Buscador';
 import CrearServicio from './CrearServicio';
 import DetalleServicio from './DetalleServicio';
 import EditarServicio from './EditarServicio';
+import Footer from '../../components/Footer';
 
 const ServiciosScreen = () => {
   const [servicios, setServicios] = useState([]);
@@ -19,41 +20,63 @@ const ServiciosScreen = () => {
   const [servicioSeleccionado, setServicioSeleccionado] = useState(null);
 
   useEffect(() => {
+    // Datos de ejemplo específicos para barbería
     const datosEjemplo = [
       { 
         id: 1, 
-        nombre: 'Manicure y Pedicure', 
-        descripcion: 'uñas lindas', 
-        duracion: '1 horas y 30 minutos', 
-        precio: '$ 50.000' 
+        nombre: 'Corte Clásico', 
+        descripcion: 'Corte de cabello tradicional con tijeras y máquina, incluye lavado', 
+        duracion: '45 min', 
+        precio: '$ 25.000' 
       },
       { 
         id: 2, 
-        nombre: 'wilson servicios', 
-        descripcion: 'ldajdlasjd', 
-        duracion: '1 horas', 
-        precio: '$ 10.000' 
+        nombre: 'Afeitado Premium', 
+        descripcion: 'Afeitado con navaja tradicional y tratamiento post-afeitado', 
+        duracion: '30 min', 
+        precio: '$ 30.000' 
       },
       { 
         id: 3, 
-        nombre: 'askidjasdikad', 
-        descripcion: 'alkdjsalkdjakld', 
-        duracion: '1 horas y 30 minutos', 
-        precio: '$ 50.000' 
+        nombre: 'Corte + Barba', 
+        descripcion: 'Combo completo: corte de cabello más arreglo de barba profesional', 
+        duracion: '60 min', 
+        precio: '$ 45.000' 
       },
       { 
         id: 4, 
-        nombre: 'Masaje con crema de ...', 
-        descripcion: 'masajedfgdfgdfg', 
-        duracion: '30 minutos', 
-        precio: '$ 14.000.000' 
+        nombre: 'Tinte para Barba', 
+        descripcion: 'Aplicación de tinte profesional para barba con productos de calidad', 
+        duracion: '40 min', 
+        precio: '$ 35.000' 
       },
       { 
         id: 5, 
-        nombre: 'sadiksadjk', 
-        descripcion: 'dsasjkdhsajkdh', 
-        duracion: '1 horas', 
-        precio: '$ 50.000' 
+        nombre: 'Tratamiento Capilar', 
+        descripcion: 'Hidratación profunda con queratina para cabello seco o dañado', 
+        duracion: '35 min', 
+        precio: '$ 40.000' 
+      },
+      { 
+        id: 6, 
+        nombre: 'Diseño de Barba', 
+        descripcion: 'Diseño personalizado de barba según la forma de tu rostro', 
+        duracion: '25 min', 
+        precio: '$ 20.000' 
+      },
+      { 
+        id: 7, 
+        nombre: 'Corte Infantil', 
+        descripcion: 'Corte especial para niños con terminaciones suaves', 
+        duracion: '30 min', 
+        precio: '$ 18.000' 
+      },
+      { 
+        id: 8, 
+        nombre: 'Mascarilla Reafirmante', 
+        descripcion: 'Tratamiento facial con mascarilla reafirmante para piel', 
+        duracion: '20 min', 
+        precio: '$ 15.000' 
       },
     ];
     setServicios(datosEjemplo);
@@ -122,9 +145,24 @@ const ServiciosScreen = () => {
   };
 
   const eliminarServicio = (id) => {
-    const nuevosServicios = servicios.filter(s => s.id !== id);
-    setServicios(nuevosServicios);
-    setServiciosFiltrados(nuevosServicios);
+    Alert.alert(
+      "Confirmar eliminación",
+      "¿Estás seguro de que deseas eliminar este servicio?",
+      [
+        {
+          text: "Cancelar",
+          style: "cancel"
+        },
+        { 
+          text: "Eliminar", 
+          onPress: () => {
+            const nuevosServicios = servicios.filter(s => s.id !== id);
+            setServicios(nuevosServicios);
+            setServiciosFiltrados(nuevosServicios);
+          }
+        }
+      ]
+    );
   };
 
   return (
@@ -143,7 +181,7 @@ const ServiciosScreen = () => {
       </View>
 
       <Buscador
-        placeholder="Buscar servicios por nombre o descripción"
+        placeholder="Buscar servicios (corte, barba, tratamiento...)"
         value={busqueda}
         onChangeText={handleSearchChange}
       />
@@ -163,17 +201,19 @@ const ServiciosScreen = () => {
           renderItem={({ item }) => (
             <View style={styles.fila}>
               <View style={[styles.celda, styles.columnaNombre]}>
-                <Text style={styles.textoNombre}>{item.nombre}</Text>
+                <Text style={styles.textoNombre}><Text style={{fontWeight: 'bold'}}>{item.nombre}</Text></Text>
               </View>
               <View style={[styles.celda, styles.columnaDescripcion]}>
                 <Text style={styles.textoDescripcion} numberOfLines={1}>{item.descripcion}</Text>
               </View>
               <View style={[styles.celda, styles.columnaDuracion]}>
-                <Text style={styles.textoDuracion}>{item.duracion}</Text>
+                <View style={styles.duracionContainer}>
+                  <Text style={styles.textoDuracion}>{item.duracion}</Text>
+                </View>
               </View>
               <View style={[styles.celda, styles.columnaPrecio]}>
                 <View style={styles.precioContainer}>
-                  <Text style={styles.textoPrecio}>{item.precio}</Text>
+                  <Text style={styles.textoPrecio}><Text style={{fontWeight: 'bold'}}>{item.precio}</Text></Text>
                 </View>
               </View>
               <View style={[styles.celda, styles.columnaAcciones]}>
@@ -218,6 +258,7 @@ const ServiciosScreen = () => {
         servicio={servicioSeleccionado}
         onUpdate={handleUpdateService}
       />
+      <Footer />
     </View>
   );
 };
@@ -312,7 +353,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   columnaDuracion: {
-    flex: 2,
+    flex: 1.5,
     alignItems: 'center',
   },
   columnaPrecio: {
@@ -327,20 +368,28 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   textoDescripcion: {
-    color: '#666',
+    color: 'black',
+  },
+  duracionContainer: {
+    backgroundColor: '#D9D9D9',
+    borderRadius: 15,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    minWidth: 70,
+    alignItems: 'center',
   },
   textoDuracion: {
     textAlign: 'center',
-    width: '100%',
+    fontSize: 14,
   },
   precioContainer: {
-    backgroundColor: 'rgba(76, 175, 80, 0.2)', // Verde con 20% de transparencia
+    backgroundColor: 'rgba(76, 175, 80, 0.2)',
     borderRadius: 15,
     paddingVertical: 4,
     paddingHorizontal: 8,
   },
   textoPrecio: {
-    color: '#4CAF50', // Verde
+    color: '#4CAF50',
     fontWeight: '500',
     textAlign: 'center',
   },

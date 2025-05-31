@@ -6,6 +6,7 @@ import Buscador from '../../components/Buscador';
 import CrearCategoria from './CrearCategoriaInsumos';
 import EditarCategoria from './EditarCategoriaInsumos';
 import DetalleCategoria from './DetalleCategoriaInsumos';
+import Footer from '../../components/Footer';
 
 const CategoriaInsumosScreen = () => {
   const [categorias, setCategorias] = useState([]);
@@ -22,38 +23,52 @@ const CategoriaInsumosScreen = () => {
     const datosEjemplo = [
       { 
         id: 1, 
-        nombre: 'Cremas', 
-        descripcion: 'Cremas', 
-        fechaCreacion: '3 de septiembre de 2024', 
-        insumosAsociados: 8 
+        nombre: 'Tijeras', 
+        descripcion: 'Tijeras profesionales para corte', 
+        fechaCreacion: '15 de enero de 2024', 
+        insumosAsociados: 5 
       },
       { 
         id: 2, 
-        nombre: 'Esmaltes', 
-        descripcion: 'Esmaltes semipermanentes', 
-        fechaCreacion: '4 de septiembre de 2024', 
-        insumosAsociados: 0 
+        nombre: 'Máquinas', 
+        descripcion: 'Máquinas de corte y detalle', 
+        fechaCreacion: '20 de enero de 2024', 
+        insumosAsociados: 3 
       },
       { 
         id: 3, 
-        nombre: 'Aceite', 
-        descripcion: 'Aceite corporal', 
-        fechaCreacion: '3 de septiembre de 2024', 
-        insumosAsociados: 2 
+        nombre: 'Navajas', 
+        descripcion: 'Navajas para afeitado clásico', 
+        fechaCreacion: '5 de febrero de 2024', 
+        insumosAsociados: 8 
       },
       { 
         id: 4, 
-        nombre: 'Shampoo', 
-        descripcion: 'Shampoos para lavado del cabello', 
-        fechaCreacion: '27 de agosto de 2024', 
-        insumosAsociados: 4 
+        nombre: 'Productos', 
+        descripcion: 'Geles, pomadas y fijadores', 
+        fechaCreacion: '10 de marzo de 2024', 
+        insumosAsociados: 12 
       },
       { 
         id: 5, 
-        nombre: 'Barniz', 
-        descripcion: 'Barniz', 
-        fechaCreacion: '12 de septiembre de 2024', 
-        insumosAsociados: 0 
+        nombre: 'Accesorios', 
+        descripcion: 'Peines, cepillos y brochas', 
+        fechaCreacion: '25 de marzo de 2024', 
+        insumosAsociados: 15 
+      },
+      { 
+        id: 6, 
+        nombre: 'Cuidado Capilar', 
+        descripcion: 'Shampoos y acondicionadores', 
+        fechaCreacion: '1 de abril de 2024', 
+        insumosAsociados: 7 
+      },
+      { 
+        id: 7, 
+        nombre: 'Barba', 
+        descripcion: 'Aceites y productos para barba', 
+        fechaCreacion: '10 de abril de 2024', 
+        insumosAsociados: 9 
       },
     ];
     setCategorias(datosEjemplo);
@@ -160,7 +175,7 @@ const CategoriaInsumosScreen = () => {
       </View>
 
       <Buscador
-        placeholder="Buscar categoría de insumos"
+        placeholder="Buscar categoría (ej: tijeras, máquinas)"
         value={busqueda}
         onChangeText={handleSearchChange}
       />
@@ -186,7 +201,9 @@ const CategoriaInsumosScreen = () => {
                 <Text style={styles.textoDescripcion}>{item.descripcion}</Text>
               </View>
               <View style={[styles.celda, styles.columnaFecha]}>
-                <Text style={styles.textoFecha}>{item.fechaCreacion}</Text>
+                <View style={styles.fechaContainer}>
+                  <Text style={styles.textoFecha}>{item.fechaCreacion}</Text>
+                </View>
               </View>
               <View style={[styles.celda, styles.columnaInsumos]}>
                 <View style={styles.insumosContainer}>
@@ -235,6 +252,7 @@ const CategoriaInsumosScreen = () => {
         onClose={() => setModalDetalleVisible(false)}
         categoria={categoriaSeleccionada}
       />
+      <Footer />
     </View>
   );
 };
@@ -345,10 +363,18 @@ const styles = StyleSheet.create({
   },
   textoDescripcion: {
     color: '#555',
+    fontWeight: 'bold', // Descripción en negrita
+  },
+  fechaContainer: {
+    backgroundColor: '#D9D9D9',
+    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
   textoFecha: {
     textAlign: 'center',
     color: '#666',
+    fontWeight: 'bold', // Fecha en negrita
   },
   insumosContainer: {
     backgroundColor: '#D9D9D9',

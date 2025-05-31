@@ -5,6 +5,7 @@ import CrearCita from './CrearCita';
 import DetalleCita from './DetalleCita';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { BlurView } from 'expo-blur';
+import Footer from '../../components/Footer';
 
 // Configuración de localización en español
 LocaleConfig.locales['es'] = {
@@ -50,8 +51,9 @@ const AgendaScreen = () => {
 
   // Barberos con sus avatares
   const barberos = [
-    { id: '1', nombre: 'Carlos', avatar: require('../../assets/avatar.png'), subItems: ['Cosmetólogos'] },
-    { id: '2', nombre: 'María Jose', avatar: require('../../assets/avatar.png'), subItems: ['Martha', 'Santiago Barrera'] },
+    { id: '1', nombre: 'Carlos', avatar: require('../../assets/avatar.png'), subItems: ['Barbero'] },
+    { id: '2', nombre: 'Luis', avatar: require('../../assets/avatar.png'), subItems: ['Barbero'] },
+    { id: '3', nombre: 'Miguel', avatar: require('../../assets/avatar.png'), subItems: ['Barbero'] },
   ];
 
   // Generar slots de tiempo cada 30 minutos según el día
@@ -488,6 +490,7 @@ const AgendaScreen = () => {
         onClose={() => setShowDetalleCita(false)}
         cita={selectedCita}
       />
+      <Footer />
     </View>
   );
 };

@@ -5,6 +5,7 @@ import Paginacion from '../../components/Paginacion';
 import Buscador from '../../components/Buscador';
 import CrearCita from './CrearCita';
 import DetalleCita from './DetalleCita';
+import Footer from '../../components/Footer';
 
 // Componente para el avatar del barbero
 const Avatar = ({ nombre }) => {
@@ -236,8 +237,46 @@ const CitasScreen = () => {
 
   const verDetalleCita = (id) => {
     const cita = citas.find(c => c.id === id);
-    setCitaSeleccionada(cita);
+    
+    // Adaptar la estructura de datos para el modal DetalleCita
+    const citaAdaptada = {
+      ...cita,
+      servicio: {
+        nombre: cita.servicio,
+        descripcion: `Descripción del servicio ${cita.servicio}`
+      },
+      barbero: {
+        nombre: cita.barbero,
+        avatar: null
+      },
+      cliente: {
+        nombre: cita.cliente,
+        avatar: null
+      },
+      // Convertir fecha string a Date object
+      fecha: parseFecha(cita.fecha)
+    };
+    
+    setCitaSeleccionada(citaAdaptada);
     setModalDetalleVisible(true);
+  };
+
+  // Función para parsear fecha string a Date object
+  const parseFecha = (fechaStr) => {
+    const meses = {
+      'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 
+      'junio': 5, 'julio': 6, 'agosto': 7, 'septiembre': 8, 
+      'octubre': 9, 'noviembre': 10, 'diciembre': 11
+    };
+    
+    const partes = fechaStr.split(' de ');
+    if (partes.length === 3) {
+      const dia = parseInt(partes[0]);
+      const mes = meses[partes[1].toLowerCase()];
+      const año = parseInt(partes[2]);
+      return new Date(año, mes, dia);
+    }
+    return new Date(); // Fallback a fecha actual
   };
 
   const crearCita = () => {
@@ -359,11 +398,14 @@ const CitasScreen = () => {
         onCreate={handleCreateCita}
       />
 
-      <DetalleCita
-        visible={modalDetalleVisible}
-        onClose={() => setModalDetalleVisible(false)}
-        cita={citaSeleccionada}
-      />
+      {modalDetalleVisible && citaSeleccionada && (
+        <DetalleCita
+          visible={modalDetalleVisible}
+          onClose={() => setModalDetalleVisible(false)}
+          cita={citaSeleccionada}
+        />
+      )}
+      <Footer />
     </View>
   );
 };
@@ -477,9 +519,11 @@ const styles = StyleSheet.create({
   },
   textoBarbero: {
     marginLeft: 10,
+    fontWeight: 'bold', // Barbero en negrita
   },
   textoServicio: {
     textAlign: 'center',
+    fontWeight: 'bold', // Servicio en negrita
   },
   encabezado: {
     fontWeight: 'bold',
@@ -512,7 +556,7 @@ const styles = StyleSheet.create({
   },
   fechaHoraTexto: {
     color: '#424242',
-    fontWeight: '500',
+    fontWeight: 'bold', // Fecha y hora en negrita
   },
   avatarContainer: {
     width: 36,

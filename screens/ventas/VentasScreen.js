@@ -4,6 +4,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import Paginacion from '../../components/Paginacion';
 import Buscador from '../../components/Buscador';
 import DetalleVenta from './DetalleVenta';
+import Footer from '../../components/Footer'
 
 const VentasScreen = () => {
   const [ventas, setVentas] = useState([]);
@@ -20,25 +21,37 @@ const VentasScreen = () => {
         id: 1,
         fecha: '11 de septiembre de 2024',
         hora: '08:00 AM',
-        paciente: 'a',
-        precio: '$ 14.000.000',
-        servicio: 'Masaje con crema de coco',
-        descripcion: 'masajedfgdfgdfg',
+        cliente: 'Juan Pérez',
+        precio: '$ 45.000',
+        servicio: 'Corte de cabello',
+        descripcion: 'Corte clásico con tijera y máquina',
         duracion: '30 minutos',
         direccion: 'Calle 65',
-        profesional: 'Martha Cosmetólogo'
+        profesional: 'Carlos Barbero'
       },
       { 
         id: 2,
         fecha: '10 de septiembre de 2024',
         hora: '08:30 AM',
-        paciente: 'Patricia And',
-        precio: '$ 14.000.000',
-        servicio: 'Masaje con...',
-        descripcion: 'Descripción del servicio',
+        cliente: 'Luis Gómez',
+        precio: '$ 60.000',
+        servicio: 'Afeitado clásico',
+        descripcion: 'Afeitado con navaja y productos premium',
         duracion: '45 minutos',
         direccion: 'Calle 72',
-        profesional: 'Ana Terapeuta'
+        profesional: 'Pedro Barbero'
+      },
+      { 
+        id: 3,
+        fecha: '09 de septiembre de 2024',
+        hora: '10:00 AM',
+        cliente: 'Andrés Rodríguez',
+        precio: '$ 75.000',
+        servicio: 'Corte y barba',
+        descripcion: 'Corte completo con arreglo de barba',
+        duracion: '60 minutos',
+        direccion: 'Carrera 15',
+        profesional: 'Mario Barbero'
       },
     ];
     setVentas(datosEjemplo);
@@ -51,7 +64,7 @@ const VentasScreen = () => {
     } else {
       const termino = busqueda.toLowerCase();
       const filtradas = ventas.filter(v =>
-        v.paciente.toLowerCase().includes(termino) || 
+        v.cliente.toLowerCase().includes(termino) || 
         v.servicio.toLowerCase().includes(termino) ||
         v.fecha.toLowerCase().includes(termino)
       );
@@ -91,7 +104,7 @@ const VentasScreen = () => {
       </View>
 
       <Buscador
-        placeholder="Buscar ventas por paciente, servicio o fecha"
+        placeholder="Buscar ventas por cliente, servicio o fecha"
         value={busqueda}
         onChangeText={handleSearchChange}
       />
@@ -104,14 +117,14 @@ const VentasScreen = () => {
           <View style={[styles.celdaEncabezado, styles.columnaHora]}>
             <Text style={styles.encabezado}>Hora</Text>
           </View>
-          <View style={[styles.celdaEncabezado, styles.columnaPaciente]}>
-            <Text style={styles.encabezado}>Paciente</Text>
-          </View>
-          <View style={[styles.celdaEncabezado, styles.columnaPrecio]}>
-            <Text style={styles.encabezado}>Precio</Text>
+          <View style={[styles.celdaEncabezado, styles.columnaCliente]}>
+            <Text style={styles.encabezado}>Cliente</Text>
           </View>
           <View style={[styles.celdaEncabezado, styles.columnaServicio]}>
             <Text style={styles.encabezado}>Servicio</Text>
+          </View>
+          <View style={[styles.celdaEncabezado, styles.columnaPrecio]}>
+            <Text style={styles.encabezado}>Precio</Text>
           </View>
           <View style={[styles.celdaEncabezado, styles.columnaAcciones]}>
             <Text style={styles.encabezado}>Acciones</Text>
@@ -129,16 +142,16 @@ const VentasScreen = () => {
               <View style={[styles.celda, styles.columnaHora]}>
                 <Text style={styles.textoNombre}>{item.hora}</Text>
               </View>
-              <View style={[styles.celda, styles.columnaPaciente]}>
-                <Text style={styles.textoNombre}>{item.paciente}</Text>
+              <View style={[styles.celda, styles.columnaCliente]}>
+                <Text style={styles.textoNombre}>{item.cliente}</Text>
+              </View>
+              <View style={[styles.celda, styles.columnaServicio]}>
+                <Text style={styles.textoServicio} numberOfLines={1}>{item.servicio}</Text>
               </View>
               <View style={[styles.celda, styles.columnaPrecio]}>
                 <View style={styles.precioContainer}>
                   <Text style={styles.textoPrecio}>{item.precio}</Text>
                 </View>
-              </View>
-              <View style={[styles.celda, styles.columnaServicio]}>
-                <Text style={styles.textoDescripcion} numberOfLines={1}>{item.servicio}</Text>
               </View>
               <View style={[styles.celda, styles.columnaAcciones]}>
                 <View style={styles.contenedorAcciones}>
@@ -166,6 +179,7 @@ const VentasScreen = () => {
         onClose={() => setModalDetalleVisible(false)}
         venta={ventaSeleccionada}
       />
+      <Footer />
     </View>
   );
 };
@@ -246,17 +260,17 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
   },
-  columnaPaciente: {
+  columnaCliente: {
     flex: 1.5,
+    alignItems: 'flex-start',
+  },
+  columnaServicio: {
+    flex: 2,
     alignItems: 'flex-start',
   },
   columnaPrecio: {
     flex: 1.5,
     alignItems: 'center',
-  },
-  columnaServicio: {
-    flex: 2,
-    alignItems: 'flex-start',
   },
   columnaAcciones: {
     flex: 0.8,
@@ -265,8 +279,9 @@ const styles = StyleSheet.create({
   textoNombre: {
     fontWeight: '500',
   },
-  textoDescripcion: {
-    color: '#666',
+  textoServicio: {
+    color: '#000', // Cambiado a negro como solicitado
+    fontWeight: '500',
   },
   precioContainer: {
     backgroundColor: 'rgba(76, 175, 80, 0.2)',

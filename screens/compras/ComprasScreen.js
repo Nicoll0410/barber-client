@@ -5,6 +5,7 @@ import Paginacion from '../../components/Paginacion';
 import Buscador from '../../components/Buscador';
 import DetalleCompra from './DetalleCompra';
 import CrearCompra from './CrearCompra';
+import Footer from '../../components/Footer';
 
 const ComprasScreen = () => {
   const [compras, setCompras] = useState([]);
@@ -135,7 +136,7 @@ const ComprasScreen = () => {
       <View style={styles.tabla}>
         <View style={styles.filaEncabezado}>
           <View style={[styles.celdaEncabezado, styles.columnaFecha]}><Text style={styles.encabezado}>Fecha</Text></View>
-          <View style={[styles.celdaEncabezado, styles.columnaMetodo]}><Text style={styles.encabezado}>Método</Text></View>
+          <View style={[styles.celdaEncabezado, styles.columnaMetodo]}><Text style={styles.encabezado}>Método de pago</Text></View>
           <View style={[styles.celdaEncabezado, styles.columnaProveedor]}><Text style={styles.encabezado}>Proveedor</Text></View>
           <View style={[styles.celdaEncabezado, styles.columnaTotal]}><Text style={styles.encabezado}>Total</Text></View>
           <View style={[styles.celdaEncabezado, styles.columnaEstado]}><Text style={styles.encabezado}>Estado</Text></View>
@@ -148,16 +149,18 @@ const ComprasScreen = () => {
           renderItem={({ item }) => (
             <View style={styles.fila}>
               <View style={[styles.celda, styles.columnaFecha]}>
-                <Text style={styles.textoDato}>{formatearFecha(item.fecha)}</Text>
+                <Text style={[styles.textoDato, styles.textoNegrita]}>{formatearFecha(item.fecha)}</Text>
               </View>
               <View style={[styles.celda, styles.columnaMetodo]}>
-                <Text style={styles.textoDato}>{item.metodo}</Text>
+                <Text style={[styles.textoDato, styles.textoNegrita]}>{item.metodo}</Text>
               </View>
               <View style={[styles.celda, styles.columnaProveedor]}>
-                <Text style={styles.textoDato}>{item.proveedor}</Text>
+                <Text style={[styles.textoDato, styles.textoNegrita]}>{item.proveedor}</Text>
               </View>
               <View style={[styles.celda, styles.columnaTotal]}>
-                <Text style={styles.textoDato}>{formatearMoneda(item.total)}</Text>
+                <View style={styles.totalContainer}>
+                  <Text style={[styles.textoDato, styles.textoNegrita]}>{formatearMoneda(item.total)}</Text>
+                </View>
               </View>
               <View style={[styles.celda, styles.columnaEstado]}>
                 <View style={[
@@ -211,6 +214,7 @@ const ComprasScreen = () => {
         onClose={() => setModalCrearVisible(false)}
         onCreate={handleCreateCompra}
       />
+      <Footer />
     </View>
   );
 };
@@ -323,6 +327,16 @@ const styles = StyleSheet.create({
   textoDato: {
     textAlign: 'center',
     width: '100%',
+  },
+  textoNegrita: {
+    fontWeight: 'bold',
+  },
+  totalContainer: {
+    backgroundColor: '#D9D9D9',
+    borderRadius: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    alignSelf: 'center',
   },
   estadoContainer: {
     flexDirection: 'row',

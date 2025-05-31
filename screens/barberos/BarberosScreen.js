@@ -6,6 +6,7 @@ import Buscador from '../../components/Buscador';
 import CrearBarbero from './CrearBarbero';
 import DetalleBarbero from './DetalleBarbero';
 import EditarBarbero from './EditarBarbero';
+import Footer from '../../components/Footer';
 
 // Componente para el avatar del barbero
 const Avatar = ({ nombre }) => {
@@ -261,6 +262,7 @@ const BarberosScreen = () => {
         barbero={barberoSeleccionado}
         onUpdate={handleUpdateBarbero}
       />
+      <Footer />
     </View>
   );
 };
@@ -370,10 +372,12 @@ const styles = StyleSheet.create({
   },
   textoNombre: {
     marginLeft: 10,
+    fontWeight: 'bold', // Nombre en negrita
   },
   textoCedula: {
     textAlign: 'center',
     width: '100%',
+    fontWeight: 'bold', // Cédula en negrita
   },
   rolBadge: {
     backgroundColor: '#D9D9D9',
@@ -384,6 +388,7 @@ const styles = StyleSheet.create({
   rolText: {
     textAlign: 'center',
     fontSize: 14,
+    fontWeight: 'bold', // Rol en negrita
   },
   encabezado: {
     fontWeight: 'bold',

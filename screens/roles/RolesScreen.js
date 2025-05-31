@@ -6,6 +6,7 @@ import Buscador from '../../components/Buscador';
 import CrearRol from './CrearRol';
 import DetalleRol from './DetalleRol';
 import EditarRol from './EditarRol';
+import Footer from '../../components/Footer';
 
 const RolesScreen = () => {
   const [roles, setRoles] = useState([]);
@@ -130,10 +131,12 @@ const RolesScreen = () => {
                 <Text style={styles.textoNombre}>{item.nombre}</Text>
               </View>
               <View style={[styles.celda, styles.columnaDescripcion]}>
-                <Text>{item.descripcion}</Text>
+                <Text style={styles.textoDescripcion}>{item.descripcion}</Text>
               </View>
               <View style={[styles.celda, styles.columnaAsociados]}>
-                <Text style={styles.textoCentrado}>{item.asociados}</Text>
+                <View style={styles.asociadosContainer}>
+                  <Text style={styles.asociadosTexto}>{item.asociados}</Text>
+                </View>
               </View>
               <View style={[styles.celda, styles.columnaAcciones]}>
                 <View style={styles.contenedorAcciones}>
@@ -177,6 +180,7 @@ const RolesScreen = () => {
         rol={rolSeleccionado}
         onUpdate={handleUpdateRol}
       />
+      <Footer />
     </View>
   );
 };
@@ -266,6 +270,7 @@ const styles = StyleSheet.create({
   },
   columnaDescripcion: {
     flex: 4,
+    alignItems: 'flex-start',
   },
   columnaAsociados: {
     flex: 2,
@@ -278,9 +283,21 @@ const styles = StyleSheet.create({
   textoNombre: {
     fontWeight: '500',
   },
-  textoCentrado: {
-    textAlign: 'center',
-    width: '100%',
+  textoDescripcion: {
+    textAlign: 'left',
+    fontWeight: 'bold', // Añadido negrita para las descripciones
+  },
+  asociadosContainer: {
+    backgroundColor: '#D9D9D9',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  asociadosTexto: {
+    fontWeight: 'bold',
+    fontSize: 14,
   },
   encabezado: {
     fontWeight: 'bold',

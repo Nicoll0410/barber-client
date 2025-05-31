@@ -6,6 +6,7 @@ import Buscador from '../../components/Buscador';
 import CrearProveedor from './CrearProveedor';
 import DetalleProveedor from './DetalleProveedor';
 import EditarProveedor from './EditarProveedor';
+import Footer from '../../components/Footer';
 
 // Componente para el avatar del proveedor
 const Avatar = ({ nombre }) => {
@@ -27,12 +28,12 @@ const TipoProveedor = ({ tipo }) => (
     {tipo === 'Persona' ? (
       <>
         <MaterialIcons name="person" size={16} color="black" />
-        <Text style={styles.tipoTexto}>Persona</Text>
+        <Text style={[styles.tipoTexto, styles.textoNegrita]}>Persona</Text>
       </>
     ) : (
       <>
         <MaterialIcons name="business" size={16} color="black" />
-        <Text style={styles.tipoTexto}>Empresa</Text>
+        <Text style={[styles.tipoTexto, styles.textoNegrita]}>Empresa</Text>
       </>
     )}
   </View>
@@ -44,17 +45,17 @@ const TipoIdentificacion = ({ tipo }) => (
     {tipo === 'CC' ? (
       <>
         <MaterialIcons name="badge" size={16} color="black" />
-        <Text style={styles.tipoIdTexto}>Cédula</Text>
+        <Text style={[styles.tipoIdTexto, styles.textoNegrita]}>Cédula</Text>
       </>
     ) : tipo === 'CE' ? (
       <>
         <MaterialIcons name="card-membership" size={16} color="black" />
-        <Text style={styles.tipoIdTexto}>Cédula Ext.</Text>
+        <Text style={[styles.tipoIdTexto, styles.textoNegrita]}>Cédula Ext.</Text>
       </>
     ) : (
       <>
         <MaterialIcons name="receipt" size={16} color="black" />
-        <Text style={styles.tipoIdTexto}>NIT</Text>
+        <Text style={[styles.tipoIdTexto, styles.textoNegrita]}>NIT</Text>
       </>
     )}
   </View>
@@ -201,7 +202,7 @@ const ProveedoresScreen = () => {
 
       <View style={styles.tabla}>
         <View style={styles.filaEncabezado}>
-          <View style={[styles.celdaEncabezado, styles.columnaTipo]}><Text style={styles.encabezado}>Tipo</Text></View>
+          <View style={[styles.celdaEncabezado, styles.columnaTipo]}><Text style={styles.encabezado}>Tipo Proveedor</Text></View>
           <View style={[styles.celdaEncabezado, styles.columnaTipoId]}><Text style={styles.encabezado}>Tipo ID</Text></View>
           <View style={[styles.celdaEncabezado, styles.columnaIdentificacion]}><Text style={styles.encabezado}>Identificación</Text></View>
           <View style={[styles.celdaEncabezado, styles.columnaNombre]}><Text style={styles.encabezado}>Nombre</Text></View>
@@ -221,16 +222,16 @@ const ProveedoresScreen = () => {
                 <TipoIdentificacion tipo={item.tipoIdentificacion} />
               </View>
               <View style={[styles.celda, styles.columnaIdentificacion]}>
-                <Text style={styles.textoIdentificacion}>{item.identificacion}</Text>
+                <Text style={[styles.textoIdentificacion, styles.textoNegrita]}>{item.identificacion}</Text>
               </View>
               <View style={[styles.celda, styles.columnaNombre]}>
                 <View style={styles.contenedorNombre}>
                   <Avatar nombre={item.nombre} />
-                  <Text style={styles.textoNombre}>{item.nombre}</Text>
+                  <Text style={[styles.textoNombre, styles.textoNegrita]}>{item.nombre}</Text>
                 </View>
               </View>
               <View style={[styles.celda, styles.columnaEmail]}>
-                <Text style={styles.textoEmail}>{item.email}</Text>
+                <Text style={[styles.textoEmail, styles.textoNegrita]}>{item.email}</Text>
               </View>
               <View style={[styles.celda, styles.columnaAcciones]}>
                 <View style={styles.contenedorAcciones}>
@@ -274,6 +275,7 @@ const ProveedoresScreen = () => {
         proveedor={proveedorSeleccionado}
         onUpdate={handleUpdateProveedor}
       />
+      <Footer />
     </View>
   );
 };
@@ -441,6 +443,9 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     fontSize: 14,
+  },
+  textoNegrita: {
+    fontWeight: 'bold',
   },
 });
 

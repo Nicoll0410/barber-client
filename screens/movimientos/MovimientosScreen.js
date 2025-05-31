@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native
 import { MaterialIcons, FontAwesome, Feather, Ionicons } from '@expo/vector-icons';
 import Paginacion from '../../components/Paginacion';
 import Buscador from '../../components/Buscador';
+import Footer from '../../components/Footer';
 
 const MovimientosScreen = () => {
   const [movimientos, setMovimientos] = useState([]);
@@ -12,40 +13,40 @@ const MovimientosScreen = () => {
   const [busqueda, setBusqueda] = useState('');
 
   useEffect(() => {
-    // Datos de ejemplo basados en la imagen proporcionada
+    // Datos de ejemplo modificados para ser más relacionados con barbería
     const datosEjemplo = [
       { 
         id: 1,
-        insumo: 'Crema de chocolates', 
-        descripcion: 'chocolate', 
+        insumo: 'Tijeras profesionales', 
+        descripcion: 'Tijeras de acero inoxidable para cortes precisos', 
         unidades: 5, 
         fecha: '21 de mayo de 2025' 
       },
       { 
         id: 2,
-        insumo: 'Crema de chocolates', 
-        descripcion: 'chocolate', 
-        unidades: 5, 
+        insumo: 'Máquina de cortar', 
+        descripcion: 'Máquina Wahl premium para degradados', 
+        unidades: 3, 
         fecha: '13 de diciembre de 2024' 
       },
       { 
         id: 3,
-        insumo: 'Hidratante de cabello', 
-        descripcion: 'asjklsajdl', 
-        unidades: 100, 
+        insumo: 'Gel fijador', 
+        descripcion: 'Gel fuerte hold para peinados modernos', 
+        unidades: 12, 
         fecha: '17 de septiembre de 2024' 
       },
       { 
         id: 4,
-        insumo: 'Wilson insumo', 
-        descripcion: 'wilson', 
-        unidades: 5, 
+        insumo: 'Navajas desechables', 
+        descripcion: 'Paquete de 100 navajas para afeitado', 
+        unidades: 8, 
         fecha: '13 de septiembre de 2024' 
       },
       { 
         id: 5,
-        insumo: 'Crema de chocolate', 
-        descripcion: 'Crema para chocolaterapias', 
+        insumo: 'Crema de afeitar', 
+        descripcion: 'Crema premium para afeitado suave', 
         unidades: 10, 
         fecha: '6 de septiembre de 2024' 
       },
@@ -142,6 +143,7 @@ const MovimientosScreen = () => {
             </View>
           )}
         />
+
       </View>
 
       {/* Componente de paginación */}
@@ -150,6 +152,7 @@ const MovimientosScreen = () => {
         totalPaginas={totalPaginas}
         cambiarPagina={cambiarPagina}
       />
+      <Footer />
     </View>
   );
 };
@@ -240,9 +243,11 @@ const styles = StyleSheet.create({
   },
   textoNombre: {
     fontWeight: '500',
+    color: '#333',
   },
   textoDescripcion: {
-    color: '#666',
+    color: '#000', // Cambiado a negro como solicitado
+    fontWeight: '400',
   },
   unidadesContainer: {
     backgroundColor: '#D9D9D9',
@@ -250,7 +255,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 12,
     alignItems: 'center',
-    minWidth: 50, // Ancho mínimo para alinear con el encabezado
+    minWidth: 50,
   },
   textoUnidades: {
     fontWeight: '500',
@@ -262,7 +267,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 12,
     alignItems: 'center',
-    minWidth: 150, // Ancho mínimo para alinear con el encabezado
+    minWidth: 150,
   },
   textoFecha: {
     fontWeight: '500',

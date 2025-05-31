@@ -6,6 +6,7 @@ import Buscador from '../../components/Buscador';
 import CrearInsumo from './CrearInsumo';
 import DetalleInsumo from './DetalleInsumo';
 import EditarInsumo from './EditarInsumo';
+import Footer from '../../components/Footer';
 
 const InsumosScreen = ({ navigation }) => {
   const [insumos, setInsumos] = useState([]);
@@ -23,41 +24,41 @@ const InsumosScreen = ({ navigation }) => {
     const datosEjemplo = [
       { 
         id: 1, 
-        nombre: 'crema chocolate', 
-        descripcion: 'crema actualizada', 
-        categoria: 'Shampoo', 
-        unidad: 'ML',
+        nombre: 'Máquina de afeitar', 
+        descripcion: 'Máquina de afeitar resolución 10', 
+        categoria: 'Máquinas', 
+        unidad: 'NA',
         cantidad: 0
       },
       { 
         id: 2, 
-        nombre: 'Crema de chocolates', 
-        descripcion: 'chocolate', 
-        categoria: 'Cremas', 
+        nombre: 'Shampoo', 
+        descripcion: 'Shampoo de coco', 
+        categoria: 'Cuidado cabello', 
         unidad: 'ML',
         cantidad: 90
       },
       { 
         id: 3, 
-        nombre: 'Hidratante de cabello', 
-        descripcion: 'asjélsajd!', 
-        categoria: 'Hidratatantes', 
+        nombre: 'Minoxidil', 
+        descripcion: 'Hace crecer el cabello de manera rápida', 
+        categoria: 'Crecimiento', 
         unidad: 'TT',
         cantidad: 400
       },
       { 
         id: 4, 
-        nombre: 'Wilson insumo', 
-        descripcion: 'wilson', 
-        categoria: 'Shampoo', 
+        nombre: 'Cera marca1', 
+        descripcion: 'Cera para el cabello duración extrema', 
+        categoria: 'Belleza', 
         unidad: 'TT',
         cantidad: 25
       },
       { 
         id: 5, 
-        nombre: 'Crema de manos', 
-        descripcion: 'Crema de manos para revitalizar', 
-        categoria: 'Cremas', 
+        nombre: 'Alcohol J&B', 
+        descripcion: 'Alcohol', 
+        categoria: 'Cuidado', 
         unidad: 'ML',
         cantidad: 2
       },
@@ -211,14 +212,14 @@ const InsumosScreen = ({ navigation }) => {
                 <Text style={styles.textoNombre} numberOfLines={1}>{item.nombre}</Text>
               </View>
               <View style={[styles.celda, styles.columnaDescripcion]}>
-                <Text style={styles.textoDescripcion} numberOfLines={1}>{item.descripcion}</Text>
+                <Text style={styles.textoDescripcion} numberOfLines={1}><Text style={{fontWeight: 'bold'}}>{item.descripcion}</Text></Text>
               </View>
               <View style={[styles.celda, styles.columnaCategoria]}>
-                <Text style={styles.textoCategoria}>{item.categoria}</Text>
+                <Text style={[styles.textoCategoria, {fontWeight: 'bold'}]}>{item.categoria}</Text>
               </View>
               <View style={[styles.celda, styles.columnaUnidad]}>
                 <View style={styles.unidadContainer}>
-                  <Text style={styles.textoUnidad}>{item.unidad}</Text>
+                  <Text style={[styles.textoUnidad, {fontWeight: 'bold'}]}>{item.unidad}</Text>
                 </View>
               </View>
               <View style={[styles.celda, styles.columnaCantidad]}>
@@ -269,6 +270,7 @@ const InsumosScreen = ({ navigation }) => {
         insumo={insumoSeleccionado}
         onUpdate={handleUpdateInsumo}
       />
+      <Footer />
     </View>
   );
 };
@@ -402,7 +404,6 @@ const styles = StyleSheet.create({
   },
   textoCategoria: {
     color: '#555',
-    fontWeight: '500',
   },
   unidadContainer: {
     backgroundColor: '#D9D9D9',

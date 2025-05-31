@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, TextInput } 
 import { MaterialIcons, FontAwesome, Feather, Ionicons } from '@expo/vector-icons';
 import Paginacion from '../../components/Paginacion';
 import Buscador from '../../components/Buscador';
+import Footer from '../../components/Footer';
 
 const ControlInsumos = ({ route, navigation }) => {
   const { insumos: insumosIniciales = [] } = route.params || {};
@@ -163,10 +164,12 @@ const ControlInsumos = ({ route, navigation }) => {
                 <Text style={styles.textoNombre} numberOfLines={1}>{item.nombre}</Text>
               </View>
               <View style={[styles.celda, styles.columnaDescripcion]}>
-                <Text style={styles.textoDescripcion} numberOfLines={1}>{item.descripcion}</Text>
+                <Text style={styles.textoDescripcion} numberOfLines={1}><Text style={{fontWeight: 'bold'}}>{item.descripcion}</Text></Text>
               </View>
               <View style={[styles.celda, styles.columnaCategoria]}>
-                <Text style={styles.textoCategoria}>{item.categoria}</Text>
+                <View style={styles.categoriaContainer}>
+                  <Text style={[styles.textoCategoria, {fontWeight: 'bold'}]}>{item.categoria}</Text>
+                </View>
               </View>
               <View style={[styles.celda, styles.columnaCantidad]}>
                 <View style={styles.cantidadContainer}>
@@ -202,6 +205,7 @@ const ControlInsumos = ({ route, navigation }) => {
         totalPaginas={totalPaginas}
         cambiarPagina={cambiarPagina}
       />
+      <Footer />
     </View>
   );
 };
@@ -305,9 +309,16 @@ const styles = StyleSheet.create({
   textoDescripcion: {
     color: '#666',
   },
+  categoriaContainer: {
+    backgroundColor: '#D9D9D9',
+    borderRadius: 15,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   textoCategoria: {
     color: '#555',
-    fontWeight: '500',
   },
   cantidadContainer: {
     backgroundColor: '#D9D9D9',

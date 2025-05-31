@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
 import { LineChart, BarChart } from 'react-native-chart-kit';
+import Footer from '../../components/Footer';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -91,6 +92,7 @@ const DashboardScreen = () => {
             flatColor={true}
           />
         </View>
+        <Footer />
       </View>
     </ScrollView>
   );

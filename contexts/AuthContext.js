@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { jwtDecode } from 'jwt-decode';
 
 export const AuthContext = createContext();
 
@@ -10,11 +11,8 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         const checkLogin = async () => {
-            const savedToken = await AsyncStorage.getItem('token');
-            if (savedToken) {
-                setToken(savedToken);
-                setIsLoggedIn(true);
-            }
+            const isValid = await checkTokenValidity();
+            setIsLoggedIn(isValid);
             setIsLoading(false);
         };
         checkLogin();
@@ -31,6 +29,20 @@ export const AuthProvider = ({ children }) => {
         setToken(null);
         setIsLoggedIn(false);
     };
+
+    const checkTokenValidity = async () => {
+        const token = await AsyncStorage.getItem('token');
+        if (!token) return false;
+
+        try {
+            const { exp } = jwtDecode(token)
+            const now = Math.floor(Date.now() / 1000);
+            return exp && exp > now;
+        } catch (error) {
+            console.warn('Token Invalido', error)
+            return false
+        }
+    }
 
     return (
         <AuthContext.Provider value={{ isLoggedIn, token, login, logout, isLoading }}>

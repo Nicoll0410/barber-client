@@ -1,13 +1,15 @@
 // components/CustomDrawerContent.js
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { DrawerContentScrollView } from '@react-navigation/drawer';
 import { FontAwesome5, MaterialIcons, Feather, Ionicons,AntDesign, MaterialCommunityIcons, FontAwesome } from '@expo/vector-icons';
+import { AuthContext } from '../contexts/AuthContext';
 
 const CustomDrawer = (props) => {
   const [usersExpanded, setUsersExpanded] = useState(false);
   const [purchasesExpanded, setPurchasesExpanded] = useState(false);
   const [salesExpanded, setSalesExpanded] = useState(false);
+  const { logout } = useContext(AuthContext);
 
   const renderSubItem = (label, screen, IconComponent, iconName) => (
     <TouchableOpacity
@@ -116,7 +118,7 @@ const CustomDrawer = (props) => {
 
         <TouchableOpacity
           style={styles.logoutButton}
-          onPress={() => props.navigation.navigate('Login')}
+          onPress={logout}
         >
           <Feather name="log-out" size={18} color="black" />
           <Text style={styles.logoutText}>Cerrar sesión</Text>

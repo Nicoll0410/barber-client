@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import Footer from '../../components/Footer';
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AuthContext } from '../../contexts/AuthContext';
 
 const LoginForm = () => {
     const [email, setEmail] = useState('');
@@ -14,6 +14,7 @@ const LoginForm = () => {
     const navigation = useNavigation();
     const [isLoading, setIsLoading] = useState(false);
     const [loginError, setLoginError] = useState('');
+    const { login } = useContext(AuthContext);
 
     const handleLogin = async () => {
         if (!email || !password) {
@@ -55,8 +56,7 @@ const LoginForm = () => {
 
         // Login exitoso
         const { token } = data;
-        await AsyncStorage.setItem('token', token);
-        navigation.navigate('Home');
+        login(token);
 
         } catch (error) {
             console.error('Error al conectar con el servidor:', error);

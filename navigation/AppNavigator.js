@@ -1,10 +1,14 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createDrawerNavigator } from '@react-navigation/drawer';
+import { createStackNavigator } from '@react-navigation/stack';
 import LoginScreen from '../screens/login/LoginScreen';
+import HomeScreen from '../screens/dashboard/DashboardScreen';
 import DashboardScreen from '../screens/dashboard/DashboardScreen';
 import CustomDrawer from '../components/CustomDrawer';
+import { AuthContext } from '../contexts/AuthContext';
+import { ActivityIndicator, View } from 'react-native';
 
 // IMPORTAR PANTALLAS EXTRAS
 import ClientesScreen from '../screens/clientes/ClientesScreen';
@@ -21,7 +25,7 @@ import MovimientosScreen from '../screens/movimientos/MovimientosScreen';
 import VentasScreen from '../screens/ventas/VentasScreen';
 import ControlInsumos from '../screens/insumos/ControlInsumos';
 
-const Stack = createNativeStackNavigator();
+const Stack = createStackNavigator();
 const Drawer = createDrawerNavigator();
 
 const DrawerNavigator = () => (
@@ -46,23 +50,36 @@ const DrawerNavigator = () => (
 );
 
 const AppNavigator = () => {
+  const { isLoggedIn, isLoading } = useContext(AuthContext);
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
   return (
-    <NavigationContainer>
-      <Stack.Navigator 
-        screenOptions={{ 
-          headerShown: false,
-          animation: 'slide_from_right'
-        }}
-      >
+    <Stack.Navigator 
+      screenOptions={{ 
+        headerShown: false,
+        animation: 'slide_from_right'
+      }}
+    >
+      {!isLoggedIn ? (
         <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Home" component={DrawerNavigator} />
-        <Stack.Screen 
-          name="ControlInsumos" 
-          component={ControlInsumos}
-          options={{ headerShown: true, title: 'Control de Insumos' }}
-        />
-      </Stack.Navigator>
-    </NavigationContainer>
+      ) : (
+        <>
+          <Stack.Screen name="MainDrawer" component={DrawerNavigator} />
+          <Stack.Screen 
+            name="ControlInsumos" 
+            component={ControlInsumos}
+            options={{ headerShown: true, title: 'Control de Insumos' }}
+          />
+        </>
+      )}
+    </Stack.Navigator>
   );
 };
 

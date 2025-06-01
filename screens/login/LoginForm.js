@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import Footer from '../../components/Footer';
+import axios from 'axios';
+import { AuthContext } from '../../contexts/AuthContext';
 
 const LoginForm = () => {
     const [email, setEmail] = useState('');
@@ -10,9 +12,58 @@ const LoginForm = () => {
     const [showRecoveryModal, setShowRecoveryModal] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const navigation = useNavigation();
+    const [isLoading, setIsLoading] = useState(false);
+    const [loginError, setLoginError] = useState('');
+    const { login } = useContext(AuthContext);
 
-    const handleLogin = () => {
-        navigation.navigate('Home');
+    const handleLogin = async () => {
+        if (!email || !password) {
+            setLoginError('Por favor, ingresa correo y contraseña.');
+            return;
+        }
+
+        setIsLoading(true);
+        setLoginError('');
+
+        try {
+            const response = await axios.post('http://192.168.1.7:8080/auth/login', {
+                email,
+                password
+            });
+
+            const data = response.data;
+
+            if (!data.success) {
+                switch (data.reason) {
+                case 'USER_NOT_FOUND':
+                    setLoginError('Usuario no registrado.');
+                    break;
+                case 'INVALID_PASSWORD':
+                    setLoginError('Contraseña incorrecta.');
+                    break;
+                case 'NOT_VERIFIED':
+                    setLoginError('Tu cuenta aún no ha sido verificada.');
+                    break;
+                case 'UNAUTHORIZED_ROLE':
+                    setLoginError('No tienes permiso para acceder a esta sección.');
+                    break;
+                default:
+                    setLoginError('Error desconocido. Intenta nuevamente.');
+                    break;
+                }
+                return;
+            }
+
+            // Login exitoso
+            const { token } = data;
+            login(token);
+
+        } catch (error) {
+            console.error('Error al conectar con el servidor:', error);
+            setLoginError('No se pudo conectar con el servidor.');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const togglePasswordVisibility = () => {
@@ -57,6 +108,12 @@ const LoginForm = () => {
                 </TouchableOpacity>
             </View>
 
+            {loginError !== '' && (
+                <Text style={{ color: 'red', textAlign: 'center', marginTop: 10 }}>
+                    {loginError}
+                </Text>
+            )}
+
             <TouchableOpacity style={styles.button} onPress={handleLogin}>
                 <Text style={styles.buttonText}>Iniciar sesión</Text>
             </TouchableOpacity>
@@ -97,6 +154,27 @@ const LoginForm = () => {
                                 <Text style={styles.modalButtonText}>Cancelar</Text>
                             </TouchableOpacity>
                         </View>
+                    </View>
+                </View>
+            </Modal>
+
+            <Modal
+                visible={isLoading}
+                transparent={true}
+                animationType="fade"
+            >
+                <View style={{
+                    flex: 1,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                }}>
+                    <View style={{
+                        backgroundColor: '#fff',
+                        padding: 20,
+                        borderRadius: 10,
+                    }}>
+                        <Text style={{ fontSize: 18, marginBottom: 10 }}>Iniciando sesión...</Text>
                     </View>
                 </View>
             </Modal>

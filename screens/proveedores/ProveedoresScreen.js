@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
 import { MaterialIcons, FontAwesome, Feather, Ionicons } from '@expo/vector-icons';
 import Paginacion from '../../components/Paginacion';
@@ -7,6 +8,8 @@ import CrearProveedor from './CrearProveedor';
 import DetalleProveedor from './DetalleProveedor';
 import EditarProveedor from './EditarProveedor';
 import Footer from '../../components/Footer';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 
 // Componente para el avatar del proveedor
 const Avatar = ({ nombre }) => {
@@ -72,44 +75,32 @@ const ProveedoresScreen = () => {
   const [modalEditarVisible, setModalEditarVisible] = useState(false);
   const [proveedorSeleccionado, setProveedorSeleccionado] = useState(null);
 
+  const fetchProveedores = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const response = await axios.get('http://192.168.1.7:8080/proveedores/all', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const datos = response.data.proveedores || [];
+      setProveedores(datos);
+      setProveedoresFiltrados(datos);
+    } catch (error) {
+      console.error('Error al obtener proveedores:', error);
+    }
+  };
+  
   useEffect(() => {
-    const datosEjemplo = [
-      { 
-        id: 1, 
-        tipo: 'Persona', 
-        tipoIdentificacion: 'CC', 
-        identificacion: '123456789', 
-        nombre: 'Juan Pérez', 
-        email: 'juan@example.com' 
-      },
-      { 
-        id: 2, 
-        tipo: 'Empresa', 
-        tipoIdentificacion: 'NIT', 
-        identificacion: '900123456-1', 
-        nombre: 'Tech Solutions SAS', 
-        email: 'contacto@techsolutions.com' 
-      },
-      { 
-        id: 3, 
-        tipo: 'Persona', 
-        tipoIdentificacion: 'CE', 
-        identificacion: 'EX123456', 
-        nombre: 'María Gómez', 
-        email: 'maria@example.com' 
-      },
-      { 
-        id: 4, 
-        tipo: 'Empresa', 
-        tipoIdentificacion: 'NIT', 
-        identificacion: '800987654-2', 
-        nombre: 'Distribuciones ABC', 
-        email: 'info@distribucionesabc.com' 
-      },
-    ];
-    setProveedores(datosEjemplo);
-    setProveedoresFiltrados(datosEjemplo);
+    fetchProveedores();
   }, []);
+
+  // Esto es OPCIONAL. Util para desarrollo
+  useFocusEffect(
+    useCallback(() => {
+      fetchProveedores();
+    }, [])
+  );
 
   useEffect(() => {
     if (busqueda.trim() === '') {
@@ -173,10 +164,21 @@ const ProveedoresScreen = () => {
     setModalEditarVisible(false);
   };
 
-  const eliminarProveedor = (id) => {
-    const nuevosProveedores = proveedores.filter(p => p.id !== id);
-    setProveedores(nuevosProveedores);
-    setProveedoresFiltrados(nuevosProveedores);
+  const eliminarProveedor = async (id) => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      await axios.delete(`http://192.168.1.7:8080/proveedores/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      const nuevosProveedores = proveedores.filter(p => p.id !== id);
+      setProveedores(nuevosProveedores)
+      setProveedoresFiltrados(nuevosProveedores)
+    } catch (error) {
+      console.error('Error al eliminar proveedor:', error);
+    }
   };
 
   return (

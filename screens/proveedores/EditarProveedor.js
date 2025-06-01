@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Modal, StyleSheet, TouchableOpacity, TextInput, Picker, ScrollView } from 'react-native';
+import { View, Text, Modal, StyleSheet, TouchableOpacity, TextInput, ScrollView } from 'react-native';
+import { Picker } from '@react-native-picker/picker'
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 

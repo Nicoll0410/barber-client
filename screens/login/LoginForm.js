@@ -26,37 +26,37 @@ const LoginForm = () => {
         setLoginError('');
 
         try {
-        const response = await axios.post('http://192.168.1.7:8080/auth/login', {
-            email,
-            password
-        });
+            const response = await axios.post('http://192.168.1.7:8080/auth/login', {
+                email,
+                password
+            });
 
-        const data = response.data;
+            const data = response.data;
 
-        if (!data.success) {
-            switch (data.reason) {
-            case 'USER_NOT_FOUND':
-                setLoginError('Usuario no registrado.');
-                break;
-            case 'INVALID_PASSWORD':
-                setLoginError('Contraseña incorrecta.');
-                break;
-            case 'NOT_VERIFIED':
-                setLoginError('Tu cuenta aún no ha sido verificada.');
-                break;
-            case 'UNAUTHORIZED_ROLE':
-                setLoginError('No tienes permiso para acceder a esta sección.');
-                break;
-            default:
-                setLoginError('Error desconocido. Intenta nuevamente.');
-                break;
+            if (!data.success) {
+                switch (data.reason) {
+                case 'USER_NOT_FOUND':
+                    setLoginError('Usuario no registrado.');
+                    break;
+                case 'INVALID_PASSWORD':
+                    setLoginError('Contraseña incorrecta.');
+                    break;
+                case 'NOT_VERIFIED':
+                    setLoginError('Tu cuenta aún no ha sido verificada.');
+                    break;
+                case 'UNAUTHORIZED_ROLE':
+                    setLoginError('No tienes permiso para acceder a esta sección.');
+                    break;
+                default:
+                    setLoginError('Error desconocido. Intenta nuevamente.');
+                    break;
+                }
+                return;
             }
-            return;
-        }
 
-        // Login exitoso
-        const { token } = data;
-        login(token);
+            // Login exitoso
+            const { token } = data;
+            login(token);
 
         } catch (error) {
             console.error('Error al conectar con el servidor:', error);

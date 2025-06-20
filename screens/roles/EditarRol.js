@@ -7,6 +7,10 @@ import {
   TouchableOpacity,
   Image,
   StyleSheet,
+  ScrollView,
+  Dimensions,
+  Linking,
+  Alert,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -17,6 +21,30 @@ const EditarRol = ({ visible, onClose, rol }) => {
   const [descripcion, setDescripcion] = useState('');
   const [avatar, setAvatar] = useState(null);
   const [permisosSeleccionados, setPermisosSeleccionados] = useState([]);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const { width } = Dimensions.get('window');
+      setIsMobile(width < 768);
+    };
+
+    checkScreenSize();
+    const subscription = Dimensions.addEventListener('change', checkScreenSize);
+
+    return () => {
+      subscription?.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (rol) {
+      setNombre(rol.nombre || '');
+      setDescripcion(rol.descripcion || '');
+      setAvatar(rol.avatar || null);
+      setPermisosSeleccionados(rol.permisos || []);
+    }
+  }, [rol]);
 
   const permisosDisponibles = [
     { label: 'Insumos', icon: 'spray' },
@@ -36,21 +64,20 @@ const EditarRol = ({ visible, onClose, rol }) => {
     { label: 'Ventas', icon: 'cash-multiple' },
   ];
 
-  useEffect(() => {
-    if (rol) {
-      setNombre(rol.nombre || '');
-      setDescripcion(rol.descripcion || '');
-      setAvatar(rol.avatar || null);
-      setPermisosSeleccionados(rol.permisos || []);
-    }
-  }, [rol]);
-
   const togglePermiso = (permiso) => {
-    setPermisosSeleccionados((prev) =>
-      prev.includes(permiso)
-        ? prev.filter((p) => p !== permiso)
-        : [...prev, permiso]
-    );
+    if (permisosSeleccionados.includes(permiso)) {
+      setPermisosSeleccionados(permisosSeleccionados.filter(p => p !== permiso));
+    } else {
+      setPermisosSeleccionados([...permisosSeleccionados, permiso]);
+    }
+  };
+
+  const seleccionarTodosPermisos = () => {
+    if (permisosSeleccionados.length === permisosDisponibles.length) {
+      setPermisosSeleccionados([]);
+    } else {
+      setPermisosSeleccionados(permisosDisponibles.map(permiso => permiso.label));
+    }
   };
 
   const seleccionarImagen = async () => {
@@ -66,6 +93,13 @@ const EditarRol = ({ visible, onClose, rol }) => {
     }
   };
 
+  const handleOpenFlaticon = () => {
+    Linking.openURL('https://www.flaticon.com/').catch(err => {
+      console.error("Error al abrir el enlace: ", err);
+      Alert.alert('Error', 'No se pudo abrir el enlace a Flaticon');
+    });
+  };
+
   const handleGuardarCambios = () => {
     console.log({
       nombre,
@@ -73,99 +107,226 @@ const EditarRol = ({ visible, onClose, rol }) => {
       avatar,
       permisosSeleccionados,
     });
-    onClose(); // Aquí puedes enviar los datos al backend antes de cerrar
+    onClose();
   };
+
+  const renderDesktopLayout = () => (
+    <View style={styles.container}>
+      <View style={styles.leftContainer}>
+        <Text style={styles.title}>Editar rol</Text>
+        <Text style={styles.subtext}>Modifica la información del rol seleccionado</Text>
+
+        <Text style={styles.label}>Nombre <Text style={styles.required}>*</Text></Text>
+        <TextInput
+          style={styles.input}
+          value={nombre}
+          onChangeText={setNombre}
+          placeholder="Ingrese el nombre del rol"
+          placeholderTextColor="#929292"
+        />
+
+        <Text style={styles.label}>Descripción</Text>
+        <TextInput
+          style={styles.input}
+          value={descripcion}
+          onChangeText={setDescripcion}
+          placeholder="Descripción opcional"
+          placeholderTextColor="#929292"
+        />
+
+        <Text style={styles.label}>Avatar</Text>
+        <Text style={styles.subtextSmall}>
+          Te recomendamos usar íconos. Puedes encontrarlos{' '}
+          <Text style={styles.linkText} onPress={handleOpenFlaticon}>
+            aquí
+          </Text>
+        </Text>
+
+        <View style={{ alignItems: 'center', width: '100%' }}>
+          <TouchableOpacity style={styles.imagePicker} onPress={seleccionarImagen}>
+            {avatar ? (
+              <Image source={{ uri: avatar }} style={styles.image} />
+            ) : (
+              <>
+                <Ionicons name="camera-outline" size={24} color="#999" />
+                <Text style={styles.imagePickerText}>Selecciona una imagen</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.buttonRow}>
+          <TouchableOpacity style={styles.acceptButton} onPress={handleGuardarCambios}>
+            <Text style={styles.buttonText}>Guardar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
+            <Text style={styles.cancelButtonText}>Cancelar</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={styles.rightContainer}>
+        <View style={styles.permisosHeader}>
+          <Text style={styles.title}>Editar permisos</Text>
+          <TouchableOpacity 
+            style={styles.selectAllButton}
+            onPress={seleccionarTodosPermisos}
+          >
+            <Text style={styles.selectAllButtonText}>
+              {permisosSeleccionados.length === permisosDisponibles.length ? 
+                'Deseleccionar todos' : 'Seleccionar todos'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+        
+        <Text style={styles.subtext}>Selecciona los permisos que debe tener este rol</Text>
+        <View style={styles.permisosContainer}>
+          {permisosDisponibles.map((permiso) => {
+            const isSelected = permisosSeleccionados.includes(permiso.label);
+            return (
+              <TouchableOpacity
+                key={permiso.label}
+                style={[
+                  styles.permisoButton,
+                  isSelected && styles.permisoButtonSelected,
+                ]}
+                onPress={() => togglePermiso(permiso.label)}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <MaterialCommunityIcons
+                    name={permiso.icon}
+                    size={16}
+                    color={isSelected ? '#fff' : '#333'}
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text
+                    style={[
+                      styles.permisoText,
+                      isSelected && styles.permisoTextSelected,
+                    ]}
+                  >
+                    {permiso.label}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+    </View>
+  );
+
+  const renderMobileLayout = () => (
+    <ScrollView style={styles.mobileContainer} contentContainerStyle={styles.mobileContentContainer}>
+      <View style={styles.mobileSection}>
+        <Text style={styles.title}>Editar rol</Text>
+        <Text style={styles.subtext}>Modifica la información del rol seleccionado</Text>
+
+        <Text style={styles.label}>Nombre <Text style={styles.required}>*</Text></Text>
+        <TextInput
+          style={styles.input}
+          value={nombre}
+          onChangeText={setNombre}
+          placeholder="Ingrese el nombre del rol"
+          placeholderTextColor="#929292"
+        />
+
+        <Text style={styles.label}>Descripción</Text>
+        <TextInput
+          style={styles.input}
+          value={descripcion}
+          onChangeText={setDescripcion}
+          placeholder="Descripción opcional"
+          placeholderTextColor="#929292"
+        />
+
+        <Text style={styles.label}>Avatar</Text>
+        <Text style={styles.subtextSmall}>
+          Te recomendamos usar íconos. Puedes encontrarlos{' '}
+          <Text style={styles.linkText} onPress={handleOpenFlaticon}>
+            aquí
+          </Text>
+        </Text>
+
+        <View style={{ alignItems: 'center', width: '100%' }}>
+          <TouchableOpacity style={styles.imagePicker} onPress={seleccionarImagen}>
+            {avatar ? (
+              <Image source={{ uri: avatar }} style={styles.image} />
+            ) : (
+              <>
+                <Ionicons name="camera-outline" size={24} color="#999" />
+                <Text style={styles.imagePickerText}>Selecciona una imagen</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={styles.mobileSection}>
+        <View style={styles.permisosHeader}>
+          <Text style={styles.title}>Editar permisos</Text>
+          <TouchableOpacity 
+            style={styles.selectAllButton}
+            onPress={seleccionarTodosPermisos}
+          >
+            <Text style={styles.selectAllButtonText}>
+              {permisosSeleccionados.length === permisosDisponibles.length ? 
+                'Deseleccionar todos' : 'Seleccionar todos'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+        
+        <Text style={styles.subtext}>Selecciona los permisos que debe tener este rol</Text>
+        <View style={styles.mobilePermisosContainer}>
+          {permisosDisponibles.map((permiso) => {
+            const isSelected = permisosSeleccionados.includes(permiso.label);
+            return (
+              <TouchableOpacity
+                key={permiso.label}
+                style={[
+                  styles.permisoButton,
+                  isSelected && styles.permisoButtonSelected,
+                ]}
+                onPress={() => togglePermiso(permiso.label)}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <MaterialCommunityIcons
+                    name={permiso.icon}
+                    size={16}
+                    color={isSelected ? '#fff' : '#333'}
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text
+                    style={[
+                      styles.permisoText,
+                      isSelected && styles.permisoTextSelected,
+                    ]}
+                  >
+                    {permiso.label}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+
+      <View style={styles.mobileButtonRow}>
+        <TouchableOpacity style={styles.acceptButton} onPress={handleGuardarCambios}>
+          <Text style={styles.buttonText}>Guardar</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
+          <Text style={styles.cancelButtonText}>Cancelar</Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
+  );
 
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
         <BlurView intensity={20} tint="light" style={StyleSheet.absoluteFill} />
-        <View style={styles.container}>
-          <View style={styles.leftContainer}>
-            <Text style={styles.title}>Editar rol</Text>
-            <Text style={styles.subtext}>Modifica la información del rol seleccionado</Text>
-
-            <Text style={styles.label}>Nombre <Text style={styles.required}>*</Text></Text>
-            <TextInput
-              style={styles.input}
-              value={nombre}
-              onChangeText={setNombre}
-              placeholder="Ingrese el nombre del rol"
-            />
-
-            <Text style={styles.label}>Descripción</Text>
-            <TextInput
-              style={styles.input}
-              value={descripcion}
-              onChangeText={setDescripcion}
-              placeholder="Descripción opcional"
-            />
-
-            <Text style={styles.label}>Avatar</Text>
-            <Text style={styles.subtextSmall}>
-              Te recomendamos usar íconos. Puedes encontrarlos <Text style={{ color: '#6e3eff' }}>aquí</Text>
-            </Text>
-
-            <View style={{ alignItems: 'center', width: '100%' }}>
-              <TouchableOpacity style={styles.imagePicker} onPress={seleccionarImagen}>
-                {avatar ? (
-                  <Image source={{ uri: avatar }} style={styles.image} />
-                ) : (
-                  <>
-                    <Ionicons name="camera-outline" size={24} color="#999" />
-                    <Text style={styles.imagePickerText}>Selecciona una imagen</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.buttonRow}>
-              <TouchableOpacity style={styles.acceptButton} onPress={handleGuardarCambios}>
-                <Text style={styles.buttonText}>Guardar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={styles.rightContainer}>
-            <Text style={styles.title}>Editar permisos</Text>
-            <Text style={styles.subtext}>Selecciona los permisos que debe tener este rol</Text>
-            <View style={styles.permisosContainer}>
-              {permisosDisponibles.map((permiso) => {
-                const isSelected = permisosSeleccionados.includes(permiso.label);
-                return (
-                  <TouchableOpacity
-                    key={permiso.label}
-                    style={[
-                      styles.permisoButton,
-                      isSelected && styles.permisoButtonSelected,
-                    ]}
-                    onPress={() => togglePermiso(permiso.label)}
-                  >
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <MaterialCommunityIcons
-                        name={permiso.icon}
-                        size={16}
-                        color={isSelected ? '#fff' : '#333'}
-                        style={{ marginRight: 6 }}
-                      />
-                      <Text
-                        style={[
-                          styles.permisoText,
-                          isSelected && styles.permisoTextSelected,
-                        ]}
-                      >
-                        {permiso.label}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-        </View>
+        {isMobile ? renderMobileLayout() : renderDesktopLayout()}
       </View>
     </Modal>
   );
@@ -187,7 +348,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 20,
     borderWidth: 1,
-    borderColor: 'black',
+    borderColor: '#000',
   },
   leftContainer: {
     width: '50%',
@@ -198,6 +359,51 @@ const styles = StyleSheet.create({
     paddingLeft: 15,
     borderLeftWidth: 1,
     borderLeftColor: '#e0e0e0',
+  },
+  permisosHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  selectAllButton: {
+    backgroundColor: '#f0f0f0',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 5,
+  },
+  selectAllButtonText: {
+    fontSize: 12,
+    color: '#424242',
+    fontWeight: 'bold',
+  },
+  mobileContainer: {
+    width: '90%',
+    maxHeight: '90%',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#000',
+  },
+  mobileContentContainer: {
+    padding: 20,
+  },
+  mobileSection: {
+    marginBottom: 20,
+  },
+  mobilePermisosContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 16,
+    justifyContent: 'center',
+  },
+  mobileButtonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+    marginBottom: 10,
+    paddingHorizontal: 10,
   },
   title: {
     fontSize: 20,
@@ -263,7 +469,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   cancelButton: {
-    backgroundColor: 'white',
+    backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: '#929292',
     paddingHorizontal: 20,
@@ -271,11 +477,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   buttonText: {
-    color: 'white',
+    color: '#fff',
     fontWeight: 'bold',
   },
   cancelButtonText: {
-    color: 'black',
+    color: '#000',
     fontWeight: 'bold',
   },
   permisosContainer: {
@@ -291,7 +497,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     margin: 5,
-    backgroundColor: 'white',
+    backgroundColor: '#fff',
   },
   permisoButtonSelected: {
     backgroundColor: '#424242',
@@ -299,10 +505,14 @@ const styles = StyleSheet.create({
   },
   permisoText: {
     fontSize: 13,
-    color: 'black',
+    color: '#000',
   },
   permisoTextSelected: {
-    color: 'white',
+    color: '#fff',
+  },
+  linkText: {
+    color: '#6e3eff',
+    textDecorationLine: 'underline',
   },
 });
 

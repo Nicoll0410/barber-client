@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -14,17 +14,70 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { BlurView } from 'expo-blur';
+import { Calendar, LocaleConfig } from 'react-native-calendars';
 import moment from 'moment';
+
+// Configuración de localización en español
+LocaleConfig.locales['es'] = {
+  monthNames: [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ],
+  monthNamesShort: [
+    'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+    'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
+  ],
+  dayNames: [
+    'Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'
+  ],
+  dayNamesShort: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
+  today: 'Hoy'
+};
+LocaleConfig.defaultLocale = 'es';
 
 const { width } = Dimensions.get('window');
 
 const EditarCliente = ({ visible, onClose, cliente, onUpdate }) => {
   const [formData, setFormData] = useState({
-    telefono: cliente?.telefono || '',
-    email: cliente?.email || '',
-    avatar: cliente?.avatar || null
+    nombre: '',
+    telefono: '',
+    fechaNacimiento: null,
+    email: '',
+    avatar: null
   });
   
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
+  const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
+
+  // Actualizar el estado cuando cambia el cliente
+  useEffect(() => {
+    if (cliente) {
+      setFormData({
+        nombre: cliente.nombre || '',
+        telefono: cliente.telefono || '',
+        fechaNacimiento: cliente.fechaNacimiento ? new Date(cliente.fechaNacimiento) : null,
+        email: cliente.email || '',
+        avatar: cliente.avatar || null
+      });
+      
+      // Establecer mes y año del calendario según la fecha de nacimiento
+      if (cliente.fechaNacimiento) {
+        const fecha = new Date(cliente.fechaNacimiento);
+        setCalendarMonth(fecha.getMonth());
+        setCalendarYear(fecha.getFullYear());
+      }
+    }
+  }, [cliente]);
+
+  const months = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ];
+
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 81 }, (_, i) => currentYear - i);
+
   const pickImage = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -50,10 +103,12 @@ const EditarCliente = ({ visible, onClose, cliente, onUpdate }) => {
   };
 
   const handleSubmit = () => {
-    if (formData.telefono && formData.email) {
+    if (formData.nombre && formData.telefono && formData.fechaNacimiento && formData.email) {
       onUpdate({
         ...cliente,
+        nombre: formData.nombre,
         telefono: formData.telefono,
+        fechaNacimiento: formData.fechaNacimiento,
         email: formData.email,
         avatar: formData.avatar
       });
@@ -63,8 +118,76 @@ const EditarCliente = ({ visible, onClose, cliente, onUpdate }) => {
     }
   };
 
-  const formatFechaNacimiento = (fecha) => {
-    return fecha ? moment(fecha).format('DD/MM/YYYY') : 'No especificada';
+  const handleDayPress = (day) => {
+    const selectedDate = new Date(day.year, day.month - 1, day.day);
+    setFormData({...formData, fechaNacimiento: selectedDate});
+    setShowDatePicker(false);
+  };
+
+  const changeMonth = (increment) => {
+    let newMonth = calendarMonth + increment;
+    let newYear = calendarYear;
+    
+    if (newMonth > 11) {
+      newMonth = 0;
+      newYear++;
+    } else if (newMonth < 0) {
+      newMonth = 11;
+      newYear--;
+    }
+    
+    if (newYear <= currentYear && newYear >= (currentYear - 80)) {
+      setCalendarMonth(newMonth);
+      setCalendarYear(newYear);
+    }
+  };
+
+  const changeYear = (year) => {
+    if (year === currentYear && calendarMonth > new Date().getMonth()) {
+      setCalendarMonth(new Date().getMonth());
+    }
+    setCalendarYear(year);
+  };
+
+  const formatDate = (date) => {
+    if (!date) return 'dd/mm/aaaa';
+    return date.toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+  const getDisabledDates = () => {
+    const disabledDates = {};
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const startDate = new Date(calendarYear, calendarMonth, 1);
+    const endDate = new Date(calendarYear, calendarMonth + 1, 0);
+    const tempDate = new Date(startDate);
+    
+    while (tempDate <= endDate) {
+      if (tempDate > today || 
+          (calendarYear === currentYear && calendarMonth > today.getMonth()) ||
+          tempDate.getFullYear() < (currentYear - 80)) {
+        disabledDates[`${tempDate.getFullYear()}-${(tempDate.getMonth() + 1).toString().padStart(2, '0')}-${tempDate.getDate().toString().padStart(2, '0')}`] = { 
+          disabled: true, 
+          disableTouchEvent: true 
+        };
+      }
+      tempDate.setDate(tempDate.getDate() + 1);
+    }
+    
+    return disabledDates;
+  };
+
+  const formatDateString = (date) => {
+    if (!date) return '';
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   return (
@@ -88,16 +211,17 @@ const EditarCliente = ({ visible, onClose, cliente, onUpdate }) => {
           >
             <View style={styles.header}>
               <Text style={styles.title}>Editar cliente</Text>
-              <Text style={styles.subtitle}>Por favor, proporciona la información para actualizar el paciente</Text>
+              <Text style={styles.subtitle}>Edita los datos del cliente según sea necesario</Text>
             </View>
             
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Nombre</Text>
+              <Text style={styles.label}>Nombre <Text style={styles.required}>*</Text></Text>
               <TextInput
-                style={[styles.input, styles.disabledInput]}
-                value={cliente?.nombre || ''}
-                editable={false}
+                style={styles.input}
+                placeholder="Ej: Carlos Gómez"
                 placeholderTextColor="#929292"
+                value={formData.nombre}
+                onChangeText={(text) => setFormData({...formData, nombre: text})}
               />
             </View>
 
@@ -115,15 +239,165 @@ const EditarCliente = ({ visible, onClose, cliente, onUpdate }) => {
               </View>
 
               <View style={[styles.formGroup, {flex: 1}]}>
-                <Text style={styles.label}>Fecha de nacimiento</Text>
-                <TextInput
-                  style={[styles.input, styles.disabledInput]}
-                  value={formatFechaNacimiento(cliente?.fechaNacimiento)}
-                  editable={false}
-                  placeholderTextColor="#929292"
-                />
+                <Text style={styles.label}>Fecha de nacimiento <Text style={styles.required}>*</Text></Text>
+                <TouchableOpacity 
+                  style={styles.dateInput}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <Text style={[
+                    styles.dateText, 
+                    formData.fechaNacimiento && styles.dateTextSelected
+                  ]}>
+                    {formatDate(formData.fechaNacimiento)}
+                  </Text>
+                  <MaterialIcons name="calendar-today" size={20} color="#666" />
+                </TouchableOpacity>
               </View>
             </View>
+            
+            {showDatePicker && (
+              <View style={styles.customDatePickerContainer}>
+                <View style={styles.customDatePicker}>
+                  <View style={styles.datePickerHeader}>
+                    <TouchableOpacity 
+                      onPress={() => changeMonth(-1)}
+                      disabled={calendarYear === (currentYear - 80) && calendarMonth === 0}
+                    >
+                      <MaterialIcons 
+                        name="chevron-left" 
+                        size={24} 
+                        color={
+                          calendarYear === (currentYear - 80) && calendarMonth === 0
+                            ? '#ccc' 
+                            : '#333'
+                        } 
+                      />
+                    </TouchableOpacity>
+                    
+                    <View style={styles.monthYearSelector}>
+                      <Text style={styles.monthYearText}>
+                        {months[calendarMonth]} de {calendarYear}
+                      </Text>
+                    </View>
+                    
+                    <TouchableOpacity 
+                      onPress={() => changeMonth(1)}
+                      disabled={calendarYear === currentYear && calendarMonth === new Date().getMonth()}
+                    >
+                      <MaterialIcons 
+                        name="chevron-right" 
+                        size={24} 
+                        color={
+                          calendarYear === currentYear && calendarMonth === new Date().getMonth()
+                            ? '#ccc' 
+                            : '#333'
+                        } 
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  
+                  <View style={styles.yearSelectorContainer}>
+                    <ScrollView 
+                      horizontal 
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.yearScrollContent}
+                    >
+                      {years.map(year => (
+                        <TouchableOpacity 
+                          key={year}
+                          style={[
+                            styles.yearButton,
+                            calendarYear === year && styles.selectedYearButton
+                          ]}
+                          onPress={() => changeYear(year)}
+                        >
+                          <Text style={[
+                            styles.yearButtonText,
+                            calendarYear === year && styles.selectedYearButtonText
+                          ]}>
+                            {year}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                  
+                  <View style={styles.calendarContainer}>
+                    <Calendar
+                      key={`${calendarYear}-${calendarMonth}`}
+                      current={`${calendarYear}-${(calendarMonth + 1).toString().padStart(2, '0')}-01`}
+                      minDate={`${currentYear - 80}-01-01`}
+                      maxDate={new Date().toISOString().split('T')[0]}
+                      onDayPress={handleDayPress}
+                      monthFormat={'MMMM yyyy'}
+                      hideArrows={true}
+                      hideExtraDays={true}
+                      disableMonthChange={true}
+                      markedDates={{
+                        ...getDisabledDates(),
+                        [formData.fechaNacimiento ? formatDateString(formData.fechaNacimiento) : '']: {
+                          selected: true,
+                          selectedColor: '#424242',
+                          selectedTextColor: '#fff'
+                        },
+                        [new Date().toISOString().split('T')[0]]: {
+                          marked: true,
+                          dotColor: '#424242'
+                        }
+                      }}
+                      theme={{
+                        calendarBackground: 'transparent',
+                        textSectionTitleColor: '#666',
+                        dayTextColor: '#333',
+                        todayTextColor: '#424242',
+                        selectedDayTextColor: '#fff',
+                        selectedDayBackgroundColor: '#424242',
+                        arrowColor: '#424242',
+                        monthTextColor: '#333',
+                        textDayFontWeight: '400',
+                        textMonthFontWeight: 'bold',
+                        textDayHeaderFontWeight: '500',
+                        textDayFontSize: 12,
+                        textMonthFontSize: 14,
+                        textDayHeaderFontSize: 12,
+                        'stylesheet.calendar.header': {
+                          week: {
+                            marginTop: 5,
+                            flexDirection: 'row',
+                            justifyContent: 'space-between'
+                          }
+                        },
+                        disabledDayTextColor: '#d9d9d9'
+                      }}
+                      style={styles.calendar}
+                      disableAllTouchEventsForDisabledDays={true}
+                    />
+                  </View>
+                  
+                  <View style={styles.datePickerActions}>
+                    <TouchableOpacity 
+                      style={styles.datePickerButton}
+                      onPress={() => {
+                        const today = new Date();
+                        setFormData({...formData, fechaNacimiento: today});
+                        setCalendarMonth(today.getMonth());
+                        setCalendarYear(today.getFullYear());
+                        setShowDatePicker(false);
+                      }}
+                    >
+                      <Text style={styles.datePickerButtonText}>Hoy</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={styles.closeButton} 
+                      onPress={() => setShowDatePicker(false)}
+                    >
+                      <Text style={styles.closeButtonText}>Cerrar</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            )}
             
             <View style={styles.formGroup}>
               <Text style={styles.label}>Email <Text style={styles.required}>*</Text></Text>
@@ -241,9 +515,24 @@ const styles = StyleSheet.create({
     height: 45,
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
   },
-  disabledInput: {
-    backgroundColor: '#f5f5f5',
-    color: '#666',
+  dateInput: {
+    borderWidth: 2,
+    borderColor: '#424242',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    height: 45,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  dateText: {
+    fontSize: 15,
+    color: '#999',
+  },
+  dateTextSelected: {
+    color: '#333',
   },
   avatarSelector: {
     borderWidth: 2,
@@ -300,6 +589,94 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     fontSize: 15,
     color: 'black',
+  },
+  customDatePickerContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    zIndex: 1000,
+  },
+  customDatePicker: {
+    width: width * 0.85,
+    maxWidth: 350,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    maxHeight: '80%',
+  },
+  datePickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  monthYearSelector: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  monthYearText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  yearSelectorContainer: {
+    marginBottom: 10,
+  },
+  yearScrollContent: {
+    paddingHorizontal: 10,
+  },
+  yearButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginHorizontal: 4,
+    borderRadius: 15,
+  },
+  selectedYearButton: {
+    backgroundColor: '#424242',
+  },
+  yearButtonText: {
+    color: '#666',
+  },
+  selectedYearButtonText: {
+    color: 'white',
+  },
+  calendarContainer: {
+    height: 250,
+    overflow: 'hidden',
+  },
+  calendar: {
+    marginBottom: 10,
+  },
+  datePickerActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  datePickerButton: {
+    padding: 10,
+    borderRadius: 5,
+  },
+  datePickerButtonText: {
+    color: '#424242',
+    fontWeight: 'bold',
+  },
+  closeButton: {
+    padding: 10,
+    borderRadius: 5,
+    backgroundColor: '#424242',
+  },
+  closeButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
   },
 });
 

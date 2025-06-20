@@ -1,22 +1,91 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, Dimensions, ActivityIndicator } from 'react-native';
 import { LineChart, BarChart } from 'react-native-chart-kit';
 import Footer from '../../components/Footer';
-
-const screenWidth = Dimensions.get('window').width;
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 
 const DashboardScreen = () => {
+  const [dashboardData, setDashboardData] = useState({
+    ventas: [
+      { mes: 'Sept', total: 28 },
+      { mes: 'Oct', total: 20 },
+      { mes: 'Nov', total: 15 },
+      { mes: 'Dec', total: 10 },
+      { mes: 'Ene', total: 5 },
+      { mes: 'Feb', total: 0 }
+    ],
+    compras: [
+      { mes: 'Sept', total: 20 },
+      { mes: 'Oct', total: 18 },
+      { mes: 'Nov', total: 12 },
+      { mes: 'Dec', total: 7 },
+      { mes: 'Ene', total: 3 },
+      { mes: 'Feb', total: 0 }
+    ],
+    ganancias: [
+      { mes: 'Enero', total: 5 },
+      { mes: 'Febrero', total: 10 },
+      { mes: 'Marzo', total: 6 },
+      { mes: 'Abril', total: 8 }
+    ],
+    resumen: {
+      ventasMesActual: 1250000,
+      ventasMesAnterior: 1000000,
+      comprasMesActual: 780000,
+      comprasMesAnterior: 850000,
+      gananciasMesActual: 470000,
+      gananciasMesAnterior: 150000
+    }
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [dimensions, setDimensions] = useState(Dimensions.get('window'));
+
+  useEffect(() => {
+    const onChange = ({ window }) => {
+      setDimensions(window);
+    };
+    Dimensions.addEventListener('change', onChange);
+    return () => Dimensions.removeEventListener('change', onChange);
+  }, []);
+
+  const isMobile = dimensions.width < 768;
+  const chartWidth = isMobile ? dimensions.width * 0.85 : dimensions.width * 0.4;
+
+  // Calcular porcentajes de cambio
+  const calcularPorcentaje = (actual, anterior) => {
+    if (anterior === 0) return 100;
+    return ((actual - anterior) / anterior) * 100;
+  };
+
+  const porcentajeVentas = calcularPorcentaje(
+    dashboardData.resumen.ventasMesActual,
+    dashboardData.resumen.ventasMesAnterior
+  );
+
+  const porcentajeCompras = calcularPorcentaje(
+    dashboardData.resumen.comprasMesActual,
+    dashboardData.resumen.comprasMesAnterior
+  );
+
+  const porcentajeGanancias = calcularPorcentaje(
+    dashboardData.resumen.gananciasMesActual,
+    dashboardData.resumen.gananciasMesAnterior
+  );
+
+  // Datos para gráficos
   const chartData = {
-    labels: ['Sept', 'Oct', 'Nov', 'Dec', 'Ene', 'Feb'],
+    labels: dashboardData.ventas.map(item => item.mes),
     datasets: [
       {
-        data: [28, 20, 15, 10, 5, 0],
-        color: () => '#1a237e', // Azul oscuro
+        data: dashboardData.ventas.map(item => item.total),
+        color: () => '#1a237e',
         strokeWidth: 3,
       },
       {
-        data: [20, 18, 12, 7, 3, 0],
-        color: () => '#c62828', // Rojo
+        data: dashboardData.compras.map(item => item.total),
+        color: () => '#c62828',
         strokeWidth: 3,
       },
     ],
@@ -24,13 +93,13 @@ const DashboardScreen = () => {
   };
 
   const gananciasData = {
-    labels: ['Enero', 'Febrero', 'Marzo', 'Abril'],
+    labels: dashboardData.ganancias.map(item => item.mes),
     datasets: [
       {
-        data: [5, 10, 6, 8],
+        data: dashboardData.ganancias.map(item => item.total),
         colors: [
-          (opacity = 1) => '#c62828', // Rojo
-          (opacity = 1) => '#1a237e', // Azul oscuro
+          (opacity = 1) => '#c62828',
+          (opacity = 1) => '#1a237e',
           (opacity = 1) => '#c62828',
           (opacity = 1) => '#1a237e',
         ],
@@ -38,182 +107,276 @@ const DashboardScreen = () => {
     ],
   };
 
+  const lineChartConfig = {
+    backgroundColor: '#fafafa',
+    backgroundGradientFrom: '#fafafa',
+    backgroundGradientTo: '#fafafa',
+    decimalPlaces: 0,
+    color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+    labelColor: () => '#333',
+    strokeWidth: 2,
+    propsForLabels: {
+      fontSize: isMobile ? 10 : 12,
+    },
+    propsForDots: {
+      r: isMobile ? 3 : 5,
+      strokeWidth: '2',
+      stroke: '#fff',
+    },
+    propsForBackgroundLines: {
+      strokeDasharray: '',
+      stroke: '#e0e0e0',
+    },
+  };
+
+  const barChartConfig = {
+    backgroundColor: '#fafafa',
+    backgroundGradientFrom: '#fafafa',
+    backgroundGradientTo: '#fafafa',
+    decimalPlaces: 0,
+    color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+    labelColor: () => '#333',
+    barPercentage: 0.7,
+    propsForLabels: {
+      fontSize: isMobile ? 10 : 12,
+    },
+    fillShadowGradient: '#1a237e',
+    fillShadowGradientOpacity: 1,
+    propsForBackgroundLines: {
+      strokeDasharray: '',
+      stroke: '#e0e0e0',
+    },
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#1a237e" />
+        <Text style={styles.loadingText}>Cargando datos...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>{error}</Text>
+      </View>
+    );
+  }
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Dashboard</Text>
+    <View style={styles.mainContainer}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={[styles.title, isMobile && styles.titleMobile]}>Dashboard</Text>
 
-      <View style={styles.cardContainer}>
-        {['Ventas', 'Compras', 'Ganancias'].map((label, i) => (
-          <View key={i} style={styles.card}>
-            <Text style={styles.cardTitle}>{label} de este mes</Text>
-            <Text style={styles.cardValue}>$0</Text>
-            <View style={[styles.comparisonContainer, i === 1 ? styles.comparisonNegative : styles.comparisonPositive]}>
-              <Text style={styles.comparisonArrow}>
-                {i === 1 ? '↓' : '↑'}
+        <View style={[styles.cardContainer, isMobile && styles.cardContainerMobile]}>
+          {[
+            { 
+              label: 'Ventas', 
+              value: dashboardData.resumen.ventasMesActual,
+              porcentaje: porcentajeVentas,
+              isPositive: porcentajeVentas >= 0
+            },
+            { 
+              label: 'Compras', 
+              value: dashboardData.resumen.comprasMesActual,
+              porcentaje: porcentajeCompras,
+              isPositive: porcentajeCompras <= 0
+            },
+            { 
+              label: 'Ganancias', 
+              value: dashboardData.resumen.gananciasMesActual,
+              porcentaje: porcentajeGanancias,
+              isPositive: porcentajeGanancias >= 0
+            }
+          ].map((item, i) => (
+            <View key={i} style={[styles.card, isMobile && styles.cardMobile]}>
+              <Text style={styles.cardTitle}>{item.label} de este mes</Text>
+              <Text style={styles.cardValue}>
+                ${item.value.toLocaleString('es-CO')}
               </Text>
-              <Text style={styles.comparisonPercent}>
-                {i === 1 ? '0.0%' : '0.0%'}
-              </Text>
-              <Text style={styles.comparisonText}>Comparado al mes pasado</Text>
+              <View style={[
+                styles.comparisonContainer, 
+                item.isPositive ? styles.comparisonPositive : styles.comparisonNegative,
+                isMobile && styles.comparisonContainerMobile,
+                { alignSelf: 'center' } // Centrar en móviles
+              ]}>
+                <Text style={styles.comparisonArrow}>
+                  {item.isPositive ? '↑' : '↓'}
+                </Text>
+                <Text style={[
+                  styles.comparisonPercent,
+                  item.isPositive ? styles.comparisonPositivePercent : styles.comparisonNegativePercent
+                ]}>
+                  {Math.abs(item.porcentaje).toFixed(1)}%
+                </Text>
+                <Text style={styles.comparisonText}>vs mes pasado</Text>
+              </View>
             </View>
+          ))}
+        </View>
+
+        <View style={[styles.graphsRow, isMobile && styles.graphsRowMobile]}>
+          <View style={[styles.chartCard, isMobile && styles.chartCardMobile]}>
+            <Text style={styles.chartTitle}>Ventas por mes</Text>
+            <LineChart
+              data={chartData}
+              width={chartWidth}
+              height={220}
+              chartConfig={lineChartConfig}
+              bezier
+              style={styles.chart}
+              withShadow={true}
+              withInnerLines={false}
+              withOuterLines={false}
+            />
           </View>
-        ))}
-      </View>
 
-      <View style={styles.graphsRow}>
-        <View style={styles.chartCard}>
-          <Text style={styles.chartTitle}>Ventas por mes</Text>
-          <LineChart
-            data={chartData}
-            width={screenWidth * 0.9 * 0.5}
-            height={220}
-            chartConfig={lineChartConfig}
-            bezier
-            style={styles.chart}
-            withShadow={true}
-            withInnerLines={false}
-            withOuterLines={false}
-          />
+          <View style={[styles.chartCard, isMobile && styles.chartCardMobile]}>
+            <Text style={styles.chartTitle}>Ganancias por mes</Text>
+            <Text style={styles.subTitle}>Últimos {dashboardData.ganancias.length} meses</Text>
+            <BarChart
+              data={gananciasData}
+              width={chartWidth}
+              height={220}
+              chartConfig={barChartConfig}
+              style={styles.chart}
+              fromZero
+              showValuesOnTopOfBars
+              barRadius={4}
+              withCustomBarColorFromData={true}
+              flatColor={true}
+            />
+          </View>
         </View>
-
-        <View style={styles.chartCard}>
-          <Text style={styles.chartTitle}>Ganancias por mes</Text>
-          <Text style={styles.subTitle}>Ganancias de los últimos 4 meses</Text>
-          <BarChart
-            data={gananciasData}
-            width={screenWidth * 0.9 * 0.5}
-            height={220}
-            chartConfig={barChartConfig}
-            style={styles.chart}
-            fromZero
-            showValuesOnTopOfBars
-            barRadius={4}
-            withCustomBarColorFromData={true}
-            flatColor={true}
-          />
+      </ScrollView>
+      
+      <View style={[styles.footerContainer, isMobile && styles.footerMobile]}>
+        <View style={styles.footerContent}>
+          <Text style={styles.footerText}>
+            © 2025 Nicoll Andrea Giraldo Franco |
+          </Text>
+          <Text style={styles.footerText}>Luis Miguel Chica Ruiz</Text>
         </View>
-        <Footer />
       </View>
-    </ScrollView>
+    </View>
   );
 };
 
-const lineChartConfig = {
-  backgroundColor: '#fafafa', // Fondo más suave
-  backgroundGradientFrom: '#fafafa',
-  backgroundGradientTo: '#fafafa',
-  decimalPlaces: 0,
-  color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-  labelColor: () => '#333',
-  strokeWidth: 2,
-  propsForLabels: {
-    fontSize: 12,
-    fontFamily: 'sans-serif',
-    fontWeight: '500',
-  },
-  propsForDots: {
-    r: '5',
-    strokeWidth: '2',
-    stroke: '#fff',
-  },
-  propsForBackgroundLines: {
-    strokeDasharray: '',
-    stroke: '#e0e0e0',
-  },
-};
-
-const barChartConfig = {
-  backgroundColor: '#fafafa', // Fondo más suave
-  backgroundGradientFrom: '#fafafa',
-  backgroundGradientTo: '#fafafa',
-  decimalPlaces: 0,
-  color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-  labelColor: () => '#333',
-  barPercentage: 0.7,
-  propsForLabels: {
-    fontSize: 12,
-    fontFamily: 'sans-serif',
-    fontWeight: '500',
-  },
-  fillShadowGradient: '#1a237e',
-  fillShadowGradientOpacity: 1,
-  propsForBackgroundLines: {
-    strokeDasharray: '',
-    stroke: '#e0e0e0',
-  },
-};
-
 const styles = StyleSheet.create({
+  mainContainer: {
+    flex: 1,
+    backgroundColor: '#fafafa',
+  },
   container: {
+    padding: 16,
+    backgroundColor: '#fafafa',
+    paddingBottom: 80,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fafafa',
+  },
+  loadingText: {
+    marginTop: 20,
+    color: '#333',
+    fontSize: 16,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fafafa',
     padding: 20,
-    backgroundColor: '#fafafa', // Fondo principal más suave
+  },
+  errorText: {
+    color: '#c62828',
+    fontSize: 16,
+    textAlign: 'center',
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
     color: '#333',
+    textAlign: 'center',
+  },
+  titleMobile: {
+    textAlign: 'left',
+    marginLeft: 8,
+    marginBottom: 16,
   },
   cardContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'space-between',
     marginBottom: 20,
-    gap: 10,
+  },
+  cardContainerMobile: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 16,
   },
   card: {
-    backgroundColor: 'rgba(242, 242, 242, 0.6)', // Más transparente
-    borderRadius: 10,
+    backgroundColor: '#fff',
+    borderRadius: 12,
     width: '30%',
-    minWidth: 100,
-    padding: 15,
+    padding: 16,
     borderWidth: 1,
-    borderColor: '#E6E6E6',
+    borderColor: '#e0e0e0',
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
+    shadowRadius: 8,
     elevation: 2,
+    alignItems: 'center', // Centrar contenido en móviles
+  },
+  cardMobile: {
+    width: '100%',
+    padding: 16,
   },
   cardTitle: {
-    fontSize: 13,
-    color: '#808080',
+    fontSize: 14,
+    color: '#666',
     fontWeight: '500',
+    marginBottom: 8,
+    textAlign: 'center', // Centrar texto en móviles
   },
   cardValue: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
-    marginTop: 4,
     color: '#333',
+    marginBottom: 8,
+    textAlign: 'center', // Centrar texto en móviles
   },
   comparisonContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
-    padding: 4,
-    borderRadius: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 6,
     alignSelf: 'flex-start',
   },
+  comparisonContainerMobile: {
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
   comparisonNegative: {
-    backgroundColor: 'rgba(231, 76, 60, 0.2)',
+    backgroundColor: 'rgba(231, 76, 60, 0.1)',
   },
   comparisonPositive: {
-    backgroundColor: 'rgba(46, 204, 113, 0.2)',
+    backgroundColor: 'rgba(46, 204, 113, 0.1)',
   },
   comparisonArrow: {
-    fontSize: 12,
-    marginRight: 2,
-  },
-  comparisonNegativeText: {
-    color: '#e74c3c',
-  },
-  comparisonPositiveText: {
-    color: '#2ecc71',
+    fontSize: 14,
+    marginRight: 4,
   },
   comparisonPercent: {
-    fontSize: 12,
-    marginRight: 4,
-    fontWeight: '500',
+    fontSize: 14,
+    fontWeight: '600',
+    marginRight: 6,
   },
   comparisonNegativePercent: {
     color: '#e74c3c',
@@ -222,42 +385,74 @@ const styles = StyleSheet.create({
     color: '#2ecc71',
   },
   comparisonText: {
-    fontSize: 10,
-    color: '#999',
+    fontSize: 12,
+    color: '#666',
   },
   graphsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 20,
+    marginBottom: 20,
+  },
+  graphsRowMobile: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 20,
   },
   chartCard: {
-    backgroundColor: '#f5f5f5', // Fondo más suave para las tarjetas de gráficos
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 30,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 6,
-    elevation: 3,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
     borderWidth: 1,
-    borderColor: '#E6E6E6',
+    borderColor: '#e0e0e0',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 8,
+    elevation: 3,
+    width: '48%',
+  },
+  chartCardMobile: {
+    width: '100%',
+    padding: 16,
   },
   chartTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
+    marginBottom: 4,
   },
   subTitle: {
     fontSize: 12,
     color: '#666',
-    marginBottom: 5,
-    fontWeight: '400',
+    marginBottom: 12,
   },
   chart: {
-    marginTop: 10,
-    borderRadius: 16,
+    borderRadius: 12,
+    marginLeft: -10, // Ajuste para alinear mejor en móviles
+  },
+  footerContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#fafafa',
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  footerMobile: {
+    paddingHorizontal: 16,
+  },
+  footerContent: {
+    alignItems: 'flex-start', // Alinear a la izquierda
+    paddingHorizontal: 16,
+  },
+  footerText: {
+    textAlign: 'left', // Alinear texto a la izquierda
+    fontSize: 14,
+    color: '#333',
   },
 });
 

@@ -1,411 +1,520 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Modal } from 'react-native';
-import { MaterialIcons, FontAwesome, Feather, Ionicons, AntDesign } from '@expo/vector-icons';
-import Paginacion from '../../components/Paginacion';
-import Buscador from '../../components/Buscador';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Modal, Dimensions, Platform } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import CrearCita from './CrearCita';
 import DetalleCita from './DetalleCita';
+import { Calendar, LocaleConfig } from 'react-native-calendars';
+import { BlurView } from 'expo-blur';
 import Footer from '../../components/Footer';
 
-// Componente para el avatar del barbero
-const Avatar = ({ nombre }) => {
-  const colors = ['#FF5733', '#33FF57', '#3357FF', '#F333FF', '#33FFF5'];
-  const color = colors[nombre.length % colors.length];
-
-  return (
-    <View style={[styles.avatarContainer, { backgroundColor: color }]}>
-      <Text style={styles.avatarText}>
-        {nombre.split(' ').map(part => part[0]).join('').toUpperCase()}
-      </Text>
-    </View>
-  );
+// Configuración de localización en español
+LocaleConfig.locales['es'] = {
+  monthNames: [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ],
+  monthNamesShort: [
+    'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+    'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
+  ],
+  dayNames: [
+    'Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'
+  ],
+  dayNamesShort: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
+  today: 'Hoy'
 };
+LocaleConfig.defaultLocale = 'es';
 
-// Componente para el estado de la cita
-const EstadoCita = ({ estado }) => {
-  let estiloContenedor, estiloTexto;
+const { width, height } = Dimensions.get('window');
+
+const AgendaScreen = () => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Normalizar la fecha actual
   
-  switch(estado.toLowerCase()) {
-    case 'pendiente':
-      estiloContenedor = { backgroundColor: 'rgba(206, 209, 0, 0.2)' };
-      estiloTexto = { color: '#CED100' };
-      break;
-    case 'expirada':
-      estiloContenedor = { backgroundColor: 'rgba(130, 23, 23, 0.2)' };
-      estiloTexto = { color: '#821717' };
-      break;
-    case 'cancelada':
-      estiloContenedor = { backgroundColor: 'rgba(255, 0, 0, 0.2)' };
-      estiloTexto = { color: 'red' };
-      break;
-    case 'completada':
-      estiloContenedor = { backgroundColor: 'rgba(0, 255, 0, 0.2)' };
-      estiloTexto = { color: 'green' };
-      break;
-    default:
-      estiloContenedor = { backgroundColor: 'rgba(206, 209, 0, 0.2)' };
-      estiloTexto = { color: '#CED100' };
-  }
-
-  return (
-    <View style={[styles.estadoContainer, estiloContenedor]}>
-      <Text style={[styles.estadoTexto, estiloTexto]}>{estado}</Text>
-    </View>
-  );
-};
-
-// Componente para fecha/hora
-const FechaHora = ({ valor }) => (
-  <View style={styles.fechaHoraContainer}>
-    <Text style={styles.fechaHoraTexto}>{valor}</Text>
-  </View>
-);
-
-// Modal de confirmación
-const ModalConfirmacion = ({ visible, onClose, onConfirm, tipo }) => (
-  <Modal visible={visible} transparent animationType="fade">
-    <View style={styles.modalOverlay}>
-      <View style={styles.modalContent}>
-        <Text style={styles.modalTitle}>
-          {tipo === 'confirmar' 
-            ? '¿Estás seguro que desea confirmar la cita?' 
-            : '¿Seguro que deseas expirar esta cita?'}
-        </Text>
-        <Text style={styles.modalText}>
-          {tipo === 'confirmar' 
-            ? 'Para confirmar una cita, asegúrese de que el servicio se haya completado en su totalidad y que el cliente haya realizado el pago correspondiente.' 
-            : 'Para expirar una cita debes estar seguro de que la cita no se realizó en su hora establecida. Si la expiras no podrás confirmarla. Después de 3 días, si la cita no se ha confirmado, se expirará automáticamente'}
-        </Text>
-        <View style={styles.modalButtons}>
-          <TouchableOpacity 
-            style={[
-              styles.modalButton, 
-              tipo === 'confirmar' ? styles.confirmButton : styles.expireButton
-            ]} 
-            onPress={onConfirm}
-          >
-            <Text style={styles.modalButtonText}>
-              {tipo === 'confirmar' ? 'Confirmar Cita' : 'Expirar Cita'}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.cancelButton} 
-            onPress={onClose}
-          >
-            <Text style={styles.cancelButtonText}>Cancelar</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
-  </Modal>
-);
-
-const CitasScreen = () => {
+  const [selectedDate, setSelectedDate] = useState(today);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState(null);
+  const [showCrearCita, setShowCrearCita] = useState(false);
+  const [showDetalleCita, setShowDetalleCita] = useState(false);
+  const [selectedCita, setSelectedCita] = useState(null);
   const [citas, setCitas] = useState([]);
-  const [citasFiltradas, setCitasFiltradas] = useState([]);
-  const [paginaActual, setPaginaActual] = useState(1);
-  const [citasPorPagina] = useState(4);
-  const [busqueda, setBusqueda] = useState('');
-  const [modalConfirmarVisible, setModalConfirmarVisible] = useState(false);
-  const [modalExpirarVisible, setModalExpirarVisible] = useState(false);
-  const [modalCrearVisible, setModalCrearVisible] = useState(false);
-  const [modalDetalleVisible, setModalDetalleVisible] = useState(false);
-  const [citaSeleccionada, setCitaSeleccionada] = useState(null);
+  const [calendarMonth, setCalendarMonth] = useState(today.getMonth());
+  const [calendarYear, setCalendarYear] = useState(today.getFullYear());
 
-  useEffect(() => {
-    const datosEjemplo = [
-      { 
-        id: 1, 
-        barbero: 'Carlos', 
-        estado: 'Pendiente', 
-        servicio: 'Masaje con crema', 
-        fecha: '29 de mayo de 2025', 
-        hora: '08:00 AM',
-        cliente: 'María Pérez',
-        telefono: '3101234567',
-        email: 'maria@example.com',
-        notas: 'Cliente prefiere productos naturales'
-      },
-      { 
-        id: 2, 
-        barbero: 'Carlos', 
-        estado: 'Pendiente', 
-        servicio: 'Masaje con crema', 
-        fecha: '28 de mayo de 2025', 
-        hora: '08:00 AM',
-        cliente: 'Juan Gómez',
-        telefono: '3202345678',
-        email: 'juan@example.com',
-        notas: 'Cliente regular, sin alergias conocidas'
-      },
-      { 
-        id: 3, 
-        barbero: 'Juan', 
-        estado: 'Expirada', 
-        servicio: 'Masaje con crema', 
-        fecha: '21 de mayo de 2025', 
-        hora: '08:30 AM',
-        cliente: 'Ana Rodríguez',
-        telefono: '3003456789',
-        email: 'ana@example.com',
-        notas: 'Canceló sin aviso previo'
-      },
-      { 
-        id: 4, 
-        barbero: 'Pedro', 
-        estado: 'Expirada', 
-        servicio: 'Corte de pelo', 
-        fecha: '16 de mayo de 2025', 
-        hora: '01:00 PM',
-        cliente: 'Luis Martínez',
-        telefono: '3154567890',
-        email: 'luis@example.com',
-        notas: 'No se presentó a la cita'
-      },
-      { 
-        id: 5, 
-        barbero: 'Luis', 
-        estado: 'Expirada', 
-        servicio: 'Masaje con crema', 
-        fecha: '31 de octubre de 2024', 
-        hora: '10:00 AM',
-        cliente: 'Carlos Sánchez',
-        telefono: '3175678901',
-        email: 'carlos@example.com',
-        notas: 'Cita reprogramada 3 veces'
-      },
-    ];
-    setCitas(datosEjemplo);
-    setCitasFiltradas(datosEjemplo);
-  }, []);
+  const months = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ];
 
-  useEffect(() => {
-    if (busqueda.trim() === '') {
-      setCitasFiltradas(citas);
+  // Años desde el actual hasta 10 años en el futuro
+  const years = Array.from({ length: 11 }, (_, i) => today.getFullYear() + i);
+
+  // Barberos con sus avatares
+  const barberos = [
+    { id: '1', nombre: 'Carlos', avatar: require('../../assets/avatar.png'), subItems: ['Barbero'] },
+    { id: '2', nombre: 'Luis', avatar: require('../../assets/avatar.png'), subItems: ['Barbero'] },
+    { id: '3', nombre: 'Miguel', avatar: require('../../assets/avatar.png'), subItems: ['Barbero'] },
+  ];
+
+  // Generar slots de tiempo cada 30 minutos según el día
+  const generateTimeSlots = () => {
+    const day = selectedDate.getDay(); // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
+    const slots = [];
+    let startHour, endHour;
+    
+    // Definir horarios exactos según lo solicitado
+    if (day >= 1 && day <= 3) { // Lunes a Miércoles
+      startHour = 11; // 11:00 am
+      endHour = 21;   // 9:00 pm (última cita termina a las 9:00 pm)
+    } else { // Jueves a Domingo
+      startHour = 9;  // 9:00 am
+      endHour = 22;   // 10:00 pm (última cita termina a las 10:00 pm)
+    }
+    
+    // Generar slots cada 30 minutos hasta la hora final exacta
+    for (let hour = startHour; hour < endHour; hour++) {
+      slots.push({
+        startTime: `${hour}:00`,
+        endTime: `${hour}:30`,
+        displayTime: formatTime(`${hour}:00`),
+        key: `${hour}:00`
+      });
+      
+      slots.push({
+        startTime: `${hour}:30`,
+        endTime: `${hour + 1}:00`,
+        displayTime: formatTime(`${hour}:30`),
+        key: `${hour}:30`
+      });
+    }
+    
+    // Agregar el último slot de la hora final (sin los 30 minutos)
+    if (day >= 1 && day <= 3) { // Lunes a Miércoles
+      slots.push({
+        startTime: `21:00`,
+        endTime: `21:30`,
+        displayTime: formatTime(`21:00`),
+        key: `21:00`
+      });
+    } else { // Jueves a Domingo
+      slots.push({
+        startTime: `22:00`,
+        endTime: `22:30`,
+        displayTime: formatTime(`22:00`),
+        key: `22:00`
+      });
+    }
+    
+    // Filtrar slots pasados si es el día actual
+    if (isToday(selectedDate)) {
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+      
+      return slots.filter(slot => {
+        const [hourStr, minuteStr] = slot.startTime.split(':');
+        const slotHour = parseInt(hourStr);
+        const slotMinute = parseInt(minuteStr);
+        
+        return slotHour > currentHour || 
+              (slotHour === currentHour && slotMinute >= currentMinute);
+      });
+    }
+    
+    return slots;
+  };
+
+  const isToday = (date) => {
+    return date.getDate() === today.getDate() && 
+           date.getMonth() === today.getMonth() && 
+           date.getFullYear() === today.getFullYear();
+  };
+
+  const isPastDate = (date) => {
+    const checkDate = new Date(date);
+    checkDate.setHours(0, 0, 0, 0);
+    return checkDate < today;
+  };
+
+  const formatDate = (date) => {
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    return date.toLocaleDateString('es-ES', options);
+  };
+
+  const formatTime = (time) => {
+    const [hour, minute] = time.split(':');
+    const hourNum = parseInt(hour);
+    const ampm = hourNum < 12 ? 'am' : 'pm';
+    const hour12 = hourNum > 12 ? hourNum - 12 : hourNum;
+    return `${hour12}:${minute} ${ampm}`;
+  };
+
+  const navigateDay = (direction) => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() + (direction === 'next' ? 1 : -1));
+    
+    if (!isPastDate(newDate)) {
+      setSelectedDate(newDate);
+    }
+  };
+
+  const changeMonth = (increment) => {
+    let newMonth = calendarMonth + increment;
+    let newYear = calendarYear;
+    
+    if (newMonth > 11) {
+      newMonth = 0;
+      newYear++;
+    } else if (newMonth < 0) {
+      newMonth = 11;
+      newYear--;
+    }
+    
+    if (newYear === today.getFullYear() && newMonth < today.getMonth()) {
+      return;
+    }
+    
+    if (newYear < today.getFullYear()) {
+      return;
+    }
+    
+    setCalendarMonth(newMonth);
+    setCalendarYear(newYear);
+  };
+
+  const onDayPress = (day) => {
+    const [year, month, dayNum] = day.dateString.split('-').map(Number);
+    const newDate = new Date(year, month - 1, dayNum);
+    
+    if (!isPastDate(newDate)) {
+      setSelectedDate(newDate);
+      setShowCalendar(false);
+    }
+  };
+
+  const handleSlotPress = (slot, barbero) => {
+    const citaExistente = citas.find(c => 
+      c.fecha.toDateString() === selectedDate.toDateString() && 
+      c.slot.key === slot.key && 
+      c.barbero.id === barbero.id
+    );
+    
+    if (citaExistente) {
+      setSelectedCita(citaExistente);
+      setShowDetalleCita(true);
     } else {
-      const termino = busqueda.toLowerCase();
-      const filtradas = citas.filter(c =>
-        c.barbero.toLowerCase().includes(termino) || 
-        c.servicio.toLowerCase().includes(termino) ||
-        c.estado.toLowerCase().includes(termino) ||
-        c.cliente.toLowerCase().includes(termino)
-      );
-      setCitasFiltradas(filtradas);
-    }
-    setPaginaActual(1);
-  }, [busqueda, citas]);
-
-  const indiceInicial = (paginaActual - 1) * citasPorPagina;
-  const citasMostrar = citasFiltradas.slice(indiceInicial, indiceInicial + citasPorPagina);
-  const totalPaginas = Math.ceil(citasFiltradas.length / citasPorPagina);
-
-  const cambiarPagina = (nuevaPagina) => {
-    if (nuevaPagina > 0 && nuevaPagina <= totalPaginas) {
-      setPaginaActual(nuevaPagina);
+      setSelectedSlot({ ...slot, barbero, fecha: selectedDate });
+      setShowCrearCita(true);
     }
   };
 
-  const handleSearchChange = (texto) => setBusqueda(texto);
-
-  const confirmarCita = (id) => {
-    setCitaSeleccionada(id);
-    setModalConfirmarVisible(true);
+  const handleCrearCita = (nuevaCita) => {
+    setCitas([...citas, {
+      ...nuevaCita,
+      id: Date.now().toString(),
+      fecha: selectedDate,
+      slot: selectedSlot,
+      barbero: selectedSlot.barbero
+    }]);
+    setShowCrearCita(false);
+    setSelectedSlot(null);
   };
 
-  const expirarCita = (id) => {
-    setCitaSeleccionada(id);
-    setModalExpirarVisible(true);
-  };
-
-  const handleConfirmar = () => {
-    const nuevasCitas = citas.map(c => 
-      c.id === citaSeleccionada ? { ...c, estado: 'Completada' } : c
+  const getCitaForSlot = (slot, barbero) => {
+    return citas.find(c => 
+      c.fecha.toDateString() === selectedDate.toDateString() && 
+      c.slot.key === slot.key && 
+      c.barbero.id === barbero.id
     );
-    setCitas(nuevasCitas);
-    setCitasFiltradas(nuevasCitas);
-    setModalConfirmarVisible(false);
   };
 
-  const handleExpirar = () => {
-    const nuevasCitas = citas.map(c => 
-      c.id === citaSeleccionada ? { ...c, estado: 'Expirada' } : c
-    );
-    setCitas(nuevasCitas);
-    setCitasFiltradas(nuevasCitas);
-    setModalExpirarVisible(false);
+  const formatDateString = (date) => {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
-  const verDetalleCita = (id) => {
-    const cita = citas.find(c => c.id === id);
+  const getDisabledDates = () => {
+    const disabledDates = {};
+    const currentDate = new Date(today);
+    currentDate.setDate(currentDate.getDate() - 1);
     
-    // Adaptar la estructura de datos para el modal DetalleCita
-    const citaAdaptada = {
-      ...cita,
-      servicio: {
-        nombre: cita.servicio,
-        descripcion: `Descripción del servicio ${cita.servicio}`
-      },
-      barbero: {
-        nombre: cita.barbero,
-        avatar: null
-      },
-      cliente: {
-        nombre: cita.cliente,
-        avatar: null
-      },
-      // Convertir fecha string a Date object
-      fecha: parseFecha(cita.fecha)
-    };
+    const startDate = new Date(calendarYear, calendarMonth - 1, 1);
+    const endDate = new Date(calendarYear, calendarMonth + 2, 0);
+    const tempDate = new Date(startDate);
     
-    setCitaSeleccionada(citaAdaptada);
-    setModalDetalleVisible(true);
-  };
-
-  // Función para parsear fecha string a Date object
-  const parseFecha = (fechaStr) => {
-    const meses = {
-      'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 
-      'junio': 5, 'julio': 6, 'agosto': 7, 'septiembre': 8, 
-      'octubre': 9, 'noviembre': 10, 'diciembre': 11
-    };
-    
-    const partes = fechaStr.split(' de ');
-    if (partes.length === 3) {
-      const dia = parseInt(partes[0]);
-      const mes = meses[partes[1].toLowerCase()];
-      const año = parseInt(partes[2]);
-      return new Date(año, mes, dia);
+    while (tempDate <= endDate) {
+      if (tempDate < today) {
+        disabledDates[formatDateString(tempDate)] = { 
+          disabled: true, 
+          disableTouchEvent: true 
+        };
+      }
+      tempDate.setDate(tempDate.getDate() + 1);
     }
-    return new Date(); // Fallback a fecha actual
-  };
-
-  const crearCita = () => {
-    setModalCrearVisible(true);
-  };
-
-  const handleCreateCita = (nuevaCita) => {
-    const newId = citas.length > 0 ? Math.max(...citas.map(c => c.id)) + 1 : 1;
-    const citaCompleta = { 
-      id: newId, 
-      ...nuevaCita, 
-      estado: 'Pendiente' 
-    };
-    const nuevasCitas = [...citas, citaCompleta];
-    setCitas(nuevasCitas);
-    setCitasFiltradas(nuevasCitas);
-    setModalCrearVisible(false);
+    
+    return disabledDates;
   };
 
   return (
     <View style={styles.container}>
+      {/* Header con fecha y calendario */}
       <View style={styles.header}>
-        <View style={styles.tituloContainer}>
-          <Text style={styles.titulo}>Citas</Text>
-          <View style={styles.contadorContainer}>
-            <Text style={styles.contadorTexto}>{citasFiltradas.length}</Text>
+        <TouchableOpacity onPress={() => {
+          setCalendarMonth(selectedDate.getMonth());
+          setCalendarYear(selectedDate.getFullYear());
+          setShowCalendar(true);
+        }} style={styles.calendarButton}>
+          <MaterialIcons name="calendar-today" size={24} color="#000" />
+        </TouchableOpacity>
+        
+        <View style={styles.dateContainer}>
+          <TouchableOpacity 
+            onPress={() => navigateDay('prev')}
+            disabled={isToday(selectedDate)}
+          >
+            <MaterialIcons 
+              name="chevron-left" 
+              size={24} 
+              color={isToday(selectedDate) ? '#ccc' : '#000'} 
+            />
+          </TouchableOpacity>
+          
+          <Text style={styles.dateText}>{formatDate(selectedDate)}</Text>
+          
+          <TouchableOpacity onPress={() => navigateDay('next')}>
+            <MaterialIcons name="chevron-right" size={24} color="#000" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Lista de barberos */}
+      <View style={styles.barberosHeader}>
+        <View style={styles.timeColumn}></View>
+        {barberos.map((barbero) => (
+          <View key={barbero.id} style={styles.barberoHeader}>
+            <Image source={barbero.avatar} style={styles.avatar} />
+            <Text style={styles.barberoNombre}>{barbero.nombre}</Text>
+            {barbero.subItems.map((subItem, index) => (
+              <Text key={index} style={styles.subItem}>{subItem}</Text>
+            ))}
+          </View>
+        ))}
+      </View>
+
+      {/* Contenedor principal con ScrollView */}
+      <View style={styles.mainContent}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          style={styles.scrollView}
+        >
+          {generateTimeSlots().map((slot) => (
+            <View key={slot.key} style={styles.row}>
+              <View style={styles.timeCell}>
+                <Text style={styles.horaText}>{slot.displayTime}</Text>
+              </View>
+              {barberos.map((barbero) => {
+                const cita = getCitaForSlot(slot, barbero);
+                
+                return (
+                  <TouchableOpacity
+                    key={`${slot.key}-${barbero.id}`}
+                    style={[
+                      styles.slot,
+                      cita && styles.slotConCita,
+                      selectedSlot?.key === slot.key && selectedSlot?.barbero.id === barbero.id && styles.selectedSlot
+                    ]}
+                    onPress={() => handleSlotPress(slot, barbero)}
+                  >
+                    {cita && (
+                      <View style={styles.citaContent}>
+                        <Text style={styles.citaCliente}>{cita.cliente}</Text>
+                        <Text style={styles.citaServicio}>{cita.servicio}</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* Calendario modal */}
+      <Modal visible={showCalendar} animationType="fade" transparent={true}>
+        <BlurView
+          intensity={15}
+          tint="light"
+          style={StyleSheet.absoluteFill}
+        />
+        <View style={styles.calendarModal}>
+          <View style={styles.customDatePicker}>
+            <View style={styles.datePickerHeader}>
+              <TouchableOpacity 
+                onPress={() => changeMonth(-1)}
+                disabled={calendarYear === today.getFullYear() && calendarMonth === today.getMonth()}
+              >
+                <MaterialIcons 
+                  name="chevron-left" 
+                  size={24} 
+                  color={
+                    calendarYear === today.getFullYear() && calendarMonth === today.getMonth()
+                      ? '#ccc' 
+                      : '#333'
+                  } 
+                />
+              </TouchableOpacity>
+              
+              <View style={styles.monthYearSelector}>
+                <Text style={styles.monthYearText}>
+                  {months[calendarMonth]} de {calendarYear}
+                </Text>
+              </View>
+              
+              <TouchableOpacity onPress={() => changeMonth(1)}>
+                <MaterialIcons name="chevron-right" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.yearSelectorContainer}>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.yearScrollContent}
+              >
+                {years.map(year => (
+                  <TouchableOpacity 
+                    key={year}
+                    style={[
+                      styles.yearButton,
+                      calendarYear === year && styles.selectedYearButton
+                    ]}
+                    onPress={() => {
+                      setCalendarYear(year);
+                      if (year === today.getFullYear() && calendarMonth < today.getMonth()) {
+                        setCalendarMonth(today.getMonth());
+                      }
+                    }}
+                  >
+                    <Text style={[
+                      styles.yearButtonText,
+                      calendarYear === year && styles.selectedYearButtonText
+                    ]}>
+                      {year}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+            
+            <View style={styles.calendarContainer}>
+              <Calendar
+                key={`${calendarYear}-${calendarMonth}`}
+                current={`${calendarYear}-${(calendarMonth + 1).toString().padStart(2, '0')}-01`}
+                minDate={today.toISOString().split('T')[0]}
+                onDayPress={onDayPress}
+                monthFormat={'MMMM yyyy'}
+                hideArrows={true}
+                hideExtraDays={false}
+                disableMonthChange={true}
+                markedDates={{
+                  ...getDisabledDates(),
+                  [formatDateString(selectedDate)]: { 
+                    selected: true, 
+                    selectedColor: '#424242',
+                    selectedTextColor: '#fff'
+                  },
+                  [today.toISOString().split('T')[0]]: { 
+                    marked: true, 
+                    dotColor: '#424242'
+                  }
+                }}
+                theme={{
+                  calendarBackground: 'transparent',
+                  textSectionTitleColor: '#666',
+                  dayTextColor: '#333',
+                  todayTextColor: '#424242',
+                  selectedDayTextColor: '#fff',
+                  selectedDayBackgroundColor: '#424242',
+                  arrowColor: '#424242',
+                  monthTextColor: '#333',
+                  textDayFontWeight: '400',
+                  textMonthFontWeight: 'bold',
+                  textDayHeaderFontWeight: '500',
+                  textDayFontSize: 12,
+                  textMonthFontSize: 14,
+                  textDayHeaderFontSize: 12,
+                  'stylesheet.calendar.header': {
+                    week: {
+                      marginTop: 5,
+                      flexDirection: 'row',
+                      justifyContent: 'space-between'
+                    }
+                  },
+                  'stylesheet.calendar.main': {
+                    container: {
+                      padding: 0,
+                    },
+                    week: {
+                      marginTop: 0,
+                      marginBottom: 0,
+                      flexDirection: 'row',
+                      justifyContent: 'space-around'
+                    },
+                  },
+                  disabledDayTextColor: '#d9d9d9'
+                }}
+                style={styles.calendar}
+                disableAllTouchEventsForDisabledDays={true}
+              />
+            </View>
+            
+            <View style={styles.datePickerActions}>
+              <TouchableOpacity 
+                style={styles.datePickerButton}
+                onPress={() => {
+                  setSelectedDate(today);
+                  setCalendarMonth(today.getMonth());
+                  setCalendarYear(today.getFullYear());
+                  setShowCalendar(false);
+                }}
+              >
+                <Text style={styles.datePickerButtonText}>Hoy</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.closeButton} 
+                onPress={() => setShowCalendar(false)}
+              >
+                <Text style={styles.closeButtonText}>Cerrar</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-        <TouchableOpacity style={styles.botonCrear} onPress={crearCita}>
-          <Ionicons name="add-circle" size={24} color="white" />
-          <Text style={styles.textoBoton}>Crear Cita</Text>
-        </TouchableOpacity>
-      </View>
+      </Modal>
 
-      <Buscador
-        placeholder="Buscar citas por barbero, servicio o estado"
-        value={busqueda}
-        onChangeText={handleSearchChange}
-      />
-
-      <View style={styles.tabla}>
-        <View style={styles.filaEncabezado}>
-          <View style={[styles.celdaEncabezado, styles.columnaBarbero]}><Text style={styles.encabezado}>Barbero</Text></View>
-          <View style={[styles.celdaEncabezado, styles.columnaEstado]}><Text style={styles.encabezado}>Estado</Text></View>
-          <View style={[styles.celdaEncabezado, styles.columnaServicio]}><Text style={styles.encabezado}>Servicio</Text></View>
-          <View style={[styles.celdaEncabezado, styles.columnaFecha]}><Text style={styles.encabezado}>Fecha</Text></View>
-          <View style={[styles.celdaEncabezado, styles.columnaHora]}><Text style={styles.encabezado}>Hora</Text></View>
-          <View style={[styles.celdaEncabezado, styles.columnaAcciones]}><Text style={styles.encabezado}>Acciones</Text></View>
-        </View>
-
-        <FlatList
-          data={citasMostrar}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <View style={styles.fila}>
-              <View style={[styles.celda, styles.columnaBarbero]}>
-                <View style={styles.contenedorBarbero}>
-                  <Avatar nombre={item.barbero} />
-                  <Text style={styles.textoBarbero}>{item.barbero}</Text>
-                </View>
-              </View>
-              <View style={[styles.celda, styles.columnaEstado]}>
-                <EstadoCita estado={item.estado} />
-              </View>
-              <View style={[styles.celda, styles.columnaServicio]}>
-                <Text style={styles.textoServicio}>{item.servicio}</Text>
-              </View>
-              <View style={[styles.celda, styles.columnaFecha]}>
-                <FechaHora valor={item.fecha} />
-              </View>
-              <View style={[styles.celda, styles.columnaHora]}>
-                <FechaHora valor={item.hora} />
-              </View>
-              <View style={[styles.celda, styles.columnaAcciones]}>
-                <View style={styles.contenedorAcciones}>
-                  {item.estado === 'Pendiente' && (
-                    <>
-                      <TouchableOpacity onPress={() => confirmarCita(item.id)} style={styles.botonAccion}>
-                        <AntDesign name="checkcircle" size={20} color="black" />
-                      </TouchableOpacity>
-                      <TouchableOpacity onPress={() => expirarCita(item.id)} style={styles.botonAccion}>
-                        <AntDesign name="closecircle" size={20} color="black" />
-                      </TouchableOpacity>
-                    </>
-                  )}
-                  <TouchableOpacity onPress={() => verDetalleCita(item.id)} style={styles.botonAccion}>
-                    <FontAwesome name="eye" size={20} color="black" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          )}
-        />
-      </View>
-
-      <Paginacion
-        paginaActual={paginaActual}
-        totalPaginas={totalPaginas}
-        cambiarPagina={cambiarPagina}
-      />
-
-      <ModalConfirmacion
-        visible={modalConfirmarVisible}
-        onClose={() => setModalConfirmarVisible(false)}
-        onConfirm={handleConfirmar}
-        tipo="confirmar"
-      />
-
-      <ModalConfirmacion
-        visible={modalExpirarVisible}
-        onClose={() => setModalExpirarVisible(false)}
-        onConfirm={handleExpirar}
-        tipo="expirar"
-      />
-
+      {/* Modal para crear cita */}
       <CrearCita
-        visible={modalCrearVisible}
-        onClose={() => setModalCrearVisible(false)}
-        onCreate={handleCreateCita}
+        visible={showCrearCita}
+        onClose={() => setShowCrearCita(false)}
+        onCreate={handleCrearCita}
+        barbero={selectedSlot?.barbero}
+        fecha={selectedDate}
+        slot={selectedSlot}
       />
 
-      {modalDetalleVisible && citaSeleccionada && (
-        <DetalleCita
-          visible={modalDetalleVisible}
-          onClose={() => setModalDetalleVisible(false)}
-          cita={citaSeleccionada}
-        />
-      )}
-      <Footer />
+      {/* Modal para ver detalle de cita */}
+      <DetalleCita
+        visible={showDetalleCita}
+        onClose={() => setShowDetalleCita(false)}
+        cita={selectedCita}
+      />
+      
+      {/* Footer fijo en la parte inferior */}
+      <View style={styles.footerContainer}>
+        <Footer />
+      </View>
     </View>
   );
 };
@@ -413,224 +522,207 @@ const CitasScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
     backgroundColor: '#fff',
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     alignItems: 'center',
-    marginBottom: 16,
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
   },
-  tituloContainer: {
+  dateContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
+    marginLeft: 15,
   },
-  titulo: {
-    fontSize: 24,
+  dateText: {
+    fontSize: 18,
     fontWeight: 'bold',
+    marginHorizontal: 10,
+  },
+  calendarButton: {
     marginRight: 10,
   },
-  contadorContainer: {
-    backgroundColor: '#D9D9D9',
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  contadorTexto: {
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  botonCrear: {
+  barberosHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#424242',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: '#424242',
-  },
-  textoBoton: {
-    marginLeft: 8,
-    color: 'white',
-    fontWeight: '500',
-  },
-  tabla: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 4,
-    marginBottom: 16,
-    overflow: 'hidden',
-  },
-  filaEncabezado: {
-    flexDirection: 'row',
-    backgroundColor: '#424242',
-    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
+    borderBottomColor: '#000',
+    paddingVertical: 10,
   },
-  celdaEncabezado: {
+  timeColumn: {
+    width: 80,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 8,
+    borderRightWidth: 1,
+    borderRightColor: '#000',
   },
-  fila: {
-    flexDirection: 'row',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'black',
-    alignItems: 'center',
-    backgroundColor: 'white',
-  },
-  celda: {
-    justifyContent: 'center',
-    paddingHorizontal: 8,
-  },
-  columnaBarbero: {
-    flex: 2,
-    alignItems: 'flex-start',
-  },
-  columnaEstado: {
-    flex: 1.5,
-    alignItems: 'center',
-  },
-  columnaServicio: {
-    flex: 2,
-    alignItems: 'center',
-  },
-  columnaFecha: {
-    flex: 1.5,
-    alignItems: 'center',
-  },
-  columnaHora: {
+  barberoHeader: {
     flex: 1,
     alignItems: 'center',
+    paddingHorizontal: 5,
+    borderRightWidth: 1,
+    borderRightColor: '#000',
   },
-  columnaAcciones: {
-    flex: 1.5,
-    alignItems: 'flex-end',
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginBottom: 5,
   },
-  contenedorBarbero: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  textoBarbero: {
-    marginLeft: 10,
-    fontWeight: 'bold', // Barbero en negrita
-  },
-  textoServicio: {
-    textAlign: 'center',
-    fontWeight: 'bold', // Servicio en negrita
-  },
-  encabezado: {
-    fontWeight: 'bold',
-    textAlign: 'center',
-    color: 'white',
-  },
-  contenedorAcciones: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    width: '100%',
-  },
-  botonAccion: {
-    marginHorizontal: 6,
-  },
-  estadoContainer: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  estadoTexto: {
-    fontWeight: 'bold',
-  },
-  fechaHoraContainer: {
-    backgroundColor: '#D9D9D9',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-  },
-  fechaHoraTexto: {
-    color: '#424242',
-    fontWeight: 'bold', // Fecha y hora en negrita
-  },
-  avatarContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    color: 'white',
+  barberoNombre: {
     fontWeight: 'bold',
     fontSize: 14,
+    textAlign: 'center',
   },
-  // Estilos para los modales
-  modalOverlay: {
+  subItem: {
+    fontSize: 10,
+    color: '#666',
+    textAlign: 'center',
+  },
+  mainContent: {
+    flex: 1,
+    marginBottom: 60, // Espacio para el footer
+  },
+  row: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#000',
+    minHeight: 60,
+  },
+  timeCell: {
+    width: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRightWidth: 1,
+    borderRightColor: '#000',
+  },
+  horaText: {
+    fontSize: 14,
+  },
+  slot: {
+    flex: 1,
+    borderRightWidth: 1,
+    borderRightColor: '#000',
+    backgroundColor: '#fff',
+    padding: 5,
+  },
+  slotConCita: {
+    backgroundColor: '#D9D9D9',
+  },
+  selectedSlot: {
+    backgroundColor: '#D9D9D9',
+  },
+  citaContent: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  citaCliente: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginBottom: 2,
+  },
+  citaServicio: {
+    fontSize: 10,
+    color: '#555',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 20, // Espacio adicional al final del contenido
+  },
+  calendarModal: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
-  modalContent: {
+  customDatePicker: {
+    width: width * 0.85,
+    maxWidth: 350,
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 20,
-    width: '80%',
-    maxWidth: 400,
+    borderRadius: 10,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
-  modalTitle: {
+  datePickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  monthYearSelector: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  monthYearText: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 10,
-    textAlign: 'center',
+    color: '#333',
   },
-  modalText: {
-    fontSize: 14,
-    marginBottom: 20,
-    textAlign: 'center',
+  yearSelectorContainer: {
+    marginBottom: 10,
+  },
+  yearScrollContent: {
+    paddingHorizontal: 10,
+  },
+  yearButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginHorizontal: 4,
+    borderRadius: 15,
+  },
+  selectedYearButton: {
+    backgroundColor: '#424242',
+  },
+  yearButtonText: {
     color: '#666',
   },
-  modalButtons: {
+  selectedYearButtonText: {
+    color: 'white',
+  },
+  calendarContainer: {
+    height: 300,
+    overflow: 'hidden',
+  },
+  calendar: {
+    marginBottom: 10,
+  },
+  datePickerActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  modalButton: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginHorizontal: 5,
+  datePickerButton: {
+    padding: 10,
+    borderRadius: 5,
   },
-  confirmButton: {
+  datePickerButtonText: {
+    color: '#424242',
+    fontWeight: 'bold',
+  },
+  closeButton: {
+    padding: 10,
+    borderRadius: 5,
     backgroundColor: '#424242',
   },
-  expireButton: {
-    backgroundColor: 'red',
-  },
-  modalButtonText: {
+  closeButtonText: {
     color: 'white',
     fontWeight: 'bold',
   },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginHorizontal: 5,
-    backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: '#D9D9D9',
-  },
-  cancelButtonText: {
-    color: 'black',
-    fontWeight: 'bold',
+  footerContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 60, // Altura del footer
   },
 });
 
-export default CitasScreen;
+export default AgendaScreen;

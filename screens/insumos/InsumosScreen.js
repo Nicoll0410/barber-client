@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Dimensions, Alert } from 'react-native';
 import { MaterialIcons, FontAwesome, Feather, Ionicons } from '@expo/vector-icons';
 import Paginacion from '../../components/Paginacion';
 import Buscador from '../../components/Buscador';
@@ -7,6 +7,9 @@ import CrearInsumo from './CrearInsumo';
 import DetalleInsumo from './DetalleInsumo';
 import EditarInsumo from './EditarInsumo';
 import Footer from '../../components/Footer';
+
+const { width } = Dimensions.get('window');
+const isMobile = width < 768;
 
 const InsumosScreen = ({ navigation }) => {
   const [insumos, setInsumos] = useState([]);
@@ -22,43 +25,43 @@ const InsumosScreen = ({ navigation }) => {
   useEffect(() => {
     // Datos de ejemplo
     const datosEjemplo = [
-      { 
-        id: 1, 
-        nombre: 'Máquina de afeitar', 
-        descripcion: 'Máquina de afeitar resolución 10', 
-        categoria: 'Máquinas', 
+      {
+        id: 1,
+        nombre: 'Máquina de afeitar',
+        descripcion: 'Máquina de afeitar resolución 10',
+        categoria: 'Máquinas',
         unidad: 'NA',
         cantidad: 0
       },
-      { 
-        id: 2, 
-        nombre: 'Shampoo', 
-        descripcion: 'Shampoo de coco', 
-        categoria: 'Cuidado cabello', 
+      {
+        id: 2,
+        nombre: 'Shampoo',
+        descripcion: 'Shampoo de coco',
+        categoria: 'Cuidado cabello',
         unidad: 'ML',
         cantidad: 90
       },
-      { 
-        id: 3, 
-        nombre: 'Minoxidil', 
-        descripcion: 'Hace crecer el cabello de manera rápida', 
-        categoria: 'Crecimiento', 
+      {
+        id: 3,
+        nombre: 'Minoxidil',
+        descripcion: 'Hace crecer el cabello de manera rápida',
+        categoria: 'Crecimiento',
         unidad: 'TT',
         cantidad: 400
       },
-      { 
-        id: 4, 
-        nombre: 'Cera marca1', 
-        descripcion: 'Cera para el cabello duración extrema', 
-        categoria: 'Belleza', 
+      {
+        id: 4,
+        nombre: 'Cera marca1',
+        descripcion: 'Cera para el cabello duración extrema',
+        categoria: 'Belleza',
         unidad: 'TT',
         cantidad: 25
       },
-      { 
-        id: 5, 
-        nombre: 'Alcohol J&B', 
-        descripcion: 'Alcohol', 
-        categoria: 'Cuidado', 
+      {
+        id: 5,
+        nombre: 'Alcohol J&B',
+        descripcion: 'Alcohol',
+        categoria: 'Cuidado',
         unidad: 'ML',
         cantidad: 2
       },
@@ -73,7 +76,7 @@ const InsumosScreen = ({ navigation }) => {
     } else {
       const termino = busqueda.toLowerCase();
       const filtrados = insumos.filter(i =>
-        i.nombre.toLowerCase().includes(termino) || 
+        i.nombre.toLowerCase().includes(termino) ||
         i.descripcion.toLowerCase().includes(termino)
       );
       setInsumosFiltrados(filtrados);
@@ -86,8 +89,8 @@ const InsumosScreen = ({ navigation }) => {
       Alert.alert('Advertencia', 'No hay insumos para controlar');
       return;
     }
-    
-    navigation.navigate('ControlInsumos', { 
+   
+    navigation.navigate('ControlInsumos', {
       insumos: insumos,
       onGoBack: () => {
         console.log('Regresó de ControlInsumos');
@@ -96,7 +99,7 @@ const InsumosScreen = ({ navigation }) => {
   };
 
   const indiceInicial = (paginaActual - 1) * insumosPorPagina;
-  const insumosMostrar = insumosFiltrados.slice(indiceInicial, indiceInicial + insumosPorPagina);
+  const insumosMostrar = isMobile ? insumosFiltrados : insumosFiltrados.slice(indiceInicial, indiceInicial + insumosPorPagina);
   const totalPaginas = Math.ceil(insumosFiltrados.length / insumosPorPagina);
 
   const cambiarPagina = (nuevaPagina) => {
@@ -131,7 +134,7 @@ const InsumosScreen = ({ navigation }) => {
   };
 
   const handleUpdateInsumo = (updatedInsumo) => {
-    const nuevosInsumos = insumos.map(i => 
+    const nuevosInsumos = insumos.map(i =>
       i.id === updatedInsumo.id ? updatedInsumo : i
     );
     setInsumos(nuevosInsumos);
@@ -145,6 +148,80 @@ const InsumosScreen = ({ navigation }) => {
     setInsumosFiltrados(nuevosInsumos);
   };
 
+  // Renderizado para móvil (tarjetas)
+  const renderMobileItem = ({ item }) => (
+    <View style={styles.card}>
+      <View style={styles.cardHeader}>
+        <View style={styles.cardHeaderText}>
+          <Text style={styles.cardTitle}>{item.nombre}</Text>
+          <Text style={styles.cardSubtitle}>{item.categoria}</Text>
+        </View>
+        <View style={styles.unidadContainer}>
+          <Text style={styles.textoUnidad}>{item.unidad}</Text>
+        </View>
+      </View>
+     
+      <Text style={styles.cardDescription}>{item.descripcion}</Text>
+     
+      <View style={styles.cardInfoRow}>
+        <Text style={styles.cardLabel}>Cantidad:</Text>
+        <View style={styles.cantidadContainer}>
+          <Text style={styles.textoCantidad}>{item.cantidad}</Text>
+        </View>
+      </View>
+     
+      <View style={styles.cardActions}>
+        <TouchableOpacity onPress={() => verInsumo(item.id)} style={styles.actionButton}>
+          <FontAwesome name="eye" size={20} color="#424242" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => editarInsumo(item.id)} style={styles.actionButton}>
+          <Feather name="edit" size={20} color="#424242" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => eliminarInsumo(item.id)} style={styles.actionButton}>
+          <Feather name="trash-2" size={20} color="#d32f2f" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  // Renderizado para desktop (tabla)
+  const renderDesktopItem = ({ item }) => (
+    <View style={styles.fila}>
+      <View style={[styles.celda, styles.columnaNombre]}>
+        <Text style={styles.textoNombre}>{item.nombre}</Text>
+      </View>
+      <View style={[styles.celda, styles.columnaDescripcion]}>
+        <Text style={styles.textoDescripcion}>{item.descripcion}</Text>
+      </View>
+      <View style={[styles.celda, styles.columnaCategoria]}>
+        <Text style={styles.textoCategoria}>{item.categoria}</Text>
+      </View>
+      <View style={[styles.celda, styles.columnaUnidad]}>
+        <View style={styles.unidadContainer}>
+          <Text style={styles.textoUnidad}>{item.unidad}</Text>
+        </View>
+      </View>
+      <View style={[styles.celda, styles.columnaCantidad]}>
+        <View style={styles.cantidadContainer}>
+          <Text style={styles.textoCantidad}>{item.cantidad}</Text>
+        </View>
+      </View>
+      <View style={[styles.celda, styles.columnaAcciones]}>
+        <View style={styles.contenedorAcciones}>
+          <TouchableOpacity onPress={() => verInsumo(item.id)} style={styles.botonAccion}>
+            <FontAwesome name="eye" size={20} color="black" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => editarInsumo(item.id)} style={styles.botonAccion}>
+            <Feather name="edit" size={20} color="black" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => eliminarInsumo(item.id)} style={styles.botonAccion}>
+            <Feather name="trash-2" size={20} color="black" />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -155,22 +232,22 @@ const InsumosScreen = ({ navigation }) => {
           </View>
         </View>
         <View style={styles.botonesHeader}>
-          <TouchableOpacity 
-            style={[styles.botonHeader, styles.botonControl]} 
+          <TouchableOpacity
+            style={[styles.botonHeader, styles.botonControl]}
             onPress={controlInsumos}
             activeOpacity={0.7}
             disabled={insumos.length === 0}
           >
-            <MaterialIcons name="inventory" size={20} color="#fff" />
-            <Text style={[styles.textoBoton, styles.textoBotonControl]}>Control de insumos</Text>
+            <MaterialIcons name="inventory" size={20} color="white" />
+            <Text style={styles.textoBoton}>Control</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.botonHeader} 
+          <TouchableOpacity
+            style={styles.botonHeader}
             onPress={crearInsumo}
             activeOpacity={0.7}
           >
-            <Ionicons name="add-circle" size={20} color="#fff" />
-            <Text style={styles.textoBoton}>Crear Insumo</Text>
+            <Ionicons name="add-circle" size={20} color="white" />
+            <Text style={styles.textoBoton}>Crear</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -181,76 +258,44 @@ const InsumosScreen = ({ navigation }) => {
         onChangeText={handleSearchChange}
       />
 
-      <View style={styles.tabla}>
-        <View style={styles.filaEncabezado}>
-          <View style={[styles.celdaEncabezado, styles.columnaNombre]}>
-            <Text style={styles.encabezado}>Nombre</Text>
-          </View>
-          <View style={[styles.celdaEncabezado, styles.columnaDescripcion]}>
-            <Text style={styles.encabezado}>Descripción</Text>
-          </View>
-          <View style={[styles.celdaEncabezado, styles.columnaCategoria]}>
-            <Text style={styles.encabezado}>Categoría</Text>
-          </View>
-          <View style={[styles.celdaEncabezado, styles.columnaUnidad]}>
-            <Text style={styles.encabezado}>Unidad</Text>
-          </View>
-          <View style={[styles.celdaEncabezado, styles.columnaCantidad]}>
-            <Text style={styles.encabezado}>Cantidad</Text>
-          </View>
-          <View style={[styles.celdaEncabezado, styles.columnaAcciones]}>
-            <Text style={styles.encabezado}>Acciones</Text>
-          </View>
+      {insumosMostrar.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyText}>No se encontraron insumos</Text>
         </View>
-
+      ) : isMobile ? (
         <FlatList
           data={insumosMostrar}
           keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <View style={styles.fila}>
-              <View style={[styles.celda, styles.columnaNombre]}>
-                <Text style={styles.textoNombre} numberOfLines={1}>{item.nombre}</Text>
-              </View>
-              <View style={[styles.celda, styles.columnaDescripcion]}>
-                <Text style={styles.textoDescripcion} numberOfLines={1}><Text style={{fontWeight: 'bold'}}>{item.descripcion}</Text></Text>
-              </View>
-              <View style={[styles.celda, styles.columnaCategoria]}>
-                <Text style={[styles.textoCategoria, {fontWeight: 'bold'}]}>{item.categoria}</Text>
-              </View>
-              <View style={[styles.celda, styles.columnaUnidad]}>
-                <View style={styles.unidadContainer}>
-                  <Text style={[styles.textoUnidad, {fontWeight: 'bold'}]}>{item.unidad}</Text>
-                </View>
-              </View>
-              <View style={[styles.celda, styles.columnaCantidad]}>
-                <View style={styles.cantidadContainer}>
-                  <Text style={styles.textoCantidad}>{item.cantidad}</Text>
-                </View>
-              </View>
-              <View style={[styles.celda, styles.columnaAcciones]}>
-                <View style={styles.contenedorAcciones}>
-                  <TouchableOpacity onPress={() => verInsumo(item.id)} style={styles.botonAccion}>
-                    <FontAwesome name="eye" size={18} color="#000" />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => editarInsumo(item.id)} style={styles.botonAccion}>
-                    <Feather name="edit" size={18} color="#000" />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => eliminarInsumo(item.id)} style={styles.botonAccion}>
-                    <Feather name="trash-2" size={18} color="#000" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          )}
-          ItemSeparatorComponent={() => <View style={styles.separador} />}
+          renderItem={renderMobileItem}
+          contentContainerStyle={styles.listContainer}
+          style={styles.mobileList}
         />
-      </View>
+      ) : (
+        <View style={styles.tabla}>
+          <View style={styles.filaEncabezado}>
+            <View style={[styles.celdaEncabezado, styles.columnaNombre]}><Text style={styles.encabezado}>Nombre</Text></View>
+            <View style={[styles.celdaEncabezado, styles.columnaDescripcion]}><Text style={styles.encabezado}>Descripción</Text></View>
+            <View style={[styles.celdaEncabezado, styles.columnaCategoria]}><Text style={styles.encabezado}>Categoría</Text></View>
+            <View style={[styles.celdaEncabezado, styles.columnaUnidad]}><Text style={styles.encabezado}>Unidad</Text></View>
+            <View style={[styles.celdaEncabezado, styles.columnaCantidad]}><Text style={styles.encabezado}>Cantidad</Text></View>
+            <View style={[styles.celdaEncabezado, styles.columnaAcciones]}><Text style={styles.encabezado}>Acciones</Text></View>
+          </View>
+          <FlatList
+            data={insumosMostrar}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={renderDesktopItem}
+            scrollEnabled={false}
+          />
+        </View>
+      )}
 
-      <Paginacion
-        paginaActual={paginaActual}
-        totalPaginas={totalPaginas}
-        cambiarPagina={cambiarPagina}
-      />
+      {!isMobile && (
+        <Paginacion
+          paginaActual={paginaActual}
+          totalPaginas={totalPaginas}
+          cambiarPagina={cambiarPagina}
+        />
+      )}
 
       <CrearInsumo
         visible={modalVisible}
@@ -270,6 +315,7 @@ const InsumosScreen = ({ navigation }) => {
         insumo={insumoSeleccionado}
         onUpdate={handleUpdateInsumo}
       />
+     
       <Footer />
     </View>
   );
@@ -278,8 +324,12 @@ const InsumosScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
     backgroundColor: '#fff',
+    padding: 16,
+  },
+  mobileList: {
+    flex: 1,
+    marginBottom: 16,
   },
   header: {
     flexDirection: 'row',
@@ -292,15 +342,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   titulo: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
-    marginRight: 8,
+    marginRight: 10,
   },
   contadorContainer: {
     backgroundColor: '#D9D9D9',
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -318,26 +368,115 @@ const styles = StyleSheet.create({
     backgroundColor: '#424242',
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 20,
+    borderRadius: 15,
     marginLeft: 10,
+    borderWidth: 1,
+    borderColor: '#424242',
   },
   botonControl: {
     backgroundColor: '#424242',
   },
   textoBoton: {
     marginLeft: 8,
-    color: '#fff',
+    color: 'white',
     fontWeight: '500',
+    fontSize: 14,
   },
-  textoBotonControl: {
-    color: '#fff',
+  listContainer: {
+    paddingBottom: 16,
   },
+  // Estilos para móvil (tarjetas)
+  card: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  cardHeaderText: {
+    flex: 1,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  cardSubtitle: {
+    fontSize: 14,
+    color: '#666',
+  },
+  cardDescription: {
+    fontSize: 14,
+    color: '#555',
+    marginBottom: 12,
+  },
+  cardInfoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  cardLabel: {
+    fontSize: 14,
+    color: '#424242',
+  },
+  cardActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    paddingTop: 12,
+    marginTop: 8,
+  },
+  actionButton: {
+    marginLeft: 16,
+  },
+  unidadContainer: {
+    backgroundColor: '#D9D9D9',
+    borderRadius: 15,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  textoUnidad: {
+    color: '#000',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  cantidadContainer: {
+    backgroundColor: '#D9D9D9',
+    borderRadius: 15,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  textoCantidad: {
+    fontWeight: 'bold',
+    color: '#000',
+    fontSize: 12,
+  },
+  // Estilos para desktop (tabla)
   tabla: {
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 4,
     marginBottom: 16,
     overflow: 'hidden',
+    flex: 1,
   },
   filaEncabezado: {
     flexDirection: 'row',
@@ -349,28 +488,24 @@ const styles = StyleSheet.create({
   celdaEncabezado: {
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 4,
+    paddingHorizontal: 8,
   },
   encabezado: {
     fontWeight: 'bold',
     textAlign: 'center',
-    fontSize: 12,
-    color: '#fff',
+    color: 'white',
   },
   fila: {
     flexDirection: 'row',
     paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'black',
     alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-  separador: {
-    height: 1,
-    backgroundColor: '#000',
-    width: '100%',
+    backgroundColor: 'white',
   },
   celda: {
     justifyContent: 'center',
-    paddingHorizontal: 4,
+    paddingHorizontal: 8,
   },
   columnaNombre: {
     flex: 2,
@@ -404,31 +539,7 @@ const styles = StyleSheet.create({
   },
   textoCategoria: {
     color: '#555',
-  },
-  unidadContainer: {
-    backgroundColor: '#D9D9D9',
-    borderRadius: 15,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  textoUnidad: {
-    color: '#000',
-    fontSize: 12,
-  },
-  cantidadContainer: {
-    backgroundColor: '#D9D9D9',
-    borderRadius: 15,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  textoCantidad: {
-    fontWeight: 'bold',
-    color: '#000',
-    fontSize: 12,
+    fontWeight: '500',
   },
   contenedorAcciones: {
     flexDirection: 'row',
@@ -436,6 +547,15 @@ const styles = StyleSheet.create({
   },
   botonAccion: {
     marginHorizontal: 6,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#666',
   },
 });
 

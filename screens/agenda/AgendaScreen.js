@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Modal, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Modal, Dimensions, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import CrearCita from './CrearCita';
 import DetalleCita from './DetalleCita';
@@ -25,7 +25,7 @@ LocaleConfig.locales['es'] = {
 };
 LocaleConfig.defaultLocale = 'es';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 const AgendaScreen = () => {
   const today = new Date();
@@ -62,17 +62,17 @@ const AgendaScreen = () => {
     const slots = [];
     let startHour, endHour;
     
-    // Definir horarios según el día
+    // Definir horarios exactos según lo solicitado
     if (day >= 1 && day <= 3) { // Lunes a Miércoles
       startHour = 11; // 11:00 am
-      endHour = 21;   // 9:00 pm
+      endHour = 21;   // 9:00 pm (última cita termina a las 9:00 pm)
     } else { // Jueves a Domingo
       startHour = 9;  // 9:00 am
-      endHour = 22;   // 10:00 pm
+      endHour = 22;   // 10:00 pm (última cita termina a las 10:00 pm)
     }
     
-    // Generar slots cada 30 minutos
-    for (let hour = startHour; hour <= endHour; hour++) {
+    // Generar slots cada 30 minutos hasta la hora final exacta
+    for (let hour = startHour; hour < endHour; hour++) {
       slots.push({
         startTime: `${hour}:00`,
         endTime: `${hour}:30`,
@@ -80,14 +80,29 @@ const AgendaScreen = () => {
         key: `${hour}:00`
       });
       
-      if (hour < endHour) {
-        slots.push({
-          startTime: `${hour}:30`,
-          endTime: `${hour + 1}:00`,
-          displayTime: formatTime(`${hour}:30`),
-          key: `${hour}:30`
-        });
-      }
+      slots.push({
+        startTime: `${hour}:30`,
+        endTime: `${hour + 1}:00`,
+        displayTime: formatTime(`${hour}:30`),
+        key: `${hour}:30`
+      });
+    }
+    
+    // Agregar el último slot de la hora final (sin los 30 minutos)
+    if (day >= 1 && day <= 3) { // Lunes a Miércoles
+      slots.push({
+        startTime: `21:00`,
+        endTime: `21:30`,
+        displayTime: formatTime(`21:00`),
+        key: `21:00`
+      });
+    } else { // Jueves a Domingo
+      slots.push({
+        startTime: `22:00`,
+        endTime: `22:30`,
+        displayTime: formatTime(`22:00`),
+        key: `22:00`
+      });
     }
     
     // Filtrar slots pasados si es el día actual
@@ -288,38 +303,43 @@ const AgendaScreen = () => {
         ))}
       </View>
 
-      {/* Cuadrícula de agenda */}
-      <ScrollView>
-        {generateTimeSlots().map((slot) => (
-          <View key={slot.key} style={styles.row}>
-            <View style={styles.timeCell}>
-              <Text style={styles.horaText}>{slot.displayTime}</Text>
+      {/* Contenedor principal con ScrollView */}
+      <View style={styles.mainContent}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          style={styles.scrollView}
+        >
+          {generateTimeSlots().map((slot) => (
+            <View key={slot.key} style={styles.row}>
+              <View style={styles.timeCell}>
+                <Text style={styles.horaText}>{slot.displayTime}</Text>
+              </View>
+              {barberos.map((barbero) => {
+                const cita = getCitaForSlot(slot, barbero);
+                
+                return (
+                  <TouchableOpacity
+                    key={`${slot.key}-${barbero.id}`}
+                    style={[
+                      styles.slot,
+                      cita && styles.slotConCita,
+                      selectedSlot?.key === slot.key && selectedSlot?.barbero.id === barbero.id && styles.selectedSlot
+                    ]}
+                    onPress={() => handleSlotPress(slot, barbero)}
+                  >
+                    {cita && (
+                      <View style={styles.citaContent}>
+                        <Text style={styles.citaCliente}>{cita.cliente}</Text>
+                        <Text style={styles.citaServicio}>{cita.servicio}</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
             </View>
-            {barberos.map((barbero) => {
-              const cita = getCitaForSlot(slot, barbero);
-              
-              return (
-                <TouchableOpacity
-                  key={`${slot.key}-${barbero.id}`}
-                  style={[
-                    styles.slot,
-                    cita && styles.slotConCita,
-                    selectedSlot?.key === slot.key && selectedSlot?.barbero.id === barbero.id && styles.selectedSlot
-                  ]}
-                  onPress={() => handleSlotPress(slot, barbero)}
-                >
-                  {cita && (
-                    <View style={styles.citaContent}>
-                      <Text style={styles.citaCliente}>{cita.cliente}</Text>
-                      <Text style={styles.citaServicio}>{cita.servicio}</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        ))}
-      </ScrollView>
+          ))}
+        </ScrollView>
+      </View>
 
       {/* Calendario modal */}
       <Modal visible={showCalendar} animationType="fade" transparent={true}>
@@ -402,22 +422,22 @@ const AgendaScreen = () => {
                   ...getDisabledDates(),
                   [formatDateString(selectedDate)]: { 
                     selected: true, 
-                    selectedColor: '#424242', // Cambiado de #4CAF50 a #424242
+                    selectedColor: '#424242',
                     selectedTextColor: '#fff'
                   },
                   [today.toISOString().split('T')[0]]: { 
                     marked: true, 
-                    dotColor: '#424242' // Cambiado de #4CAF50 a #424242
+                    dotColor: '#424242'
                   }
                 }}
                 theme={{
                   calendarBackground: 'transparent',
                   textSectionTitleColor: '#666',
                   dayTextColor: '#333',
-                  todayTextColor: '#424242', // Cambiado de #4CAF50 a #424242
+                  todayTextColor: '#424242',
                   selectedDayTextColor: '#fff',
-                  selectedDayBackgroundColor: '#424242', // Cambiado de #4CAF50 a #424242
-                  arrowColor: '#424242', // Cambiado de #4CAF50 a #424242
+                  selectedDayBackgroundColor: '#424242',
+                  arrowColor: '#424242',
                   monthTextColor: '#333',
                   textDayFontWeight: '400',
                   textMonthFontWeight: 'bold',
@@ -490,7 +510,11 @@ const AgendaScreen = () => {
         onClose={() => setShowDetalleCita(false)}
         cita={selectedCita}
       />
-      <Footer />
+      
+      {/* Footer fijo en la parte inferior */}
+      <View style={styles.footerContainer}>
+        <Footer />
+      </View>
     </View>
   );
 };
@@ -558,6 +582,10 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
   },
+  mainContent: {
+    flex: 1,
+    marginBottom: 60, // Espacio para el footer
+  },
   row: {
     flexDirection: 'row',
     borderBottomWidth: 1,
@@ -599,6 +627,12 @@ const styles = StyleSheet.create({
   citaServicio: {
     fontSize: 10,
     color: '#555',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 20, // Espacio adicional al final del contenido
   },
   calendarModal: {
     flex: 1,
@@ -646,7 +680,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
   },
   selectedYearButton: {
-    backgroundColor: '#424242', // Cambiado de #4CAF50 a #424242
+    backgroundColor: '#424242',
   },
   yearButtonText: {
     color: '#666',
@@ -670,17 +704,24 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   datePickerButtonText: {
-    color: '#424242', // Cambiado de #4CAF50 a #424242
+    color: '#424242',
     fontWeight: 'bold',
   },
   closeButton: {
     padding: 10,
     borderRadius: 5,
-    backgroundColor: '#424242', // Cambiado de #4CAF50 a #424242
+    backgroundColor: '#424242',
   },
   closeButtonText: {
     color: 'white',
     fontWeight: 'bold',
+  },
+  footerContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 60, // Altura del footer
   },
 });
 

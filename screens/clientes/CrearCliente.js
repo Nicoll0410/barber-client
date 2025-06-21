@@ -39,17 +39,15 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
-  const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   const months = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
   ];
 
-  // Años desde el actual hasta 80 años atrás
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 81 }, (_, i) => currentYear - i);
+  const years = Array.from({ length: 81 }, (_, i) => new Date().getFullYear() - i);
 
   const resetForm = () => {
     setFormData({
@@ -61,9 +59,6 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
       confirmPassword: '',
       avatar: null
     });
-    // Resetear también el calendario a la fecha actual
-    setCalendarMonth(new Date().getMonth());
-    setCalendarYear(currentYear);
   };
 
   const handleChange = (name, value) => {
@@ -80,8 +75,8 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
   };
 
   const changeMonth = (increment) => {
-    let newMonth = calendarMonth + increment;
-    let newYear = calendarYear;
+    let newMonth = selectedMonth + increment;
+    let newYear = selectedYear;
     
     if (newMonth > 11) {
       newMonth = 0;
@@ -91,19 +86,10 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
       newYear--;
     }
     
-    // Verificar que el nuevo año esté dentro del rango permitido
-    if (newYear <= currentYear && newYear >= (currentYear - 80)) {
-      setCalendarMonth(newMonth);
-      setCalendarYear(newYear);
+    if (newYear <= new Date().getFullYear() && newYear >= (new Date().getFullYear() - 80)) {
+      setSelectedMonth(newMonth);
+      setSelectedYear(newYear);
     }
-  };
-
-  const changeYear = (year) => {
-    // Si el año seleccionado es el año actual, asegurarse de que el mes no sea futuro
-    if (year === currentYear && calendarMonth > new Date().getMonth()) {
-      setCalendarMonth(new Date().getMonth());
-    }
-    setCalendarYear(year);
   };
 
   const pickImage = async () => {
@@ -151,38 +137,6 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
       month: '2-digit',
       year: 'numeric'
     });
-  };
-
-  const getDisabledDates = () => {
-    const disabledDates = {};
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    // Deshabilitar fechas futuras
-    const startDate = new Date(calendarYear, calendarMonth, 1);
-    const endDate = new Date(calendarYear, calendarMonth + 1, 0);
-    const tempDate = new Date(startDate);
-    
-    while (tempDate <= endDate) {
-      if (tempDate > today || 
-          (calendarYear === currentYear && calendarMonth > today.getMonth()) ||
-          tempDate.getFullYear() < (currentYear - 80)) {
-        disabledDates[`${tempDate.getFullYear()}-${(tempDate.getMonth() + 1).toString().padStart(2, '0')}-${tempDate.getDate().toString().padStart(2, '0')}`] = { 
-          disabled: true, 
-          disableTouchEvent: true 
-        };
-      }
-      tempDate.setDate(tempDate.getDate() + 1);
-    }
-    
-    return disabledDates;
-  };
-
-  const formatDateString = (date) => {
-    const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    return `${year}-${month}-${day}`;
   };
 
   return (
@@ -257,40 +211,18 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
               <View style={styles.customDatePickerContainer}>
                 <View style={styles.customDatePicker}>
                   <View style={styles.datePickerHeader}>
-                    <TouchableOpacity 
-                      onPress={() => changeMonth(-1)}
-                      disabled={calendarYear === (currentYear - 80) && calendarMonth === 0}
-                    >
-                      <MaterialIcons 
-                        name="chevron-left" 
-                        size={24} 
-                        color={
-                          calendarYear === (currentYear - 80) && calendarMonth === 0
-                            ? '#ccc' 
-                            : '#333'
-                        } 
-                      />
+                    <TouchableOpacity onPress={() => changeMonth(-1)}>
+                      <MaterialIcons name="chevron-left" size={24} color="#333" />
                     </TouchableOpacity>
                     
                     <View style={styles.monthYearSelector}>
                       <Text style={styles.monthYearText}>
-                        {months[calendarMonth]} de {calendarYear}
+                        {months[selectedMonth]} de {selectedYear}
                       </Text>
                     </View>
                     
-                    <TouchableOpacity 
-                      onPress={() => changeMonth(1)}
-                      disabled={calendarYear === currentYear && calendarMonth === new Date().getMonth()}
-                    >
-                      <MaterialIcons 
-                        name="chevron-right" 
-                        size={24} 
-                        color={
-                          calendarYear === currentYear && calendarMonth === new Date().getMonth()
-                            ? '#ccc' 
-                            : '#333'
-                        } 
-                      />
+                    <TouchableOpacity onPress={() => changeMonth(1)}>
+                      <MaterialIcons name="chevron-right" size={24} color="#333" />
                     </TouchableOpacity>
                   </View>
                   
@@ -305,13 +237,13 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
                           key={year}
                           style={[
                             styles.yearButton,
-                            calendarYear === year && styles.selectedYearButton
+                            selectedYear === year && styles.selectedYearButton
                           ]}
-                          onPress={() => changeYear(year)}
+                          onPress={() => setSelectedYear(year)}
                         >
                           <Text style={[
                             styles.yearButtonText,
-                            calendarYear === year && styles.selectedYearButtonText
+                            selectedYear === year && styles.selectedYearButtonText
                           ]}>
                             {year}
                           </Text>
@@ -322,27 +254,14 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
                   
                   <View style={styles.calendarContainer}>
                     <Calendar
-                      key={`${calendarYear}-${calendarMonth}`}
-                      current={`${calendarYear}-${(calendarMonth + 1).toString().padStart(2, '0')}-01`}
-                      minDate={`${currentYear - 80}-01-01`}
+                      current={`${selectedYear}-${(selectedMonth + 1).toString().padStart(2, '0')}-01`}
+                      minDate={`${new Date().getFullYear() - 80}-01-01`}
                       maxDate={new Date().toISOString().split('T')[0]}
                       onDayPress={handleDayPress}
                       monthFormat={'MMMM yyyy'}
                       hideArrows={true}
                       hideExtraDays={true}
                       disableMonthChange={true}
-                      markedDates={{
-                        ...getDisabledDates(),
-                        [formData.fechaNacimiento ? formatDateString(formData.fechaNacimiento) : '']: {
-                          selected: true,
-                          selectedColor: '#424242',
-                          selectedTextColor: '#fff'
-                        },
-                        [new Date().toISOString().split('T')[0]]: {
-                          marked: true,
-                          dotColor: '#424242'
-                        }
-                      }}
                       theme={{
                         calendarBackground: 'transparent',
                         textSectionTitleColor: '#666',
@@ -364,11 +283,9 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
                             flexDirection: 'row',
                             justifyContent: 'space-between'
                           }
-                        },
-                        disabledDayTextColor: '#d9d9d9'
+                        }
                       }}
                       style={styles.calendar}
-                      disableAllTouchEventsForDisabledDays={true}
                     />
                   </View>
                   
@@ -376,10 +293,7 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
                     <TouchableOpacity 
                       style={styles.datePickerButton}
                       onPress={() => {
-                        const today = new Date();
-                        handleChange('fechaNacimiento', today);
-                        setCalendarMonth(today.getMonth());
-                        setCalendarYear(today.getFullYear());
+                        handleChange('fechaNacimiento', new Date());
                         setShowDatePicker(false);
                       }}
                     >
@@ -387,10 +301,13 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
                     </TouchableOpacity>
                     
                     <TouchableOpacity 
-                      style={styles.closeButton} 
-                      onPress={() => setShowDatePicker(false)}
+                      style={styles.datePickerButton}
+                      onPress={() => {
+                        handleChange('fechaNacimiento', null);
+                        setShowDatePicker(false);
+                      }}
                     >
-                      <Text style={styles.closeButtonText}>Cerrar</Text>
+                      <Text style={styles.datePickerButtonText}>Borrar</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -557,8 +474,8 @@ const styles = StyleSheet.create({
     color: 'red',
   },
   input: {
-    borderWidth: 2,
-    borderColor: '#424242',
+    borderWidth: 2,  // Aumentado de 1 a 2
+    borderColor: '#424242',  // Cambiado de #ddd a #424242
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -567,8 +484,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
   },
   dateInput: {
-    borderWidth: 2,
-    borderColor: '#424242',
+    borderWidth: 2,  // Aumentado de 1 a 2
+    borderColor: '#424242',  // Cambiado de #ddd a #424242
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -589,8 +506,8 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   passwordInput: {
-    borderWidth: 2,
-    borderColor: '#424242',
+    borderWidth: 2,  // Aumentado de 1 a 2
+    borderColor: '#424242',  // Cambiado de #ddd a #424242
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -605,8 +522,8 @@ const styles = StyleSheet.create({
     top: 12,
   },
   avatarSelector: {
-    borderWidth: 2,
-    borderColor: '#424242',
+    borderWidth: 2,  // Aumentado de 1 a 2
+    borderColor: '#424242',  // Cambiado de #ddd a #424242
     borderRadius: 8,
     height: 100,
     justifyContent: 'center',
@@ -712,7 +629,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
   },
   selectedYearButton: {
-    backgroundColor: '#424242',
+    backgroundColor: '#424242',  // Cambiado de #4CAF50 a #424242
   },
   yearButtonText: {
     color: '#666',
@@ -736,16 +653,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   datePickerButtonText: {
-    color: '#424242',
-    fontWeight: 'bold',
-  },
-  closeButton: {
-    padding: 10,
-    borderRadius: 5,
-    backgroundColor: '#424242',
-  },
-  closeButtonText: {
-    color: 'white',
+    color: '#424242',  // Cambiado de #4CAF50 a #424242
     fontWeight: 'bold',
   },
 });

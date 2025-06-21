@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, TextInput, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, TextInput } from 'react-native';
 import { MaterialIcons, FontAwesome, Feather, Ionicons } from '@expo/vector-icons';
 import Paginacion from '../../components/Paginacion';
 import Buscador from '../../components/Buscador';
 import Footer from '../../components/Footer';
-
-const { width } = Dimensions.get('window');
-const isMobile = width < 768;
 
 const ControlInsumos = ({ route, navigation }) => {
   const { insumos: insumosIniciales = [] } = route.params || {};
@@ -74,14 +71,8 @@ const ControlInsumos = ({ route, navigation }) => {
     setPaginaActual(1);
   }, [busqueda, insumos]);
 
-  // Solo usamos paginación en desktop
-  const insumosMostrar = isMobile 
-    ? insumosFiltrados 
-    : insumosFiltrados.slice(
-        (paginaActual - 1) * insumosPorPagina, 
-        (paginaActual - 1) * insumosPorPagina + insumosPorPagina
-      );
-
+  const indiceInicial = (paginaActual - 1) * insumosPorPagina;
+  const insumosMostrar = insumosFiltrados.slice(indiceInicial, indiceInicial + insumosPorPagina);
   const totalPaginas = Math.ceil(insumosFiltrados.length / insumosPorPagina);
 
   const cambiarPagina = (nuevaPagina) => {
@@ -128,201 +119,102 @@ const ControlInsumos = ({ route, navigation }) => {
     }));
   };
 
-  // Renderizado para móvil (tarjetas)
-  const renderMobileItem = ({ item }) => (
-    <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <View style={styles.cardHeaderText}>
-          <Text style={styles.cardTitle}>{item.nombre}</Text>
-          <Text style={styles.cardSubtitle}>{item.categoria}</Text>
-        </View>
-        <View style={styles.unidadContainer}>
-          <Text style={styles.textoUnidad}>{item.unidad}</Text>
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <View style={styles.tituloContainer}>
+          <Text style={styles.titulo}>Control de insumos</Text>
+          <View style={styles.contadorContainer}>
+            <Text style={styles.contadorTexto}>{insumosFiltrados.length}</Text>
+          </View>
         </View>
       </View>
-      
-      <Text style={styles.cardDescription}>{item.descripcion}</Text>
-      
-      <View style={styles.cardInfoRow}>
-        <Text style={styles.cardLabel}>Cantidad:</Text>
-        <View style={styles.cantidadContainer}>
-          <Text style={styles.textoCantidad}>{item.cantidad}</Text>
-        </View>
-      </View>
-      
-      <View style={styles.cardActions}>
-        <TextInput
-          style={styles.inputCantidad}
-          keyboardType="numeric"
-          placeholder="Cantidad"
-          value={cantidadReducir[item.id] ? cantidadReducir[item.id].toString() : ''}
-          onChangeText={(text) => handleCantidadChange(item.id, text)}
-        />
-        <TouchableOpacity 
-          onPress={() => reducirInsumo(item.id)} 
-          style={[styles.botonReducir, item.cantidad <= 0 && styles.botonDisabled]}
-          disabled={item.cantidad <= 0}
-        >
-          <MaterialIcons name="remove" size={20} color="white" />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
 
-  // Renderizado para desktop (tabla)
-  const renderDesktopItem = ({ item }) => (
-    <View style={styles.fila}>
-      <View style={[styles.celda, styles.columnaNombre]}>
-        <Text style={styles.textoNombre}>{item.nombre}</Text>
-      </View>
-      <View style={[styles.celda, styles.columnaDescripcion]}>
-        <Text style={styles.textoDescripcion}>{item.descripcion}</Text>
-      </View>
-      <View style={[styles.celda, styles.columnaCategoria]}>
-        <Text style={styles.textoCategoria}>{item.categoria}</Text>
-      </View>
-      <View style={[styles.celda, styles.columnaUnidad]}>
-        <View style={styles.unidadContainer}>
-          <Text style={styles.textoUnidad}>{item.unidad}</Text>
-        </View>
-      </View>
-      <View style={[styles.celda, styles.columnaCantidad]}>
-        <View style={styles.cantidadContainer}>
-          <Text style={styles.textoCantidad}>{item.cantidad}</Text>
-        </View>
-      </View>
-      <View style={[styles.celda, styles.columnaAcciones]}>
-        <View style={styles.contenedorAcciones}>
-          <TextInput
-            style={styles.inputCantidad}
-            keyboardType="numeric"
-            placeholder="Cant."
-            value={cantidadReducir[item.id] ? cantidadReducir[item.id].toString() : ''}
-            onChangeText={(text) => handleCantidadChange(item.id, text)}
-          />
-          <TouchableOpacity 
-            onPress={() => reducirInsumo(item.id)} 
-            style={[styles.botonReducir, item.cantidad <= 0 && styles.botonDisabled]}
-            disabled={item.cantidad <= 0}
-          >
-            <MaterialIcons name="remove" size={18} color="#fff" />
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
-  );
+      <Buscador
+        placeholder="Buscar insumos por nombre o descripción"
+        value={busqueda}
+        onChangeText={handleSearchChange}
+      />
 
-  // Render diferente para móvil y desktop
-  if (isMobile) {
-    return (
-      <View style={styles.mobileContainer}>
-        <View style={styles.mobileContent}>
-          <View style={styles.header}>
-            <View style={styles.tituloContainer}>
-              <Text style={styles.titulo}>Control de insumos</Text>
-              <View style={styles.contadorContainer}>
-                <Text style={styles.contadorTexto}>{insumosFiltrados.length}</Text>
+      <View style={styles.tabla}>
+        <View style={styles.filaEncabezado}>
+          <View style={[styles.celdaEncabezado, styles.columnaNombre]}>
+            <Text style={styles.encabezado}>Nombre</Text>
+          </View>
+          <View style={[styles.celdaEncabezado, styles.columnaDescripcion]}>
+            <Text style={styles.encabezado}>Descripción</Text>
+          </View>
+          <View style={[styles.celdaEncabezado, styles.columnaCategoria]}>
+            <Text style={styles.encabezado}>Categoría</Text>
+          </View>
+          <View style={[styles.celdaEncabezado, styles.columnaCantidad]}>
+            <Text style={styles.encabezado}>Cantidad</Text>
+          </View>
+          <View style={[styles.celdaEncabezado, styles.columnaAcciones]}>
+            <Text style={styles.encabezado}>Reducir</Text>
+          </View>
+        </View>
+
+        <FlatList
+          data={insumosMostrar}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <View style={styles.fila}>
+              <View style={[styles.celda, styles.columnaNombre]}>
+                <Text style={styles.textoNombre} numberOfLines={1}>{item.nombre}</Text>
+              </View>
+              <View style={[styles.celda, styles.columnaDescripcion]}>
+                <Text style={styles.textoDescripcion} numberOfLines={1}><Text style={{fontWeight: 'bold'}}>{item.descripcion}</Text></Text>
+              </View>
+              <View style={[styles.celda, styles.columnaCategoria]}>
+                <View style={styles.categoriaContainer}>
+                  <Text style={[styles.textoCategoria, {fontWeight: 'bold'}]}>{item.categoria}</Text>
+                </View>
+              </View>
+              <View style={[styles.celda, styles.columnaCantidad]}>
+                <View style={styles.cantidadContainer}>
+                  <Text style={styles.textoCantidad}>{item.cantidad}</Text>
+                </View>
+              </View>
+              <View style={[styles.celda, styles.columnaAcciones]}>
+                <View style={styles.contenedorAcciones}>
+                  <TextInput
+                    style={styles.inputCantidad}
+                    keyboardType="numeric"
+                    placeholder="Cant."
+                    value={cantidadReducir[item.id] ? cantidadReducir[item.id].toString() : ''}
+                    onChangeText={(text) => handleCantidadChange(item.id, text)}
+                  />
+                  <TouchableOpacity 
+                    onPress={() => reducirInsumo(item.id)} 
+                    style={[styles.botonReducir, item.cantidad <= 0 && styles.botonDisabled]}
+                    disabled={item.cantidad <= 0}
+                  >
+                    <MaterialIcons name="remove" size={18} color="#fff" />
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
-          </View>
-
-          <Buscador
-            placeholder="Buscar insumos por nombre o descripción"
-            value={busqueda}
-            onChangeText={handleSearchChange}
-          />
-
-          {insumosMostrar.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>No se encontraron insumos</Text>
-            </View>
-          ) : (
-            <FlatList
-              data={insumosMostrar}
-              keyExtractor={(item) => item.id.toString()}
-              renderItem={renderMobileItem}
-              contentContainerStyle={styles.mobileListContainer}
-              style={styles.mobileFlatList}
-            />
           )}
-        </View>
-        
-        <Footer />
-      </View>
-    );
-  }
-
-  // Render para desktop
-  return (
-    <View style={styles.desktopContainer}>
-      <View style={styles.desktopContent}>
-        <View style={styles.header}>
-          <View style={styles.tituloContainer}>
-            <Text style={styles.titulo}>Control de insumos</Text>
-            <View style={styles.contadorContainer}>
-              <Text style={styles.contadorTexto}>{insumosFiltrados.length}</Text>
-            </View>
-          </View>
-        </View>
-
-        <Buscador
-          placeholder="Buscar insumos por nombre o descripción"
-          value={busqueda}
-          onChangeText={handleSearchChange}
-        />
-
-        {insumosMostrar.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No se encontraron insumos</Text>
-          </View>
-        ) : (
-          <View style={styles.tabla}>
-            <View style={styles.filaEncabezado}>
-              <View style={[styles.celdaEncabezado, styles.columnaNombre]}><Text style={styles.encabezado}>Nombre</Text></View>
-              <View style={[styles.celdaEncabezado, styles.columnaDescripcion]}><Text style={styles.encabezado}>Descripción</Text></View>
-              <View style={[styles.celdaEncabezado, styles.columnaCategoria]}><Text style={styles.encabezado}>Categoría</Text></View>
-              <View style={[styles.celdaEncabezado, styles.columnaUnidad]}><Text style={styles.encabezado}>Unidad</Text></View>
-              <View style={[styles.celdaEncabezado, styles.columnaCantidad]}><Text style={styles.encabezado}>Cantidad</Text></View>
-              <View style={[styles.celdaEncabezado, styles.columnaAcciones]}><Text style={styles.encabezado}>Reducir</Text></View>
-            </View>
-            <FlatList
-              data={insumosMostrar}
-              keyExtractor={(item) => item.id.toString()}
-              renderItem={renderDesktopItem}
-              scrollEnabled={false}
-            />
-          </View>
-        )}
-
-        <Paginacion
-          paginaActual={paginaActual}
-          totalPaginas={totalPaginas}
-          cambiarPagina={cambiarPagina}
+          ItemSeparatorComponent={() => <View style={styles.separador} />}
         />
       </View>
-      
+
+      <Paginacion
+        paginaActual={paginaActual}
+        totalPaginas={totalPaginas}
+        cambiarPagina={cambiarPagina}
+      />
       <Footer />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  // Estilos base
-  mobileContainer: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  desktopContainer: {
-    flex: 1,
-    backgroundColor: '#fff',
-    padding: 16,
-  },
-  mobileContent: {
+  container: {
     flex: 1,
     padding: 16,
-  },
-  desktopContent: {
-    flex: 1,
+    backgroundColor: '#fff',
   },
   header: {
     flexDirection: 'row',
@@ -335,15 +227,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   titulo: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: 'bold',
-    marginRight: 10,
+    marginRight: 8,
   },
   contadorContainer: {
     backgroundColor: '#D9D9D9',
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -351,117 +243,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 14,
   },
-  // Estilos para móvil
-  mobileFlatList: {
-    flex: 1,
-  },
-  mobileListContainer: {
-    paddingBottom: 20,
-  },
-  card: {
-    backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: '#eee',
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  cardHeaderText: {
-    flex: 1,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  cardSubtitle: {
-    fontSize: 14,
-    color: '#666',
-  },
-  cardDescription: {
-    fontSize: 14,
-    color: '#555',
-    marginBottom: 12,
-  },
-  cardInfoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  cardLabel: {
-    fontSize: 14,
-    color: '#424242',
-  },
-  cardActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-    paddingTop: 12,
-    marginTop: 8,
-  },
-  inputCantidad: {
-    flex: 1,
-    height: 40,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    marginRight: 10,
-    fontSize: 14,
-  },
-  botonReducir: {
-    backgroundColor: '#424242',
-    borderRadius: 20,
-    padding: 10,
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  botonDisabled: {
-    backgroundColor: '#cccccc',
-  },
-  unidadContainer: {
-    backgroundColor: '#D9D9D9',
-    borderRadius: 15,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  textoUnidad: {
-    color: '#000',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  cantidadContainer: {
-    backgroundColor: '#D9D9D9',
-    borderRadius: 15,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  textoCantidad: {
-    fontWeight: 'bold',
-    color: '#000',
-    fontSize: 12,
-  },
-  // Estilos para desktop
   tabla: {
     borderWidth: 1,
     borderColor: '#ddd',
@@ -479,24 +260,28 @@ const styles = StyleSheet.create({
   celdaEncabezado: {
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 4,
   },
   encabezado: {
     fontWeight: 'bold',
     textAlign: 'center',
-    color: 'white',
+    fontSize: 12,
+    color: '#fff',
   },
   fila: {
     flexDirection: 'row',
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'black',
     alignItems: 'center',
-    backgroundColor: 'white',
+    backgroundColor: '#fff',
+  },
+  separador: {
+    height: 1,
+    backgroundColor: '#000',
+    width: '100%',
   },
   celda: {
     justifyContent: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 4,
   },
   columnaNombre: {
     flex: 2,
@@ -508,10 +293,6 @@ const styles = StyleSheet.create({
   },
   columnaCategoria: {
     flex: 2,
-    alignItems: 'center',
-  },
-  columnaUnidad: {
-    flex: 1,
     alignItems: 'center',
   },
   columnaCantidad: {
@@ -528,23 +309,55 @@ const styles = StyleSheet.create({
   textoDescripcion: {
     color: '#666',
   },
+  categoriaContainer: {
+    backgroundColor: '#D9D9D9',
+    borderRadius: 15,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   textoCategoria: {
     color: '#555',
-    fontWeight: '500',
+  },
+  cantidadContainer: {
+    backgroundColor: '#D9D9D9',
+    borderRadius: 15,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  textoCantidad: {
+    fontWeight: 'bold',
+    color: '#000',
+    fontSize: 12,
   },
   contenedorAcciones: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 40,
+  inputCantidad: {
+    width: 60,
+    height: 30,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 15,
+    paddingHorizontal: 8,
+    marginRight: 8,
+    textAlign: 'center',
+    fontSize: 12,
   },
-  emptyText: {
-    fontSize: 16,
-    color: '#666',
+  botonReducir: {
+    backgroundColor: '#424242',
+    borderRadius: 15,
+    padding: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  botonDisabled: {
+    backgroundColor: '#cccccc',
   },
 });
 

@@ -1,14 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
 import { MaterialIcons, FontAwesome, Feather, Ionicons, AntDesign } from '@expo/vector-icons';
 import Paginacion from '../../components/Paginacion';
 import Buscador from '../../components/Buscador';
 import DetalleCompra from './DetalleCompra';
 import CrearCompra from './CrearCompra';
 import Footer from '../../components/Footer';
-
-const { width } = Dimensions.get('window');
-const isMobile = width < 768;
 
 const ComprasScreen = () => {
   const [compras, setCompras] = useState([]);
@@ -22,37 +19,37 @@ const ComprasScreen = () => {
 
   useEffect(() => {
     const datosEjemplo = [
-      {
-        id: 1,
-        fecha: '2023-03-14',
-        metodo: 'Transferencia',
-        proveedor: 'Distribuidora SunTibdo',
-        total: 1250000,
-        estado: 'confirmado'
+      { 
+        id: 1, 
+        fecha: '2023-03-14', 
+        metodo: 'Transferencia', 
+        proveedor: 'Distribuidora SunTibdo', 
+        total: 1250000, 
+        estado: 'confirmado' 
       },
-      {
-        id: 2,
-        fecha: '2023-03-09',
-        metodo: 'Efectivo',
-        proveedor: 'Belissa Total SAS',
-        total: 780000,
-        estado: 'confirmado'
+      { 
+        id: 2, 
+        fecha: '2023-03-09', 
+        metodo: 'Efectivo', 
+        proveedor: 'Belissa Total SAS', 
+        total: 780000, 
+        estado: 'confirmado' 
       },
-      {
-        id: 3,
-        fecha: '2023-03-04',
-        metodo: 'Tarjeta crédito',
-        proveedor: 'Importaciones Estética',
-        total: 920000,
-        estado: 'anulado'
+      { 
+        id: 3, 
+        fecha: '2023-03-04', 
+        metodo: 'Tarjeta crédito', 
+        proveedor: 'Importaciones Estética', 
+        total: 920000, 
+        estado: 'anulado' 
       },
-      {
-        id: 4,
-        fecha: '2023-04-27',
-        metodo: 'Transferencia',
-        proveedor: 'Distribuidora SunTibdo',
-        total: 1560000,
-        estado: 'confirmado'
+      { 
+        id: 4, 
+        fecha: '2023-04-27', 
+        metodo: 'Transferencia', 
+        proveedor: 'Distribuidora SunTibdo', 
+        total: 1560000, 
+        estado: 'confirmado' 
       }
     ];
     setCompras(datosEjemplo);
@@ -65,7 +62,7 @@ const ComprasScreen = () => {
     } else {
       const termino = busqueda.toLowerCase();
       const filtradas = compras.filter(c =>
-        c.proveedor.toLowerCase().includes(termino) ||
+        c.proveedor.toLowerCase().includes(termino) || 
         c.metodo.toLowerCase().includes(termino) ||
         c.fecha.includes(busqueda)
       );
@@ -75,7 +72,7 @@ const ComprasScreen = () => {
   }, [busqueda, compras]);
 
   const indiceInicial = (paginaActual - 1) * comprasPorPagina;
-  const comprasMostrar = isMobile ? comprasFiltradas : comprasFiltradas.slice(indiceInicial, indiceInicial + comprasPorPagina);
+  const comprasMostrar = comprasFiltradas.slice(indiceInicial, indiceInicial + comprasPorPagina);
   const totalPaginas = Math.ceil(comprasFiltradas.length / comprasPorPagina);
 
   const cambiarPagina = (nuevaPagina) => {
@@ -104,115 +101,16 @@ const ComprasScreen = () => {
 
   const handleCreateCompra = (newCompra) => {
     const newId = compras.length > 0 ? Math.max(...compras.map(c => c.id)) + 1 : 1;
-    const nuevaCompra = {
-      id: newId,
+    const nuevaCompra = { 
+      id: newId, 
       ...newCompra,
-      estado: 'confirmado'
+      estado: 'confirmado' // Default status
     };
     const nuevasCompras = [...compras, nuevaCompra];
     setCompras(nuevasCompras);
     setComprasFiltradas(nuevasCompras);
     setModalCrearVisible(false);
   };
-
-  // Renderizado para móvil (tarjetas)
-  const renderMobileItem = ({ item }) => (
-    <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <View style={styles.cardHeaderText}>
-          <Text style={styles.cardTitle}>{item.proveedor}</Text>
-          <Text style={styles.cardSubtitle}>{formatearFecha(item.fecha)}</Text>
-        </View>
-        <View style={[
-          styles.estadoContainer,
-          item.estado === 'confirmado' ? styles.estadoConfirmado : styles.estadoAnulado
-        ]}>
-          {item.estado === 'confirmado' ? (
-            <>
-              <AntDesign name="check" size={16} color="#2e7d32" />
-              <Text style={[styles.estadoTexto, styles.textoVerificado]}>Confirmado</Text>
-            </>
-          ) : (
-            <>
-              <AntDesign name="close" size={16} color="#d32f2f" />
-              <Text style={[styles.estadoTexto, styles.textoNoVerificado]}>Anulado</Text>
-            </>
-          )}
-        </View>
-      </View>
-     
-      <View style={styles.cardInfoRow}>
-        <Text style={styles.cardLabel}>Método:</Text>
-        <Text style={styles.cardValue}>{item.metodo}</Text>
-      </View>
-     
-      <View style={styles.cardInfoRow}>
-        <Text style={styles.cardLabel}>Total:</Text>
-        <Text style={[styles.cardValue, styles.totalText]}>{formatearMoneda(item.total)}</Text>
-      </View>
-     
-      <View style={styles.cardActions}>
-        <TouchableOpacity onPress={() => verCompra(item)} style={styles.actionButton}>
-          <FontAwesome name="eye" size={20} color="#424242" />
-        </TouchableOpacity>
-        {item.estado === 'confirmado' && (
-          <TouchableOpacity style={styles.actionButton}>
-            <Feather name="trash-2" size={20} color="#d32f2f" />
-          </TouchableOpacity>
-        )}
-      </View>
-    </View>
-  );
-
-  // Renderizado para desktop (tabla)
-  const renderDesktopItem = ({ item }) => (
-    <View style={styles.fila}>
-      <View style={[styles.celda, styles.columnaFecha]}>
-        <Text style={[styles.textoDato, styles.textoNegrita]}>{formatearFecha(item.fecha)}</Text>
-      </View>
-      <View style={[styles.celda, styles.columnaMetodo]}>
-        <Text style={[styles.textoDato, styles.textoNegrita]}>{item.metodo}</Text>
-      </View>
-      <View style={[styles.celda, styles.columnaProveedor]}>
-        <Text style={[styles.textoDato, styles.textoNegrita]}>{item.proveedor}</Text>
-      </View>
-      <View style={[styles.celda, styles.columnaTotal]}>
-        <View style={styles.totalContainer}>
-          <Text style={[styles.textoDato, styles.textoNegrita]}>{formatearMoneda(item.total)}</Text>
-        </View>
-      </View>
-      <View style={[styles.celda, styles.columnaEstado]}>
-        <View style={[
-          styles.estadoContainer,
-          item.estado === 'confirmado' ? styles.estadoConfirmado : styles.estadoAnulado
-        ]}>
-          {item.estado === 'confirmado' ? (
-            <>
-              <AntDesign name="check" size={16} color="#2e7d32" />
-              <Text style={[styles.estadoTexto, styles.textoVerificado]}>Confirmado</Text>
-            </>
-          ) : (
-            <>
-              <AntDesign name="close" size={16} color="#d32f2f" />
-              <Text style={[styles.estadoTexto, styles.textoNoVerificado]}>Anulado</Text>
-            </>
-          )}
-        </View>
-      </View>
-      <View style={[styles.celda, styles.columnaAcciones]}>
-        <View style={styles.contenedorAcciones}>
-          <TouchableOpacity onPress={() => verCompra(item)} style={styles.botonAccion}>
-            <FontAwesome name="eye" size={20} color="black" />
-          </TouchableOpacity>
-          {item.estado === 'confirmado' && (
-            <TouchableOpacity style={styles.botonAccion}>
-              <Feather name="trash-2" size={20} color="black" />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-    </View>
-  );
 
   return (
     <View style={styles.container}>
@@ -224,8 +122,8 @@ const ComprasScreen = () => {
           </View>
         </View>
         <TouchableOpacity style={styles.botonCrear} onPress={crearCompra}>
-          <Ionicons name="add-circle" size={20} color="white" />
-          <Text style={styles.textoBoton}>Crear</Text>
+          <Ionicons name="add-circle" size={24} color="white" />
+          <Text style={styles.textoBoton}>Nueva Compra</Text>
         </TouchableOpacity>
       </View>
 
@@ -235,44 +133,75 @@ const ComprasScreen = () => {
         onChangeText={(texto) => setBusqueda(texto)}
       />
 
-      {comprasMostrar.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyText}>No se encontraron compras</Text>
+      <View style={styles.tabla}>
+        <View style={styles.filaEncabezado}>
+          <View style={[styles.celdaEncabezado, styles.columnaFecha]}><Text style={styles.encabezado}>Fecha</Text></View>
+          <View style={[styles.celdaEncabezado, styles.columnaMetodo]}><Text style={styles.encabezado}>Método de pago</Text></View>
+          <View style={[styles.celdaEncabezado, styles.columnaProveedor]}><Text style={styles.encabezado}>Proveedor</Text></View>
+          <View style={[styles.celdaEncabezado, styles.columnaTotal]}><Text style={styles.encabezado}>Total</Text></View>
+          <View style={[styles.celdaEncabezado, styles.columnaEstado]}><Text style={styles.encabezado}>Estado</Text></View>
+          <View style={[styles.celdaEncabezado, styles.columnaAcciones]}><Text style={styles.encabezado}>Acciones</Text></View>
         </View>
-      ) : isMobile ? (
+
         <FlatList
           data={comprasMostrar}
           keyExtractor={(item) => item.id.toString()}
-          renderItem={renderMobileItem}
-          contentContainerStyle={styles.listContainer}
-          style={styles.mobileList}
+          renderItem={({ item }) => (
+            <View style={styles.fila}>
+              <View style={[styles.celda, styles.columnaFecha]}>
+                <Text style={[styles.textoDato, styles.textoNegrita]}>{formatearFecha(item.fecha)}</Text>
+              </View>
+              <View style={[styles.celda, styles.columnaMetodo]}>
+                <Text style={[styles.textoDato, styles.textoNegrita]}>{item.metodo}</Text>
+              </View>
+              <View style={[styles.celda, styles.columnaProveedor]}>
+                <Text style={[styles.textoDato, styles.textoNegrita]}>{item.proveedor}</Text>
+              </View>
+              <View style={[styles.celda, styles.columnaTotal]}>
+                <View style={styles.totalContainer}>
+                  <Text style={[styles.textoDato, styles.textoNegrita]}>{formatearMoneda(item.total)}</Text>
+                </View>
+              </View>
+              <View style={[styles.celda, styles.columnaEstado]}>
+                <View style={[
+                  styles.estadoContainer,
+                  item.estado === 'confirmado' ? styles.estadoConfirmado : styles.estadoAnulado
+                ]}>
+                  {item.estado === 'confirmado' ? (
+                    <>
+                      <AntDesign name="check" size={16} color="#2e7d32" />
+                      <Text style={[styles.estadoTexto, styles.textoVerificado]}>Confirmado</Text>
+                    </>
+                  ) : (
+                    <>
+                      <AntDesign name="close" size={16} color="#d32f2f" />
+                      <Text style={[styles.estadoTexto, styles.textoNoVerificado]}>Anulado</Text>
+                    </>
+                  )}
+                </View>
+              </View>
+              <View style={[styles.celda, styles.columnaAcciones]}>
+                <View style={styles.contenedorAcciones}>
+                  <TouchableOpacity onPress={() => verCompra(item)} style={styles.botonAccion}>
+                    <FontAwesome name="eye" size={20} color="black" />
+                  </TouchableOpacity>
+                  {item.estado === 'confirmado' && (
+                    <TouchableOpacity style={styles.botonAccion}>
+                      <Feather name="trash-2" size={20} color="black" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            </View>
+          )}
         />
-      ) : (
-        <View style={styles.tabla}>
-          <View style={styles.filaEncabezado}>
-            <View style={[styles.celdaEncabezado, styles.columnaFecha]}><Text style={styles.encabezado}>Fecha</Text></View>
-            <View style={[styles.celdaEncabezado, styles.columnaMetodo]}><Text style={styles.encabezado}>Método</Text></View>
-            <View style={[styles.celdaEncabezado, styles.columnaProveedor]}><Text style={styles.encabezado}>Proveedor</Text></View>
-            <View style={[styles.celdaEncabezado, styles.columnaTotal]}><Text style={styles.encabezado}>Total</Text></View>
-            <View style={[styles.celdaEncabezado, styles.columnaEstado]}><Text style={styles.encabezado}>Estado</Text></View>
-            <View style={[styles.celdaEncabezado, styles.columnaAcciones]}><Text style={styles.encabezado}>Acciones</Text></View>
-          </View>
-          <FlatList
-            data={comprasMostrar}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={renderDesktopItem}
-            scrollEnabled={false}
-          />
-        </View>
-      )}
+      </View>
 
-      {!isMobile && (
-        <Paginacion
-          paginaActual={paginaActual}
-          totalPaginas={totalPaginas}
-          cambiarPagina={cambiarPagina}
-        />
-      )}
+      <Paginacion
+        paginaActual={paginaActual}
+        totalPaginas={totalPaginas}
+        cambiarPagina={cambiarPagina}
+      />
 
       <DetalleCompra
         visible={modalDetalleVisible}
@@ -285,7 +214,6 @@ const ComprasScreen = () => {
         onClose={() => setModalCrearVisible(false)}
         onCreate={handleCreateCompra}
       />
-     
       <Footer />
     </View>
   );
@@ -294,12 +222,8 @@ const ComprasScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
     padding: 16,
-  },
-  mobileList: {
-    flex: 1,
-    marginBottom: 16,
+    backgroundColor: '#fff',
   },
   header: {
     flexDirection: 'row',
@@ -312,21 +236,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   titulo: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: 'bold',
     marginRight: 10,
   },
   contadorContainer: {
     backgroundColor: '#D9D9D9',
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    borderRadius: 50,
+    width: 30,
+    height: 30,
     justifyContent: 'center',
     alignItems: 'center',
   },
   contadorTexto: {
-    fontWeight: 'bold',
     fontSize: 14,
+    fontWeight: 'bold',
   },
   botonCrear: {
     flexDirection: 'row',
@@ -334,100 +258,36 @@ const styles = StyleSheet.create({
     backgroundColor: '#424242',
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: '#424242',
+    borderRadius: 20,
   },
   textoBoton: {
     marginLeft: 8,
     color: 'white',
     fontWeight: '500',
-    fontSize: 14,
   },
-  listContainer: {
-    paddingBottom: 16,
-  },
-  // Estilos para móvil (tarjetas)
-  card: {
-    backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: '#eee',
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  cardHeaderText: {
-    flex: 1,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  cardSubtitle: {
-    fontSize: 14,
-    color: '#666',
-  },
-  cardInfoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  cardLabel: {
-    fontSize: 14,
-    color: '#424242',
-  },
-  cardValue: {
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  totalText: {
-    fontWeight: 'bold',
-    color: '#2e7d32',
-  },
-  cardActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-    paddingTop: 12,
-    marginTop: 8,
-  },
-  actionButton: {
-    marginLeft: 16,
-  },
-  // Estilos para desktop (tabla)
   tabla: {
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 4,
     marginBottom: 16,
     overflow: 'hidden',
-    flex: 1,
   },
   filaEncabezado: {
     flexDirection: 'row',
     backgroundColor: '#424242',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
+    borderBottomColor: 'black',
   },
   celdaEncabezado: {
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 8,
+  },
+  encabezado: {
+    fontWeight: 'bold',
+    textAlign: 'center',
+    color: 'white',
   },
   fila: {
     flexDirection: 'row',
@@ -435,7 +295,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'black',
     alignItems: 'center',
-    backgroundColor: 'white',
   },
   celda: {
     justifyContent: 'center',
@@ -511,20 +370,6 @@ const styles = StyleSheet.create({
   },
   botonAccion: {
     marginHorizontal: 6,
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 40,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#666',
-  },
-  encabezado: {
-    fontWeight: 'bold',
-    textAlign: 'center',
-    color: 'white',
   },
 });
 

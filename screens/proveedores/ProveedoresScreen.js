@@ -78,7 +78,7 @@ const ProveedoresScreen = () => {
   const fetchProveedores = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await axios.get('http://localhost:8080/proveedores/all', {
+      const response = await axios.get('http://192.168.1.7:8080/proveedores/all', {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -101,7 +101,7 @@ const ProveedoresScreen = () => {
       fetchProveedores();
     }, [])
   );
-  
+
   useEffect(() => {
     if (busqueda.trim() === '') {
       setProveedoresFiltrados(proveedores);
@@ -167,7 +167,7 @@ const ProveedoresScreen = () => {
   const eliminarProveedor = async (id) => {
     try {
       const token = await AsyncStorage.getItem('token');
-      await axios.delete(`http://localhost:8080/proveedores/${id}`, {
+      await axios.delete(`http://192.168.1.7:8080/proveedores/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`
         }

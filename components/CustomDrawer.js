@@ -1,15 +1,15 @@
+// components/CustomDrawerContent.js
 import React, { useState, useContext } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { DrawerContentScrollView } from '@react-navigation/drawer';
-import { FontAwesome5, MaterialIcons, Feather, Ionicons, AntDesign, MaterialCommunityIcons } from '@expo/vector-icons';
+import { FontAwesome5, MaterialIcons, Feather, Ionicons,AntDesign, MaterialCommunityIcons, FontAwesome } from '@expo/vector-icons';
 import { AuthContext } from '../contexts/AuthContext';
 
 const CustomDrawer = (props) => {
-  const { role } = props;
   const [usersExpanded, setUsersExpanded] = useState(false);
   const [purchasesExpanded, setPurchasesExpanded] = useState(false);
   const [salesExpanded, setSalesExpanded] = useState(false);
-  const { logout, userInfo } = useContext(AuthContext);
+  const { logout } = useContext(AuthContext);
 
   const renderSubItem = (label, screen, IconComponent, iconName) => (
     <TouchableOpacity
@@ -21,133 +21,6 @@ const CustomDrawer = (props) => {
     </TouchableOpacity>
   );
 
-  // Renderizar menú basado en el rol
-  const renderMenuItems = () => {
-    switch(role) {
-      case 'Administrador':
-        return (
-          <>
-            {/* Dashboard solo para admin */}
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => props.navigation.navigate('Dashboard')}
-            >
-              <MaterialCommunityIcons name="view-dashboard-outline" size={24} color="white" />
-              <Text style={styles.menuText}>Dashboard</Text>
-            </TouchableOpacity>
-
-            {/* Menú Usuarios */}
-            <TouchableOpacity
-              style={styles.expandableItem}
-              onPress={() => setUsersExpanded(!usersExpanded)}
-            >
-              <View style={styles.menuRow}>
-                <Feather name="users" size={24} color="white" />
-                <Text style={styles.menuText}>Usuarios</Text>
-              </View>
-              <Feather name={usersExpanded ? 'chevron-up' : 'chevron-down'} size={20} color="white" />
-            </TouchableOpacity>
-            {usersExpanded && (
-              <>
-                {renderSubItem('Clientes', 'Clientes', Feather, 'user')}
-                {renderSubItem('Barberos', 'Barberos', Ionicons, 'cut-outline')}
-                {renderSubItem('Roles', 'Roles', Ionicons, 'key-outline')}
-              </>
-            )}
-
-            {/* Menú Compras */}
-            <TouchableOpacity
-              style={styles.expandableItem}
-              onPress={() => setPurchasesExpanded(!purchasesExpanded)}
-            >
-              <View style={styles.menuRow}>
-                <AntDesign name="shoppingcart" size={24} color="white" />
-                <Text style={styles.menuText}>Compras</Text>
-              </View>
-              <Feather name={purchasesExpanded ? 'chevron-up' : 'chevron-down'} size={20} color="white" />
-            </TouchableOpacity>
-            {purchasesExpanded && (
-              <>
-                {renderSubItem('Compras', 'Compras', AntDesign, 'shoppingcart')}
-                {renderSubItem('Proveedores', 'Proveedores', MaterialCommunityIcons, 'toolbox-outline')}
-                {renderSubItem('Insumos', 'Insumos', MaterialCommunityIcons, 'spray')}
-                {renderSubItem('Categoría Insumos', 'CategoriaInsumos', MaterialCommunityIcons, 'database-arrow-left-outline')}
-              </>
-            )}
-
-            {/* Menú Ventas */}
-            <TouchableOpacity
-              style={styles.expandableItem}
-              onPress={() => setSalesExpanded(!salesExpanded)}
-            >
-              <View style={styles.menuRow}>
-                <MaterialCommunityIcons name="account-cash-outline" size={24} color="white" />
-                <Text style={styles.menuText}>Ventas</Text>
-              </View>
-              <Feather name={salesExpanded ? 'chevron-up' : 'chevron-down'} size={20} color="white" />
-            </TouchableOpacity>
-            {salesExpanded && (
-              <>
-                {renderSubItem('Agenda', 'Agenda', MaterialIcons, 'event')}
-                {renderSubItem('Citas', 'Citas', Ionicons, 'calendar-outline')}
-                {renderSubItem('Servicios', 'Servicios', MaterialCommunityIcons, 'toolbox-outline')}
-                {renderSubItem('Movimientos', 'Movimientos', FontAwesome5, 'exchange-alt')}
-                {renderSubItem('Ventas', 'Ventas', Ionicons, 'cash-outline')}
-                {renderSubItem('Control Insumos', 'ControlInsumos', MaterialCommunityIcons, 'clipboard-check-outline')}
-              </>
-            )}
-          </>
-        );
-      
-      case 'Barbero':
-        return (
-          <>
-            {/* Menú principal para barberos */}
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => props.navigation.navigate('Clientes')}
-            >
-              <Feather name="users" size={24} color="white" />
-              <Text style={styles.menuText}>Clientes</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.expandableItem}
-              onPress={() => setSalesExpanded(!salesExpanded)}
-            >
-              <View style={styles.menuRow}>
-                <MaterialCommunityIcons name="account-cash-outline" size={24} color="white" />
-                <Text style={styles.menuText}>Operaciones</Text>
-              </View>
-              <Feather name={salesExpanded ? 'chevron-up' : 'chevron-down'} size={20} color="white" />
-            </TouchableOpacity>
-            {salesExpanded && (
-              <>
-                {renderSubItem('Agenda', 'Agenda', MaterialIcons, 'event')}
-                {renderSubItem('Citas', 'Citas', Ionicons, 'calendar-outline')}
-                {renderSubItem('Movimientos', 'Movimientos', FontAwesome5, 'exchange-alt')}
-                {renderSubItem('Ventas', 'Ventas', Ionicons, 'cash-outline')}
-              </>
-            )}
-          </>
-        );
-      
-      case 'Cliente':
-        return (
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => props.navigation.navigate('Agenda')}
-          >
-            <MaterialIcons name="event" size={24} color="white" />
-            <Text style={styles.menuText}>Agenda</Text>
-          </TouchableOpacity>
-        );
-      
-      default:
-        return null;
-    }
-  };
-
   return (
     <View style={styles.container}>
       {/* LOGO */}
@@ -158,23 +31,88 @@ const CustomDrawer = (props) => {
       <DrawerContentScrollView
         {...props}
         contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={true}
       >
         <Text style={styles.sectionTitle}>Menú</Text>
-        
-        {renderMenuItems()}
+
+        {/* DASHBOARD */}
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => props.navigation.navigate('Dashboard')}
+        >
+          <MaterialCommunityIcons name="view-dashboard-outline" size={24} color="white" />
+          <Text style={styles.menuText}>Dashboard</Text>
+        </TouchableOpacity>
+
+        {/* USUARIOS */}
+        <TouchableOpacity
+          style={styles.expandableItem}
+          onPress={() => setUsersExpanded(!usersExpanded)}
+        >
+          <View style={styles.menuRow}>
+            <Feather name="users" size={24} color="white" />
+            <Text style={styles.menuText}>Usuarios</Text>
+          </View>
+          <Feather name={usersExpanded ? 'chevron-up' : 'chevron-down'} size={20} color="white" />
+        </TouchableOpacity>
+        {usersExpanded && (
+          <>
+            {renderSubItem('Clientes', 'Clientes', Feather, 'user')}
+            {renderSubItem('Barberos', 'Barberos', Ionicons, 'cut-outline')}
+            {renderSubItem('Roles', 'Roles', Ionicons, 'key-outline')}
+          </>
+        )}
+
+        {/* COMPRAS */}
+        <TouchableOpacity
+          style={styles.expandableItem}
+          onPress={() => setPurchasesExpanded(!purchasesExpanded)}
+        >
+          <View style={styles.menuRow}>
+            <AntDesign name="shoppingcart" size={24} color="white" />
+            <Text style={styles.menuText}>Compras</Text>
+          </View>
+          <Feather name={purchasesExpanded ? 'chevron-up' : 'chevron-down'} size={20} color="white" />
+        </TouchableOpacity>
+        {purchasesExpanded && (
+          <>
+            {renderSubItem('Compras', 'Compras', AntDesign, 'shoppingcart')}
+            {renderSubItem('Proveedores', 'Proveedores', MaterialCommunityIcons, 'toolbox-outline')}
+            {renderSubItem('Insumos', 'Insumos', MaterialCommunityIcons, 'spray')}
+            {renderSubItem('Categoría de Insumos', 'CategoriaInsumos', MaterialCommunityIcons, 'database-arrow-left-outline')}
+          </>
+        )}
+
+        {/* VENTAS */}
+        <TouchableOpacity
+          style={styles.expandableItem}
+          onPress={() => setSalesExpanded(!salesExpanded)}
+        >
+          <View style={styles.menuRow}>
+            <MaterialCommunityIcons name="account-cash-outline" size={24} color="white" />
+            <Text style={styles.menuText}>Ventas</Text>
+          </View>
+          <Feather name={salesExpanded ? 'chevron-up' : 'chevron-down'} size={20} color="white" />
+        </TouchableOpacity>
+        {salesExpanded && (
+          <>
+            {renderSubItem('Agenda', 'Agenda', MaterialIcons, 'event')}
+            {renderSubItem('Citas', 'Citas', Ionicons, 'calendar-outline')}
+            {renderSubItem('Servicios', 'Servicios', MaterialCommunityIcons, 'toolbox-outline')}
+            {renderSubItem('Movimientos', 'Movimientos', FontAwesome5, 'exchange-alt')}
+            {renderSubItem('Ventas', 'Ventas', Ionicons, 'cash-outline')}
+          </>
+        )}
       </DrawerContentScrollView>
 
       {/* PERFIL */}
       <View style={styles.profileContainer}>
         <Text style={styles.profileTitle}>Perfil</Text>
         <View style={styles.profileInfo}>
-          <Image 
-            source={userInfo?.avatar ? { uri: userInfo.avatar } : require('../assets/avatar.png')} 
-            style={styles.avatar} 
-          />
+          <Image source={require('../assets/avatar.png')} style={styles.avatar} />
           <View style={styles.profileDetails}>
-            <Text style={styles.role}>{role}</Text>
-            <Text style={styles.email}>{userInfo?.email || 'usuario@email.com'}</Text>
+            <Text style={styles.role}>Administrador</Text>
+            <Text style={styles.email}>admin@barberia.com</Text>
           </View>
         </View>
 

@@ -2,100 +2,69 @@ import React from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
 import { AntDesign, FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import Footer from '../../components/Footer';
 
-const { width, height } = Dimensions.get('window');
-const isMobile = width < 768;
+const { width } = Dimensions.get('window');
 
 const DetalleVenta = ({ visible, onClose, venta }) => {
-  if (!visible || !venta) return null;
-
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <BlurView intensity={20} tint="light" style={StyleSheet.absoluteFill}>
         <View style={styles.overlay}>
-          <View style={[styles.modal, isMobile && styles.modalMobile]}>
-            <Text style={[styles.titulo, isMobile && styles.tituloMobile]}>Detalle de la Venta</Text>
+          <View style={styles.modal}>
+            <Text style={styles.titulo}>Detalle de la Venta</Text>
             
-            <ScrollView 
-              style={styles.scrollContainer} 
-              contentContainerStyle={[styles.scrollContent, isMobile && styles.scrollContentMobile]}
-              showsVerticalScrollIndicator={false}
-            >
+            <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
               {/* Encabezado del servicio */}
-              <View style={[styles.item, isMobile && styles.itemMobile]}>
-                <Text style={[styles.label, isMobile && styles.labelMobile]}>Servicio</Text>
-                <Text style={[styles.value, styles.textoNegrita, isMobile && styles.valueMobile]}>
-                  {venta.servicio}
-                </Text>
-                <Text style={[styles.value, styles.textoDescripcion, isMobile && styles.valueMobile]}>
-                  {venta.descripcion}
-                </Text>
+              <View style={styles.item}>
+                <Text style={styles.label}>Servicio</Text>
+                <Text style={[styles.value, { fontWeight: '600' }]}>Corte clásico</Text>
+                <Text style={[styles.value, { fontSize: 14, color: '#777' }]}>Corte con tijera y máquina</Text>
               </View>
 
               {/* Detalles de fecha y hora */}
-              <View style={[styles.item, isMobile && styles.itemMobile]}>
-                <Text style={[styles.label, isMobile && styles.labelMobile]}>Fecha y Hora</Text>
+              <View style={styles.item}>
+                <Text style={styles.label}>Fecha y Hora</Text>
                 <View style={styles.detailRow}>
-                  <MaterialIcons 
-                    name="date-range" 
-                    size={isMobile ? 18 : 16} 
-                    color="#555" 
-                    style={styles.icono} 
-                  />
-                  <Text style={[styles.value, isMobile && styles.valueMobile]}>
-                    {venta.fecha}
-                  </Text>
+                  <MaterialIcons name="date-range" size={16} color="#555" style={styles.icono} />
+                  <Text style={styles.value}>15 de septiembre de 2024</Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <FontAwesome 
-                    name="clock-o" 
-                    size={isMobile ? 18 : 16} 
-                    color="#555" 
-                    style={styles.icono} 
-                  />
-                  <Text style={[styles.value, isMobile && styles.valueMobile]}>
-                    {venta.hora} ({venta.duracion})
-                  </Text>
+                  <FontAwesome name="clock-o" size={16} color="#555" style={styles.icono} />
+                  <Text style={styles.value}>10:00 a.m. - 10:30 a.m. (30 minutos de duración)</Text>
                 </View>
               </View>
 
               {/* Precio */}
-              <View style={[styles.item, isMobile && styles.itemMobile]}>
-                <Text style={[styles.label, isMobile && styles.labelMobile]}>Precio</Text>
+              <View style={styles.item}>
+                <Text style={styles.label}>Precio</Text>
                 <View style={styles.precioContainer}>
-                  <Text style={styles.precio}>{venta.precio}</Text>
+                  <Text style={styles.precio}>$ 45.000</Text>
                 </View>
               </View>
 
               {/* Información del profesional y cliente */}
-              <View style={[styles.item, isMobile && styles.itemMobile]}>
-                <Text style={[styles.label, isMobile && styles.labelMobile]}>Participantes</Text>
+              <View style={styles.item}>
+                <Text style={styles.label}>Participantes</Text>
                 <View style={styles.participantesContainer}>
                   <View style={styles.participante}>
                     <View style={[styles.avatar, styles.avatarCliente]}>
-                      <Text style={styles.avatarText}>
-                        {venta.cliente ? venta.cliente.charAt(0) : 'C'}
-                      </Text>
+                      <Text style={styles.avatarText}>C</Text>
                     </View>
-                    <Text style={styles.participanteNombre}>Cliente: {venta.cliente}</Text>
+                    <Text style={styles.participanteNombre}>Cliente</Text>
                   </View>
                   
                   <View style={styles.participante}>
-                    <Text style={styles.participanteNombre}>Profesional: {venta.profesional}</Text>
+                    <Text style={styles.participanteNombre}>Carlos Barbero</Text>
                     <View style={[styles.avatar, styles.avatarProfesional]}>
-                      <Text style={styles.avatarText}>
-                        {venta.profesional ? venta.profesional.charAt(0) : 'P'}
-                      </Text>
+                      <Text style={styles.avatarText}>C</Text>
                     </View>
                   </View>
                 </View>
               </View>
             </ScrollView>
 
-            <TouchableOpacity 
-              style={[styles.cerrar, isMobile && styles.cerrarMobile]} 
-              onPress={onClose}
-            >
+            <TouchableOpacity style={styles.cerrar} onPress={onClose}>
               <Text style={styles.textoCerrar}>Cerrar</Text>
             </TouchableOpacity>
           </View>
@@ -110,23 +79,16 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: isMobile ? 20 : 0,
   },
   modal: {
-    width: isMobile ? '100%' : '40%',
+    width: width * 0.4,
     backgroundColor: '#fff',
     borderRadius: 12,
-    padding: isMobile ? 24 : 20,
+    padding: 20,
     elevation: 10,
     borderWidth: 1,
     borderColor: 'black',
-    maxHeight: isMobile ? height * 0.8 : '80%',
-  },
-  modalMobile: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
+    maxHeight: '80%',
   },
   scrollContainer: {
     flexGrow: 1,
@@ -134,58 +96,30 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 10,
   },
-  scrollContentMobile: {
-    paddingBottom: 20,
-  },
   titulo: {
-    fontSize: isMobile ? 20 : 22,
-    fontWeight: 'bold',
-    marginBottom: isMobile ? 16 : 20,
-    textAlign: 'center',
-    color: '#424242',
-  },
-  tituloMobile: {
     fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
   },
   item: {
-    marginBottom: isMobile ? 16 : 14,
-  },
-  itemMobile: {
-    marginBottom: 18,
+    marginBottom: 14,
   },
   label: {
-    fontSize: isMobile ? 15 : 14,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: 'bold',
     color: '#555',
-    marginBottom: isMobile ? 6 : 4,
-  },
-  labelMobile: {
-    fontSize: 16,
+    marginBottom: 4,
   },
   value: {
-    fontSize: isMobile ? 16 : 16,
+    fontSize: 16,
     color: '#222',
-    fontWeight: isMobile ? '500' : '400',
-    paddingLeft: isMobile ? 8 : 0,
-    lineHeight: 20,
-  },
-  valueMobile: {
-    fontSize: 17,
-    paddingVertical: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  textoNegrita: {
-    fontWeight: 'bold',
-  },
-  textoDescripcion: {
-    fontSize: isMobile ? 14 : 14,
-    color: '#777',
+    marginBottom: 4,
   },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: isMobile ? 10 : 8,
+    marginBottom: 8,
   },
   icono: {
     marginRight: 10,
@@ -193,38 +127,35 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   precioContainer: {
-    backgroundColor: 'rgba(76, 175, 80, 0.2)',
-    borderRadius: 15,
-    paddingVertical: 6,
+    backgroundColor: '#e8f5e9',
+    borderRadius: 6,
     paddingHorizontal: 12,
+    paddingVertical: 8,
     alignSelf: 'flex-start',
-    marginTop: 6,
   },
   precio: {
-    fontSize: isMobile ? 16 : 16,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '600',
     color: '#2e7d32',
   },
   participantesContainer: {
-    flexDirection: 'column',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginTop: 10,
   },
   participante: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: isMobile ? 12 : 10,
-    justifyContent: 'space-between',
   },
   participanteNombre: {
-    fontSize: isMobile ? 15 : 14,
+    fontSize: 14,
     color: '#333',
     marginHorizontal: 8,
-    flex: 1,
   },
   avatar: {
-    width: isMobile ? 36 : 30,
-    height: isMobile ? 36 : 30,
-    borderRadius: isMobile ? 18 : 15,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -237,25 +168,19 @@ const styles = StyleSheet.create({
   avatarText: {
     color: 'white',
     fontWeight: 'bold',
-    fontSize: isMobile ? 16 : 14,
+    fontSize: 14,
   },
   cerrar: {
-    marginTop: isMobile ? 24 : 20,
+    marginTop: 20,
     alignSelf: 'center',
-    paddingHorizontal: isMobile ? 40 : 30,
-    paddingVertical: isMobile ? 12 : 10,
+    paddingHorizontal: 30,
+    paddingVertical: 10,
     backgroundColor: '#424242',
     borderRadius: 15,
-    width: isMobile ? '60%' : undefined,
-    alignItems: 'center',
-  },
-  cerrarMobile: {
-    marginTop: 20,
   },
   textoCerrar: {
     fontWeight: 'bold',
     color: 'white',
-    fontSize: isMobile ? 16 : 14,
   },
 });
 

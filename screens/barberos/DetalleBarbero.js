@@ -1,37 +1,12 @@
 import React from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
+import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
-
-const { width, height } = Dimensions.get('window');
-const isMobile = width < 768;
 
 const DetalleBarbero = ({ visible, onClose, barbero }) => {
   if (!barbero) return null;
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'No registrada';
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('es-ES', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      });
-    } catch (e) {
-      return 'No registrada';
-    }
-  };
-
-  const nombre = barbero.nombre || '';
-  const cedula = barbero.cedula || 'No registrada';
-  const telefono = barbero.telefono || 'No registrado';
-  const email = barbero.Usuario?.email || barbero.email || 'No registrado';
-  const rol = barbero.Usuario?.Rol?.nombre || barbero.rol || 'No asignado';
-  const verificado = barbero.Usuario?.estaVerificado || barbero.verificado || false;
-  const fechaNacimiento = formatDate(barbero.fecha_nacimiento);
-  const fechaContratacion = formatDate(barbero.fecha_de_contratacion);
-
+  // Componente para el estado de verificación
   const EstadoVerificacion = ({ verificado }) => (
     <View style={[
       styles.estadoContainer,
@@ -39,12 +14,12 @@ const DetalleBarbero = ({ visible, onClose, barbero }) => {
     ]}>
       {verificado ? (
         <>
-          <MaterialIcons name="verified" size={isMobile ? 18 : 20} color="#2e7d32" />
+          <MaterialIcons name="verified" size={20} color="#2e7d32" />
           <Text style={[styles.estadoTexto, styles.textoVerificado]}>Verificado</Text>
         </>
       ) : (
         <>
-          <MaterialIcons name="warning" size={isMobile ? 18 : 20} color="#d32f2f" />
+          <MaterialIcons name="warning" size={20} color="#d32f2f" />
           <Text style={[styles.estadoTexto, styles.textoNoVerificado]}>No verificado</Text>
         </>
       )}
@@ -55,58 +30,57 @@ const DetalleBarbero = ({ visible, onClose, barbero }) => {
     <Modal visible={visible} animationType="slide" transparent>
       <BlurView intensity={20} tint="light" style={StyleSheet.absoluteFill}>
         <View style={styles.overlay}>
-          <View style={[styles.modal, isMobile && styles.modalMobile]}>
-            <Text style={[styles.titulo, isMobile && styles.tituloMobile]}>Información del Barbero</Text>
+          <View style={styles.modal}>
+            <Text style={styles.titulo}>Información del Barbero</Text>
             
-            <ScrollView 
-              style={styles.scrollContainer} 
-              contentContainerStyle={[styles.scrollContent, isMobile && styles.scrollContentMobile]}
-            >
-              <View style={[styles.item, isMobile && styles.itemMobile]}>
-                <Text style={[styles.label, isMobile && styles.labelMobile]}>Nombre</Text>
-                <Text style={[styles.value, isMobile && styles.valueMobile]}>{nombre}</Text>
+            <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
+              <View style={styles.item}>
+                <Text style={styles.label}>Nombre</Text>
+                <Text style={styles.value}>{barbero.nombre}</Text>
               </View>
 
-              <View style={[styles.item, isMobile && styles.itemMobile]}>
-                <Text style={[styles.label, isMobile && styles.labelMobile]}>Cédula</Text>
-                <Text style={[styles.value, isMobile && styles.valueMobile]}>{cedula}</Text>
+              <View style={styles.item}>
+                <Text style={styles.label}>Cédula</Text>
+                <Text style={styles.value}>{barbero.cedula || 'No registrada'}</Text>
               </View>
 
-              <View style={[styles.item, isMobile && styles.itemMobile]}>
-                <Text style={[styles.label, isMobile && styles.labelMobile]}>Teléfono</Text>
-                <Text style={[styles.value, isMobile && styles.valueMobile]}>{telefono}</Text>
+              <View style={styles.item}>
+                <Text style={styles.label}>Rol</Text>
+                <Text style={styles.value}>{barbero.rol || 'No asignado'}</Text>
               </View>
 
-              <View style={[styles.item, isMobile && styles.itemMobile]}>
-                <Text style={[styles.label, isMobile && styles.labelMobile]}>Email</Text>
-                <Text style={[styles.value, isMobile && styles.valueMobile]}>{email}</Text>
+              <View style={styles.item}>
+                <Text style={styles.label}>Teléfono</Text>
+                <Text style={styles.value}>{barbero.telefono || 'No registrado'}</Text>
               </View>
 
-              <View style={[styles.item, isMobile && styles.itemMobile]}>
-                <Text style={[styles.label, isMobile && styles.labelMobile]}>Fecha de nacimiento</Text>
-                <Text style={[styles.value, isMobile && styles.valueMobile]}>{fechaNacimiento}</Text>
+              <View style={styles.item}>
+                <Text style={styles.label}>Dirección</Text>
+                <Text style={styles.value}>{barbero.direccion || 'No registrada'}</Text>
               </View>
 
-              <View style={[styles.item, isMobile && styles.itemMobile]}>
-                <Text style={[styles.label, isMobile && styles.labelMobile]}>Fecha de contratación</Text>
-                <Text style={[styles.value, isMobile && styles.valueMobile]}>{fechaContratacion}</Text>
+              <View style={styles.item}>
+                <Text style={styles.label}>Fecha de nacimiento</Text>
+                <Text style={styles.value}>{barbero.fechaNacimiento || 'No registrada'}</Text>
               </View>
 
-              <View style={[styles.item, isMobile && styles.itemMobile]}>
-                <Text style={[styles.label, isMobile && styles.labelMobile]}>Rol</Text>
-                <Text style={[styles.value, isMobile && styles.valueMobile]}>{rol}</Text>
+              <View style={styles.item}>
+                <Text style={styles.label}>Fecha de contratación</Text>
+                <Text style={styles.value}>{barbero.fechaContratacion || 'No registrada'}</Text>
               </View>
 
-              <View style={[styles.item, isMobile && styles.itemMobile]}>
-                <Text style={[styles.label, isMobile && styles.labelMobile]}>Verificación</Text>
-                <EstadoVerificacion verificado={verificado} />
+              <View style={styles.item}>
+                <Text style={styles.label}>Email</Text>
+                <Text style={styles.value}>{barbero.email || 'No registrado'}</Text>
+              </View>
+
+              <View style={styles.item}>
+                <Text style={styles.label}>Verificación</Text>
+                <EstadoVerificacion verificado={barbero.emailVerificado} />
               </View>
             </ScrollView>
 
-            <TouchableOpacity 
-              style={[styles.cerrar, isMobile && styles.cerrarMobile]} 
-              onPress={onClose}
-            >
+            <TouchableOpacity style={styles.cerrar} onPress={onClose}>
               <Text style={styles.textoCerrar}>Cerrar</Text>
             </TouchableOpacity>
           </View>
@@ -121,97 +95,63 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: isMobile ? 20 : 0,
   },
   modal: {
-    width: isMobile ? '100%' : '30%',
+    width: '30%',
     backgroundColor: '#fff',
     borderRadius: 12,
-    padding: isMobile ? 24 : 20,
+    padding: 20,
     elevation: 10,
     borderWidth: 1,
     borderColor: 'black',
-    maxHeight: isMobile ? height * 0.8 : '80%',
-  },
-  modalMobile: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
+    maxHeight: '80%', // Limita la altura máxima del modal
   },
   scrollContainer: {
     flexGrow: 1,
   },
   scrollContent: {
-    paddingBottom: 10,
-  },
-  scrollContentMobile: {
-    paddingBottom: 20,
+    paddingBottom: 10, // Espacio adicional al final del scroll
   },
   titulo: {
-    fontSize: isMobile ? 20 : 22,
-    fontWeight: 'bold',
-    marginBottom: isMobile ? 16 : 20,
-    textAlign: 'center',
-    color: '#424242',
-  },
-  tituloMobile: {
     fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
   },
   item: {
-    marginBottom: isMobile ? 16 : 14,
-  },
-  itemMobile: {
-    marginBottom: 18,
+    marginBottom: 14,
   },
   label: {
-    fontSize: isMobile ? 15 : 14,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: 'bold',
     color: '#555',
-    marginBottom: isMobile ? 6 : 4,
-  },
-  labelMobile: {
-    fontSize: 16,
+    marginBottom: 4,
   },
   value: {
-    fontSize: isMobile ? 16 : 16,
+    fontSize: 16,
     color: '#222',
-    fontWeight: isMobile ? '500' : '400',
-    paddingLeft: isMobile ? 8 : 0,
-  },
-  valueMobile: {
-    fontSize: 17,
-    paddingVertical: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   cerrar: {
-    marginTop: isMobile ? 24 : 20,
+    marginTop: 20,
     alignSelf: 'center',
-    paddingHorizontal: isMobile ? 40 : 30,
-    paddingVertical: isMobile ? 12 : 10,
+    paddingHorizontal: 30,
+    paddingVertical: 10,
     backgroundColor: '#424242',
     borderRadius: 15,
-    width: isMobile ? '60%' : undefined,
-    alignItems: 'center',
-  },
-  cerrarMobile: {
-    marginTop: 20,
   },
   textoCerrar: {
     fontWeight: 'bold',
     color: 'white',
-    fontSize: isMobile ? 16 : 14,
   },
   estadoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: isMobile ? 6 : 4,
-    paddingHorizontal: isMobile ? 10 : 8,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
     borderRadius: 12,
-    justifyContent: 'flex-start',
+    justifyContent: 'center',
     alignSelf: 'flex-start',
-    marginTop: isMobile ? 6 : 4,
+    marginTop: 4,
   },
   verificado: {
     backgroundColor: '#e8f5e9',
@@ -220,9 +160,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffebee',
   },
   estadoTexto: {
-    marginLeft: 6,
-    fontWeight: '500',
-    fontSize: isMobile ? 15 : 14,
+    marginLeft: 4,
+    fontWeight: 'bold',
   },
   textoVerificado: {
     color: '#2e7d32',

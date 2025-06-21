@@ -1,16 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  Modal, 
-  TouchableOpacity, 
-  StyleSheet, 
-  TextInput, 
-  Picker, 
-  ScrollView,
-  Dimensions,
-  Platform
-} from 'react-native';
+import { View, Text, Modal, TouchableOpacity, StyleSheet, TextInput, Picker, ScrollView } from 'react-native';
 import { BlurView } from 'expo-blur';
 
 const EditarInsumo = ({ visible, onClose, insumo, categoriasExistentes = [], onUpdate }) => {
@@ -18,8 +7,6 @@ const EditarInsumo = ({ visible, onClose, insumo, categoriasExistentes = [], onU
   const [descripcion, setDescripcion] = useState('');
   const [categoria, setCategoria] = useState('');
   const [unidadMedida, setUnidadMedida] = useState('');
-  const [isMobile, setIsMobile] = useState(false);
-  const [orientation, setOrientation] = useState('portrait');
 
   const unidadesMedida = [
     { label: 'Kilogramos', value: 'kilogramos' },
@@ -27,24 +14,6 @@ const EditarInsumo = ({ visible, onClose, insumo, categoriasExistentes = [], onU
     { label: 'Litros', value: 'litros' },
     { label: 'Mililitros', value: 'mililitros' }
   ];
-
-  // Detectar tamaño de pantalla y orientación
-  useEffect(() => {
-    const updateLayout = () => {
-      const { width, height } = Dimensions.get('window');
-      const isPortrait = height > width;
-      
-      setOrientation(isPortrait ? 'portrait' : 'landscape');
-      setIsMobile(width < 768); // Consideramos móvil si el ancho es menor a 768px
-    };
-
-    updateLayout();
-    Dimensions.addEventListener('change', updateLayout);
-
-    return () => {
-      Dimensions.removeEventListener('change', updateLayout);
-    };
-  }, []);
 
   // Inicializar estados con los valores del insumo
   useEffect(() => {
@@ -83,21 +52,16 @@ const EditarInsumo = ({ visible, onClose, insumo, categoriasExistentes = [], onU
     >
       <BlurView intensity={20} tint="light" style={StyleSheet.absoluteFill}>
         <View style={styles.modalContainer}>
-          <View style={[
-            styles.modalContent, 
-            isMobile ? styles.mobileModalContent : styles.desktopModalContent,
-            orientation === 'landscape' && isMobile && styles.landscapeModalContent
-          ]}>
+          <View style={styles.modalContent}>
             <View style={styles.headerContainer}>
               <Text style={styles.modalTitle}>Actualizar insumo</Text>
-              <Text style={styles.subtitle}>Por favor, proporciona la información para actualizar el insumo</Text>
             </View>
+            <Text style={styles.subtitle}>Por favor, proporciona la información para actualizar el insumo</Text>
 
             <ScrollView 
               style={styles.scrollContainer}
               contentContainerStyle={styles.scrollContent}
               showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
             >
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Nombre*</Text>
@@ -113,13 +77,13 @@ const EditarInsumo = ({ visible, onClose, insumo, categoriasExistentes = [], onU
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Descripción*</Text>
                 <TextInput
-                  style={[styles.input, styles.multilineInput]}
+                  style={styles.input}
                   placeholder="crema actualizada"
                   placeholderTextColor="#D9D9D9"
                   value={descripcion}
                   onChangeText={setDescripcion}
                   multiline={true}
-                  numberOfLines={isMobile ? 4 : 3}
+                  numberOfLines={3}
                 />
               </View>
 
@@ -165,10 +129,7 @@ const EditarInsumo = ({ visible, onClose, insumo, categoriasExistentes = [], onU
               </View>
             </ScrollView>
 
-            <View style={[
-              styles.buttonContainer,
-              isMobile && styles.mobileButtonContainer
-            ]}>
+            <View style={styles.buttonContainer}>
               <TouchableOpacity 
                 style={styles.submitButton}
                 onPress={handleSubmit}
@@ -196,8 +157,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 20
   },
-  // Estilo para desktop
-  desktopModalContent: {
+  modalContent: {
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 20,
@@ -211,27 +171,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'black',
     maxHeight: '85%'
-  },
-  // Estilo para móviles
-  mobileModalContent: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 20,
-    width: '90%',
-    alignSelf: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: 'black',
-    maxHeight: '90%'
-  },
-  // Estilo adicional para móviles en landscape
-  landscapeModalContent: {
-    width: '70%',
-    maxHeight: '80%'
   },
   headerContainer: {
     alignItems: 'flex-start',
@@ -251,10 +190,9 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flex: 1,
-    marginBottom: 10
   },
   scrollContent: {
-    paddingBottom: 10
+    paddingBottom: 15
   },
   formGroup: {
     marginBottom: 16
@@ -273,10 +211,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     fontSize: 15,
     backgroundColor: '#f9f9f9'
-  },
-  multilineInput: {
-    minHeight: 80,
-    textAlignVertical: 'top'
   },
   quantityContainer: {
     borderWidth: 1.5,
@@ -306,13 +240,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 12
   },
-  mobileButtonContainer: {
-    flexDirection: 'column',
-    gap: 10
-  },
   submitButton: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderRadius: 8,
     backgroundColor: '#424242',
     alignItems: 'center',
@@ -320,7 +250,7 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderRadius: 8,
     backgroundColor: 'white',
     alignItems: 'center',

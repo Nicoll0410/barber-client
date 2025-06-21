@@ -1,52 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Dimensions, ScrollView, Alert } from 'react-native';
-import { MaterialIcons, FontAwesome, Feather, Ionicons } from '@expo/vector-icons';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert } from 'react-native';
+import { MaterialIcons, Feather, Ionicons, FontAwesome } from '@expo/vector-icons';
 import Paginacion from '../../components/Paginacion';
 import Buscador from '../../components/Buscador';
 import CrearCategoria from './CrearCategoriaInsumos';
 import EditarCategoria from './EditarCategoriaInsumos';
 import DetalleCategoria from './DetalleCategoriaInsumos';
 import Footer from '../../components/Footer';
-
-const { width } = Dimensions.get('window');
-const isMobile = width < 768;
-
-// Mobile Category Card
-const CategoriaCard = ({ item, onVer, onEditar, onEliminar }) => (
-  <View style={styles.card}>
-    <View style={styles.cardHeader}>
-      <View style={styles.cardHeaderText}>
-        <Text style={styles.cardNombre}>{item.nombre}</Text>
-        <Text style={styles.cardDescripcion}>{item.descripcion}</Text>
-      </View>
-    </View>
-    
-    <View style={styles.cardDetails}>
-      <View style={styles.detailRow}>
-        <MaterialIcons name="date-range" size={16} color="#757575" style={styles.detailIcon}/>
-        <Text style={styles.detailText}>{item.fechaCreacion}</Text>
-      </View>
-      <View style={styles.detailRow}>
-        <MaterialIcons name="inventory" size={16} color="#757575" style={styles.detailIcon}/>
-        <Text style={styles.detailText}>Insumos asociados: {item.insumosAsociados}</Text>
-      </View>
-    </View>
-    
-    <View style={styles.cardActions}>
-      <TouchableOpacity style={styles.actionButton} onPress={() => onVer(item.id)}>
-        <FontAwesome name="eye" size={18} color="#424242" />
-      </TouchableOpacity>
-      
-      <TouchableOpacity style={styles.actionButton} onPress={() => onEditar(item.id)}>
-        <Feather name="edit" size={18} color="#424242" />
-      </TouchableOpacity>
-      
-      <TouchableOpacity style={styles.actionButton} onPress={() => onEliminar(item.id)}>
-        <Feather name="trash-2" size={18} color="#d32f2f" />
-      </TouchableOpacity>
-    </View>
-  </View>
-);
 
 const CategoriaInsumosScreen = () => {
   const [categorias, setCategorias] = useState([]);
@@ -89,6 +49,27 @@ const CategoriaInsumosScreen = () => {
         fechaCreacion: '10 de marzo de 2024', 
         insumosAsociados: 12 
       },
+      { 
+        id: 5, 
+        nombre: 'Accesorios', 
+        descripcion: 'Peines, cepillos y brochas', 
+        fechaCreacion: '25 de marzo de 2024', 
+        insumosAsociados: 15 
+      },
+      { 
+        id: 6, 
+        nombre: 'Cuidado Capilar', 
+        descripcion: 'Shampoos y acondicionadores', 
+        fechaCreacion: '1 de abril de 2024', 
+        insumosAsociados: 7 
+      },
+      { 
+        id: 7, 
+        nombre: 'Barba', 
+        descripcion: 'Aceites y productos para barba', 
+        fechaCreacion: '10 de abril de 2024', 
+        insumosAsociados: 9 
+      },
     ];
     setCategorias(datosEjemplo);
     setCategoriasFiltradas(datosEjemplo);
@@ -109,7 +90,7 @@ const CategoriaInsumosScreen = () => {
   }, [busqueda, categorias]);
 
   const indiceInicial = (paginaActual - 1) * categoriasPorPagina;
-  const categoriasMostrar = isMobile ? categoriasFiltradas : categoriasFiltradas.slice(indiceInicial, indiceInicial + categoriasPorPagina);
+  const categoriasMostrar = categoriasFiltradas.slice(indiceInicial, indiceInicial + categoriasPorPagina);
   const totalPaginas = Math.ceil(categoriasFiltradas.length / categoriasPorPagina);
 
   const cambiarPagina = (nuevaPagina) => {
@@ -119,6 +100,7 @@ const CategoriaInsumosScreen = () => {
   };
 
   const crearCategoria = () => setModalVisible(true);
+
   const handleSearchChange = (texto) => setBusqueda(texto);
 
   const handleCreateCategoria = (newCategoria) => {
@@ -180,15 +162,15 @@ const CategoriaInsumosScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.title}>Categorías de Insumos</Text>
-          <View style={styles.counter}>
-            <Text style={styles.counterText}>{categoriasFiltradas.length}</Text>
+        <View style={styles.tituloContainer}>
+          <Text style={styles.titulo}>Categoría de insumos</Text>
+          <View style={styles.contadorContainer}>
+            <Text style={styles.contadorTexto}>{categoriasFiltradas.length}</Text>
           </View>
         </View>
-        <TouchableOpacity style={styles.addButton} onPress={crearCategoria}>
-          <Ionicons name="add-circle" size={20} color="white" />
-          <Text style={styles.addButtonText}>Crear</Text>
+        <TouchableOpacity style={styles.botonCrear} onPress={crearCategoria}>
+          <Ionicons name="add-circle" size={24} color="white" />
+          <Text style={styles.textoBoton}>Crear Categoría</Text>
         </TouchableOpacity>
       </View>
 
@@ -198,75 +180,59 @@ const CategoriaInsumosScreen = () => {
         onChangeText={handleSearchChange}
       />
 
-      {!isMobile ? (
-        <View style={styles.table}>
-          <View style={styles.tableHeader}>
-            <View style={[styles.headerCell, styles.nameColumn]}><Text style={styles.headerText}>Nombre</Text></View>
-            <View style={[styles.headerCell, styles.descColumn]}><Text style={styles.headerText}>Descripción</Text></View>
-            <View style={[styles.headerCell, styles.dateColumn]}><Text style={styles.headerText}>Fecha Creación</Text></View>
-            <View style={[styles.headerCell, styles.itemsColumn]}><Text style={styles.headerText}>Insumos</Text></View>
-            <View style={[styles.headerCell, styles.actionsColumn]}><Text style={styles.headerText}>Acciones</Text></View>
-          </View>
+      <View style={styles.tabla}>
+        <View style={styles.filaEncabezado}>
+          <View style={[styles.celdaEncabezado, styles.columnaNombre]}><Text style={styles.encabezado}>Nombre</Text></View>
+          <View style={[styles.celdaEncabezado, styles.columnaDescripcion]}><Text style={styles.encabezado}>Descripción</Text></View>
+          <View style={[styles.celdaEncabezado, styles.columnaFecha]}><Text style={styles.encabezado}>Fecha de creación</Text></View>
+          <View style={[styles.celdaEncabezado, styles.columnaInsumos]}><Text style={styles.encabezado}>Insumos asociados</Text></View>
+          <View style={[styles.celdaEncabezado, styles.columnaAcciones]}><Text style={styles.encabezado}>Acciones</Text></View>
+        </View>
 
-          <FlatList
-            data={categoriasMostrar}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={({ item }) => (
-              <View style={styles.tableRow}>
-                <View style={[styles.cell, styles.nameColumn]}>
-                  <Text style={styles.nameText}>{item.nombre}</Text>
-                </View>
-                <View style={[styles.cell, styles.descColumn]}>
-                  <Text style={styles.descText}>{item.descripcion}</Text>
-                </View>
-                <View style={[styles.cell, styles.dateColumn]}>
-                  <Text style={styles.dateText}>{item.fechaCreacion}</Text>
-                </View>
-                <View style={[styles.cell, styles.itemsColumn]}>
-                  <View style={styles.itemsBadge}>
-                    <Text style={styles.itemsText}>{item.insumosAsociados}</Text>
-                  </View>
-                </View>
-                <View style={[styles.cell, styles.actionsColumn]}>
-                  <View style={styles.actionsContainer}>
-                    <TouchableOpacity onPress={() => verDetallesCategoria(item.id)} style={styles.actionIcon}>
-                      <FontAwesome name="eye" size={20} color="black" />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => editarCategoria(item.id)} style={styles.actionIcon}>
-                      <Feather name="edit" size={20} color="black" />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => eliminarCategoria(item.id)} style={styles.actionIcon}>
-                      <Feather name="trash-2" size={20} color="black" />
-                    </TouchableOpacity>
-                  </View>
+        <FlatList
+          data={categoriasMostrar}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <View style={styles.fila}>
+              <View style={[styles.celda, styles.columnaNombre]}>
+                <Text style={styles.textoNombre}>{item.nombre}</Text>
+              </View>
+              <View style={[styles.celda, styles.columnaDescripcion]}>
+                <Text style={styles.textoDescripcion}>{item.descripcion}</Text>
+              </View>
+              <View style={[styles.celda, styles.columnaFecha]}>
+                <View style={styles.fechaContainer}>
+                  <Text style={styles.textoFecha}>{item.fechaCreacion}</Text>
                 </View>
               </View>
-            )}
-          />
-        </View>
-      ) : (
-        <ScrollView style={styles.scrollContainer}>
-          <View style={styles.cardsContainer}>
-            {categoriasMostrar.map(item => (
-              <CategoriaCard 
-                key={item.id.toString()}
-                item={item}
-                onVer={verDetallesCategoria}
-                onEditar={editarCategoria}
-                onEliminar={eliminarCategoria}
-              />
-            ))}
-          </View>
-        </ScrollView>
-      )}
-
-      {!isMobile && (
-        <Paginacion
-          paginaActual={paginaActual}
-          totalPaginas={totalPaginas}
-          cambiarPagina={cambiarPagina}
+              <View style={[styles.celda, styles.columnaInsumos]}>
+                <View style={styles.insumosContainer}>
+                  <Text style={styles.textoInsumos}>{item.insumosAsociados}</Text>
+                </View>
+              </View>
+              <View style={[styles.celda, styles.columnaAcciones]}>
+                <View style={styles.contenedorAcciones}>
+                  <TouchableOpacity onPress={() => verDetallesCategoria(item.id)} style={styles.botonAccion}>
+                    <FontAwesome name="eye" size={20} color="black" />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => editarCategoria(item.id)} style={styles.botonAccion}>
+                    <Feather name="edit" size={20} color="black" />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => eliminarCategoria(item.id)} style={styles.botonAccion}>
+                    <Feather name="trash-2" size={20} color="black" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          )}
         />
-      )}
+      </View>
+
+      <Paginacion
+        paginaActual={paginaActual}
+        totalPaginas={totalPaginas}
+        cambiarPagina={cambiarPagina}
+      />
 
       <CrearCategoria
         visible={modalVisible}
@@ -286,7 +252,6 @@ const CategoriaInsumosScreen = () => {
         onClose={() => setModalDetalleVisible(false)}
         categoria={categoriaSeleccionada}
       />
-      
       <Footer />
     </View>
   );
@@ -302,32 +267,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
   },
-  headerLeft: {
+  tituloContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  title: {
-    fontSize: 22,
+  titulo: {
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#424242',
-    marginRight: 12,
+    marginRight: 10,
   },
-  counter: {
-    backgroundColor: '#EEEEEE',
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+  contadorContainer: {
+    backgroundColor: '#D9D9D9',
+    borderRadius: 50,
+    width: 30,
+    height: 30,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  counterText: {
-    fontWeight: 'bold',
+  contadorTexto: {
     fontSize: 14,
-    color: '#424242',
+    fontWeight: 'bold',
   },
-  addButton: {
+  botonCrear: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#424242',
@@ -335,160 +298,102 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 20,
   },
-  addButtonText: {
+  textoBoton: {
     marginLeft: 8,
     color: 'white',
     fontWeight: '500',
-    fontSize: 14,
   },
-
-  // Desktop Table Styles
-  table: {
+  tabla: {
     borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 8,
+    borderColor: '#ddd',
+    borderRadius: 4,
     marginBottom: 16,
     overflow: 'hidden',
   },
-  tableHeader: {
+  filaEncabezado: {
     flexDirection: 'row',
     backgroundColor: '#424242',
     paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'black',
   },
-  headerCell: {
+  celdaEncabezado: {
     justifyContent: 'center',
+    alignItems: 'center',
     paddingHorizontal: 8,
   },
-  headerText: {
+  encabezado: {
     fontWeight: 'bold',
+    textAlign: 'center',
     color: 'white',
-    fontSize: 14,
   },
-  tableRow: {
+  fila: {
     flexDirection: 'row',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-    backgroundColor: 'white',
+    borderBottomColor: 'black',
+    alignItems: 'center',
   },
-  cell: {
+  celda: {
     justifyContent: 'center',
     paddingHorizontal: 8,
   },
-  nameColumn: {
+  columnaNombre: {
     flex: 2,
     alignItems: 'flex-start',
   },
-  descColumn: {
+  columnaDescripcion: {
     flex: 3,
     alignItems: 'flex-start',
   },
-  dateColumn: {
+  columnaFecha: {
     flex: 2,
     alignItems: 'center',
   },
-  itemsColumn: {
+  columnaInsumos: {
     flex: 1,
     alignItems: 'center',
   },
-  actionsColumn: {
-    flex: 2,
+  columnaAcciones: {
+    flex: 1.5,
     alignItems: 'flex-end',
   },
-  nameText: {
-    fontWeight: '500',
-    fontSize: 14,
-    color: '#424242',
-  },
-  descText: {
-    fontSize: 14,
-    color: '#616161',
-  },
-  dateText: {
-    fontSize: 14,
-    color: '#424242',
-  },
-  itemsBadge: {
-    backgroundColor: '#E0E0E0',
-    borderRadius: 12,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    minWidth: 30,
-    alignItems: 'center',
-  },
-  itemsText: {
+  textoNombre: {
     fontWeight: 'bold',
-    fontSize: 14,
-    color: '#424242',
   },
-  actionsContainer: {
-    flexDirection: 'row',
+  textoDescripcion: {
+    color: '#555',
+    fontWeight: 'bold', // Descripción en negrita
   },
-  actionIcon: {
-    marginHorizontal: 6,
+  fechaContainer: {
+    backgroundColor: '#D9D9D9',
+    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
-
-  // Mobile Card Styles
-  scrollContainer: {
-    flex: 1,
+  textoFecha: {
+    textAlign: 'center',
+    color: '#666',
+    fontWeight: 'bold', // Fecha en negrita
   },
-  cardsContainer: {
-    paddingBottom: 16,
-  },
-  card: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  cardHeader: {
-    marginBottom: 12,
-  },
-  cardHeaderText: {
-    flex: 1,
-  },
-  cardNombre: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#212121',
-    marginBottom: 4,
-  },
-  cardDescripcion: {
-    fontSize: 14,
-    color: '#757575',
-  },
-  cardDetails: {
-    marginBottom: 8,
-  },
-  detailRow: {
-    flexDirection: 'row',
+  insumosContainer: {
+    backgroundColor: '#D9D9D9',
+    borderRadius: 15,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 6,
   },
-  detailIcon: {
-    marginRight: 8,
+  textoInsumos: {
+    fontWeight: 'bold',
   },
-  detailText: {
-    fontSize: 14,
-    color: '#616161',
-  },
-  cardActions: {
+  contenedorAcciones: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginTop: 8,
+    width: '100%',
   },
-  actionButton: {
-    marginLeft: 12,
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: '#f5f5f5',
+  botonAccion: {
+    marginHorizontal: 6,
   },
 });
 

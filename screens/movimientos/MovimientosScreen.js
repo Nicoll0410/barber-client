@@ -1,44 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { MaterialIcons, FontAwesome, Feather, Ionicons } from '@expo/vector-icons';
 import Paginacion from '../../components/Paginacion';
 import Buscador from '../../components/Buscador';
 import Footer from '../../components/Footer';
 
-const { width } = Dimensions.get('window');
-const isMobile = width < 768;
-
-// Mobile Movement Card
-const MovimientoCard = ({ item }) => (
-  <View style={styles.card}>
-    <View style={styles.cardHeader}>
-      <View style={styles.cardHeaderText}>
-        <Text style={styles.cardNombre}>{item.insumo}</Text>
-        <Text style={styles.cardDescripcion}>{item.descripcion}</Text>
-      </View>
-    </View>
-    
-    <View style={styles.cardDetails}>
-      <View style={styles.detailRow}>
-        <MaterialIcons name="format-list-numbered" size={16} color="#757575" style={styles.detailIcon}/>
-        <Text style={styles.detailText}>Unidades: {item.unidades}</Text>
-      </View>
-      <View style={styles.detailRow}>
-        <MaterialIcons name="date-range" size={16} color="#757575" style={styles.detailIcon}/>
-        <Text style={styles.detailText}>{item.fecha}</Text>
-      </View>
-    </View>
-  </View>
-);
-
 const MovimientosScreen = () => {
   const [movimientos, setMovimientos] = useState([]);
   const [movimientosFiltrados, setMovimientosFiltrados] = useState([]);
   const [paginaActual, setPaginaActual] = useState(1);
-  const [movimientosPorPagina] = useState(isMobile ? 4 : 5);
+  const [movimientosPorPagina] = useState(5);
   const [busqueda, setBusqueda] = useState('');
 
   useEffect(() => {
+    // Datos de ejemplo modificados para ser más relacionados con barbería
     const datosEjemplo = [
       { 
         id: 1,
@@ -94,10 +69,9 @@ const MovimientosScreen = () => {
     setPaginaActual(1);
   }, [busqueda, movimientos]);
 
+  // Calcular movimientos para la página actual
   const indiceInicial = (paginaActual - 1) * movimientosPorPagina;
-  const movimientosMostrar = isMobile 
-    ? movimientosFiltrados 
-    : movimientosFiltrados.slice(indiceInicial, indiceInicial + movimientosPorPagina);
+  const movimientosMostrar = movimientosFiltrados.slice(indiceInicial, indiceInicial + movimientosPorPagina);
   const totalPaginas = Math.ceil(movimientosFiltrados.length / movimientosPorPagina);
 
   const cambiarPagina = (nuevaPagina) => {
@@ -113,10 +87,10 @@ const MovimientosScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.title}>Registro de movimientos</Text>
-          <View style={styles.counter}>
-            <Text style={styles.counterText}>{movimientosFiltrados.length}</Text>
+        <View style={styles.tituloContainer}>
+          <Text style={styles.titulo}>Registro de movimientos</Text>
+          <View style={styles.contadorContainer}>
+            <Text style={styles.contadorTexto}>{movimientosFiltrados.length}</Text>
           </View>
         </View>
       </View>
@@ -127,61 +101,57 @@ const MovimientosScreen = () => {
         onChangeText={handleSearchChange}
       />
 
-      {!isMobile ? (
-        <View style={styles.table}>
-          <View style={styles.tableHeader}>
-            <View style={[styles.headerCell, styles.insumoColumn]}><Text style={styles.headerText}>Insumo</Text></View>
-            <View style={[styles.headerCell, styles.descripcionColumn]}><Text style={styles.headerText}>Descripción</Text></View>
-            <View style={[styles.headerCell, styles.unidadesColumn]}><Text style={styles.headerText}>Unidades</Text></View>
-            <View style={[styles.headerCell, styles.fechaColumn]}><Text style={styles.headerText}>Fecha</Text></View>
+      <View style={styles.tabla}>
+        {/* Encabezados de la tabla */}
+        <View style={styles.filaEncabezado}>
+          <View style={[styles.celdaEncabezado, styles.columnaInsumo]}>
+            <Text style={styles.encabezado}>Insumo</Text>
           </View>
+          <View style={[styles.celdaEncabezado, styles.columnaDescripcion]}>
+            <Text style={styles.encabezado}>Descripción</Text>
+          </View>
+          <View style={[styles.celdaEncabezado, styles.columnaUnidades]}>
+            <Text style={styles.encabezado}>Unidades</Text>
+          </View>
+          <View style={[styles.celdaEncabezado, styles.columnaFecha]}>
+            <Text style={styles.encabezado}>Fecha</Text>
+          </View>
+        </View>
 
-          <FlatList
-            data={movimientosMostrar}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={({ item }) => (
-              <View style={styles.tableRow}>
-                <View style={[styles.cell, styles.insumoColumn]}>
-                  <Text style={styles.textoNombre}>{item.insumo}</Text>
-                </View>
-                <View style={[styles.cell, styles.descripcionColumn]}>
-                  <Text style={styles.textoDescripcion}>{item.descripcion}</Text>
-                </View>
-                <View style={[styles.cell, styles.unidadesColumn]}>
-                  <View style={styles.unidadesContainer}>
-                    <Text style={styles.textoUnidades}>{item.unidades}</Text>
-                  </View>
-                </View>
-                <View style={[styles.cell, styles.fechaColumn]}>
-                  <View style={styles.fechaContainer}>
-                    <Text style={styles.textoFecha}>{item.fecha}</Text>
-                  </View>
+        {/* Lista de movimientos */}
+        <FlatList
+          data={movimientosMostrar}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <View style={styles.fila}>
+              <View style={[styles.celda, styles.columnaInsumo]}>
+                <Text style={styles.textoNombre}>{item.insumo}</Text>
+              </View>
+              <View style={[styles.celda, styles.columnaDescripcion]}>
+                <Text style={styles.textoDescripcion}>{item.descripcion}</Text>
+              </View>
+              <View style={[styles.celda, styles.columnaUnidades]}>
+                <View style={styles.unidadesContainer}>
+                  <Text style={styles.textoUnidades}>{item.unidades}</Text>
                 </View>
               </View>
-            )}
-          />
-        </View>
-      ) : (
-        <ScrollView style={styles.scrollContainer}>
-          <View style={styles.cardsContainer}>
-            {movimientosMostrar.map(item => (
-              <MovimientoCard 
-                key={item.id.toString()}
-                item={item}
-              />
-            ))}
-          </View>
-        </ScrollView>
-      )}
-
-      {!isMobile && (
-        <Paginacion
-          paginaActual={paginaActual}
-          totalPaginas={totalPaginas}
-          cambiarPagina={cambiarPagina}
+              <View style={[styles.celda, styles.columnaFecha]}>
+                <View style={styles.fechaContainer}>
+                  <Text style={styles.textoFecha}>{item.fecha}</Text>
+                </View>
+              </View>
+            </View>
+          )}
         />
-      )}
-      
+
+      </View>
+
+      {/* Componente de paginación */}
+      <Paginacion
+        paginaActual={paginaActual}
+        totalPaginas={totalPaginas}
+        cambiarPagina={cambiarPagina}
+      />
       <Footer />
     </View>
   );
@@ -190,99 +160,97 @@ const MovimientosScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: isMobile ? 16 : 20,
+    padding: 16,
     backgroundColor: '#fff',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: isMobile ? 16 : 20,
+    marginBottom: 16,
   },
-  headerLeft: {
+  tituloContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  title: {
-    fontSize: isMobile ? 22 : 24,
+  titulo: {
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#424242',
-    marginRight: 12,
+    marginRight: 10,
   },
-  counter: {
-    backgroundColor: '#EEEEEE',
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+  contadorContainer: {
+    backgroundColor: '#D9D9D9',
+    borderRadius: 50,
+    width: 30,
+    height: 30,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  counterText: {
-    fontWeight: 'bold',
+  contadorTexto: {
     fontSize: 14,
-    color: '#424242',
+    fontWeight: 'bold',
   },
-
-  // Desktop Table Styles
-  table: {
+  tabla: {
     borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 8,
+    borderColor: '#ddd',
+    borderRadius: 4,
     marginBottom: 16,
     overflow: 'hidden',
   },
-  tableHeader: {
+  filaEncabezado: {
     flexDirection: 'row',
     backgroundColor: '#424242',
     paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'black',
   },
-  headerCell: {
+  celdaEncabezado: {
     justifyContent: 'center',
+    alignItems: 'center',
     paddingHorizontal: 8,
   },
-  headerText: {
+  encabezado: {
     fontWeight: 'bold',
+    textAlign: 'center',
     color: 'white',
-    fontSize: 14,
   },
-  tableRow: {
+  fila: {
     flexDirection: 'row',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-    backgroundColor: 'white',
+    borderBottomColor: 'black',
+    alignItems: 'center',
   },
-  cell: {
+  celda: {
     justifyContent: 'center',
     paddingHorizontal: 8,
   },
-  insumoColumn: {
+  columnaInsumo: {
     flex: 2,
     alignItems: 'flex-start',
   },
-  descripcionColumn: {
+  columnaDescripcion: {
     flex: 3,
     alignItems: 'flex-start',
   },
-  unidadesColumn: {
+  columnaUnidades: {
     flex: 1,
     alignItems: 'center',
   },
-  fechaColumn: {
+  columnaFecha: {
     flex: 2,
     alignItems: 'center',
   },
   textoNombre: {
     fontWeight: '500',
-    fontSize: 14,
-    color: '#424242',
+    color: '#333',
   },
   textoDescripcion: {
-    fontSize: 14,
-    color: '#424242',
+    color: '#000', // Cambiado a negro como solicitado
+    fontWeight: '400',
   },
   unidadesContainer: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#D9D9D9',
     borderRadius: 15,
     paddingVertical: 4,
     paddingHorizontal: 12,
@@ -291,11 +259,10 @@ const styles = StyleSheet.create({
   },
   textoUnidades: {
     fontWeight: '500',
-    fontSize: 14,
-    color: '#424242',
+    textAlign: 'center',
   },
   fechaContainer: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#D9D9D9',
     borderRadius: 15,
     paddingVertical: 4,
     paddingHorizontal: 12,
@@ -304,60 +271,7 @@ const styles = StyleSheet.create({
   },
   textoFecha: {
     fontWeight: '500',
-    fontSize: 14,
-    color: '#424242',
-  },
-
-  // Mobile Card Styles
-  scrollContainer: {
-    flex: 1,
-  },
-  cardsContainer: {
-    paddingBottom: 16,
-  },
-  card: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  cardHeader: {
-    marginBottom: 12,
-  },
-  cardHeaderText: {
-    marginBottom: 8,
-  },
-  cardNombre: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#212121',
-    marginBottom: 4,
-  },
-  cardDescripcion: {
-    fontSize: 14,
-    color: '#616161',
-  },
-  cardDetails: {
-    marginTop: 8,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  detailIcon: {
-    marginRight: 8,
-  },
-  detailText: {
-    fontSize: 14,
-    color: '#616161',
+    textAlign: 'center',
   },
 });
 

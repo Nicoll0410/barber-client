@@ -16,7 +16,6 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { BlurView } from 'expo-blur';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
-import moment from 'moment';
 
 // Configuración de localización en español
 LocaleConfig.locales['es'] = {
@@ -63,18 +62,20 @@ const CrearBarbero = ({ visible, onClose, onCreate }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showDatePickerContratacion, setShowDatePickerContratacion] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [pickerType, setPickerType] = useState('nacimiento');
+  const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
+  const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
 
   const months = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
   ];
 
-  const years = Array.from({ length: 81 }, (_, i) => new Date().getFullYear() - i);
-  const yearsContratacion = Array.from({ length: 36 }, (_, i) => new Date().getFullYear() - i);
+  const currentYear = new Date().getFullYear();
+  // Años para fecha de nacimiento (80 años atrás)
+  const yearsNacimiento = Array.from({ length: 81 }, (_, i) => currentYear - i);
+  // Años para fecha de contratación (35 años atrás y 10 años adelante)
+  const yearsContratacion = Array.from({ length: 46 }, (_, i) => currentYear - 35 + i);
 
   const resetForm = () => {
     setFormData({
@@ -89,6 +90,9 @@ const CrearBarbero = ({ visible, onClose, onCreate }) => {
       confirmPassword: '',
       avatar: null
     });
+    // Resetear también el calendario a la fecha actual
+    setCalendarMonth(new Date().getMonth());
+    setCalendarYear(currentYear);
   };
 
   const handleChange = (name, value) => {
@@ -106,12 +110,11 @@ const CrearBarbero = ({ visible, onClose, onCreate }) => {
       handleChange('fechaContratacion', selectedDate);
     }
     setShowDatePicker(false);
-    setShowDatePickerContratacion(false);
   };
 
   const changeMonth = (increment) => {
-    let newMonth = selectedMonth + increment;
-    let newYear = selectedYear;
+    let newMonth = calendarMonth + increment;
+    let newYear = calendarYear;
     
     if (newMonth > 11) {
       newMonth = 0;
@@ -121,15 +124,37 @@ const CrearBarbero = ({ visible, onClose, onCreate }) => {
       newYear--;
     }
     
+    // Validar según el tipo de calendario
     if (pickerType === 'nacimiento') {
-      if (newYear <= new Date().getFullYear() && newYear >= (new Date().getFullYear() - 80)) {
-        setSelectedMonth(newMonth);
-        setSelectedYear(newYear);
+      if (newYear <= currentYear && newYear >= (currentYear - 80)) {
+        setCalendarMonth(newMonth);
+        setCalendarYear(newYear);
       }
     } else {
-      if (newYear <= new Date().getFullYear() && newYear >= (new Date().getFullYear() - 35)) {
-        setSelectedMonth(newMonth);
-        setSelectedYear(newYear);
+      if (newYear >= (currentYear - 35) && newYear <= (currentYear + 10)) {
+        setCalendarMonth(newMonth);
+        setCalendarYear(newYear);
+      }
+    }
+  };
+
+  const changeYear = (year) => {
+    // Validar según el tipo de calendario
+    if (pickerType === 'nacimiento') {
+      if (year <= currentYear && year >= (currentYear - 80)) {
+        // Si el año seleccionado es el año actual, asegurarse de que el mes no sea futuro
+        if (year === currentYear && calendarMonth > new Date().getMonth()) {
+          setCalendarMonth(new Date().getMonth());
+        }
+        setCalendarYear(year);
+      }
+    } else {
+      if (year >= (currentYear - 35) && year <= (currentYear + 10)) {
+        // Si el año seleccionado es el año actual, asegurarse de que el mes no sea pasado
+        if (year === currentYear && calendarMonth < new Date().getMonth()) {
+          setCalendarMonth(new Date().getMonth());
+        }
+        setCalendarYear(year);
       }
     }
   };
@@ -185,11 +210,54 @@ const CrearBarbero = ({ visible, onClose, onCreate }) => {
 
   const openDatePicker = (type) => {
     setPickerType(type);
-    if (type === 'nacimiento') {
-      setShowDatePicker(true);
-    } else {
-      setShowDatePickerContratacion(true);
+    // Resetear a fecha actual al abrir
+    const today = new Date();
+    setCalendarMonth(today.getMonth());
+    setCalendarYear(today.getFullYear());
+    setShowDatePicker(true);
+  };
+
+  const getDisabledDates = () => {
+    const disabledDates = {};
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Calcular fechas a deshabilitar según el tipo
+    const startDate = new Date(calendarYear, calendarMonth, 1);
+    const endDate = new Date(calendarYear, calendarMonth + 1, 0);
+    const tempDate = new Date(startDate);
+    
+    while (tempDate <= endDate) {
+      if (pickerType === 'nacimiento') {
+        // Deshabilitar fechas futuras y anteriores a 80 años
+        if (tempDate > today || tempDate.getFullYear() < (currentYear - 80)) {
+          disabledDates[formatDateString(tempDate)] = { 
+            disabled: true, 
+            disableTouchEvent: true 
+          };
+        }
+      } else {
+        // Deshabilitar fechas anteriores a 35 años y futuras a 10 años
+        if (tempDate.getFullYear() < (currentYear - 35) || 
+            tempDate.getFullYear() > (currentYear + 10) ||
+            (tempDate.getFullYear() === currentYear && tempDate > today)) {
+          disabledDates[formatDateString(tempDate)] = { 
+            disabled: true, 
+            disableTouchEvent: true 
+          };
+        }
+      }
+      tempDate.setDate(tempDate.getDate() + 1);
     }
+    
+    return disabledDates;
+  };
+
+  const formatDateString = (date) => {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   return (
@@ -325,22 +393,56 @@ const CrearBarbero = ({ visible, onClose, onCreate }) => {
               </View>
             </View>
             
-            {(showDatePicker || showDatePickerContratacion) && (
+            {showDatePicker && (
               <View style={styles.customDatePickerContainer}>
                 <View style={styles.customDatePicker}>
                   <View style={styles.datePickerHeader}>
-                    <TouchableOpacity onPress={() => changeMonth(-1)}>
-                      <MaterialIcons name="chevron-left" size={24} color="#333" />
+                    <TouchableOpacity 
+                      onPress={() => changeMonth(-1)}
+                      disabled={
+                        pickerType === 'nacimiento' 
+                          ? calendarYear === (currentYear - 80) && calendarMonth === 0
+                          : calendarYear === (currentYear - 35) && calendarMonth === 0
+                      }
+                    >
+                      <MaterialIcons 
+                        name="chevron-left" 
+                        size={24} 
+                        color={
+                          (pickerType === 'nacimiento' 
+                            ? calendarYear === (currentYear - 80) && calendarMonth === 0
+                            : calendarYear === (currentYear - 35) && calendarMonth === 0)
+                            ? '#ccc' 
+                            : '#333'
+                        } 
+                      />
                     </TouchableOpacity>
                     
                     <View style={styles.monthYearSelector}>
                       <Text style={styles.monthYearText}>
-                        {months[selectedMonth]} de {selectedYear}
+                        {months[calendarMonth]} de {calendarYear}
                       </Text>
                     </View>
                     
-                    <TouchableOpacity onPress={() => changeMonth(1)}>
-                      <MaterialIcons name="chevron-right" size={24} color="#333" />
+                    <TouchableOpacity 
+                      onPress={() => changeMonth(1)}
+                      disabled={
+                        pickerType === 'nacimiento' 
+                          ? calendarYear === currentYear && calendarMonth === new Date().getMonth()
+                          : calendarYear === (currentYear + 10) && calendarMonth === 11
+                      }
+                    >
+                      <MaterialIcons 
+                        name="chevron-right" 
+                        size={24} 
+                        color={
+                          (pickerType === 'nacimiento' 
+                            ? calendarYear === currentYear && calendarMonth === new Date().getMonth()
+                            : calendarYear === (currentYear + 10) && calendarMonth === 11)
+                            ? '#ccc' 
+                            : '#333'
+                        } 
+                      />
                     </TouchableOpacity>
                   </View>
                   
@@ -350,18 +452,18 @@ const CrearBarbero = ({ visible, onClose, onCreate }) => {
                       showsHorizontalScrollIndicator={false}
                       contentContainerStyle={styles.yearScrollContent}
                     >
-                      {(pickerType === 'nacimiento' ? years : yearsContratacion).map(year => (
+                      {(pickerType === 'nacimiento' ? yearsNacimiento : yearsContratacion).map(year => (
                         <TouchableOpacity 
                           key={year}
                           style={[
                             styles.yearButton,
-                            selectedYear === year && styles.selectedYearButton
+                            calendarYear === year && styles.selectedYearButton
                           ]}
-                          onPress={() => setSelectedYear(year)}
+                          onPress={() => changeYear(year)}
                         >
                           <Text style={[
                             styles.yearButtonText,
-                            selectedYear === year && styles.selectedYearButtonText
+                            calendarYear === year && styles.selectedYearButtonText
                           ]}>
                             {year}
                           </Text>
@@ -372,16 +474,37 @@ const CrearBarbero = ({ visible, onClose, onCreate }) => {
                   
                   <View style={styles.calendarContainer}>
                     <Calendar
-                      current={`${selectedYear}-${(selectedMonth + 1).toString().padStart(2, '0')}-01`}
-                      minDate={pickerType === 'nacimiento' 
-                        ? `${new Date().getFullYear() - 80}-01-01` 
-                        : `${new Date().getFullYear() - 35}-01-01`}
-                      maxDate={new Date().toISOString().split('T')[0]}
+                      key={`${calendarYear}-${calendarMonth}-${pickerType}`}
+                      current={`${calendarYear}-${(calendarMonth + 1).toString().padStart(2, '0')}-01`}
+                      minDate={
+                        pickerType === 'nacimiento' 
+                          ? `${currentYear - 80}-01-01` 
+                          : `${currentYear - 35}-01-01`
+                      }
+                      maxDate={
+                        pickerType === 'nacimiento' 
+                          ? new Date().toISOString().split('T')[0]
+                          : `${currentYear + 10}-12-31`
+                      }
                       onDayPress={handleDayPress}
                       monthFormat={'MMMM yyyy'}
                       hideArrows={true}
                       hideExtraDays={true}
                       disableMonthChange={true}
+                      markedDates={{
+                        ...getDisabledDates(),
+                        [pickerType === 'nacimiento' 
+                          ? (formData.fechaNacimiento ? formatDateString(formData.fechaNacimiento) : '')
+                          : (formData.fechaContratacion ? formatDateString(formData.fechaContratacion) : '')]: {
+                          selected: true,
+                          selectedColor: '#424242',
+                          selectedTextColor: '#fff'
+                        },
+                        [new Date().toISOString().split('T')[0]]: {
+                          marked: true,
+                          dotColor: '#424242'
+                        }
+                      }}
                       theme={{
                         calendarBackground: 'transparent',
                         textSectionTitleColor: '#666',
@@ -403,9 +526,11 @@ const CrearBarbero = ({ visible, onClose, onCreate }) => {
                             flexDirection: 'row',
                             justifyContent: 'space-between'
                           }
-                        }
+                        },
+                        disabledDayTextColor: '#d9d9d9'
                       }}
                       style={styles.calendar}
+                      disableAllTouchEventsForDisabledDays={true}
                     />
                   </View>
                   
@@ -413,31 +538,25 @@ const CrearBarbero = ({ visible, onClose, onCreate }) => {
                     <TouchableOpacity 
                       style={styles.datePickerButton}
                       onPress={() => {
+                        const today = new Date();
                         if (pickerType === 'nacimiento') {
-                          handleChange('fechaNacimiento', new Date());
+                          handleChange('fechaNacimiento', today);
                         } else {
-                          handleChange('fechaContratacion', new Date());
+                          handleChange('fechaContratacion', today);
                         }
+                        setCalendarMonth(today.getMonth());
+                        setCalendarYear(today.getFullYear());
                         setShowDatePicker(false);
-                        setShowDatePickerContratacion(false);
                       }}
                     >
                       <Text style={styles.datePickerButtonText}>Hoy</Text>
                     </TouchableOpacity>
                     
                     <TouchableOpacity 
-                      style={styles.datePickerButton}
-                      onPress={() => {
-                        if (pickerType === 'nacimiento') {
-                          handleChange('fechaNacimiento', null);
-                        } else {
-                          handleChange('fechaContratacion', null);
-                        }
-                        setShowDatePicker(false);
-                        setShowDatePickerContratacion(false);
-                      }}
+                      style={styles.closeButton} 
+                      onPress={() => setShowDatePicker(false)}
                     >
-                      <Text style={styles.datePickerButtonText}>Borrar</Text>
+                      <Text style={styles.closeButtonText}>Cerrar</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -784,6 +903,15 @@ const styles = StyleSheet.create({
   },
   datePickerButtonText: {
     color: '#424242',
+    fontWeight: 'bold',
+  },
+  closeButton: {
+    padding: 10,
+    borderRadius: 5,
+    backgroundColor: '#424242',
+  },
+  closeButtonText: {
+    color: 'white',
     fontWeight: 'bold',
   },
 });

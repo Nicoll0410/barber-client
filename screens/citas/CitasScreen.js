@@ -1,11 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Modal } from 'react-native';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  FlatList, 
+  Modal, 
+  Dimensions,
+  ScrollView,
+  TextInput
+} from 'react-native';
 import { MaterialIcons, FontAwesome, Feather, Ionicons, AntDesign } from '@expo/vector-icons';
 import Paginacion from '../../components/Paginacion';
 import Buscador from '../../components/Buscador';
 import CrearCita from './CrearCita';
 import DetalleCita from './DetalleCita';
 import Footer from '../../components/Footer';
+
+const { width } = Dimensions.get('window');
+const isMobile = width <= 768;
 
 // Componente para el avatar del barbero
 const Avatar = ({ nombre }) => {
@@ -100,11 +113,68 @@ const ModalConfirmacion = ({ visible, onClose, onConfirm, tipo }) => (
   </Modal>
 );
 
+// Componente de tarjeta para móvil
+const CitaCard = ({ item, onConfirm, onExpire, onViewDetail }) => (
+  <View style={styles.cardContainer}>
+    <View style={styles.cardHeader}>
+      <View style={styles.cardBarberContainer}>
+        <Avatar nombre={item.barbero} />
+        <Text style={styles.cardBarberName}>{item.barbero}</Text>
+      </View>
+      <EstadoCita estado={item.estado} />
+    </View>
+    
+    <View style={styles.cardBody}>
+      <View style={styles.cardRow}>
+        <Text style={styles.cardLabel}>Servicio:</Text>
+        <Text style={styles.cardValue}>{item.servicio}</Text>
+      </View>
+      
+      <View style={styles.cardRow}>
+        <Text style={styles.cardLabel}>Fecha:</Text>
+        <Text style={styles.cardValue}>{item.fecha}</Text>
+      </View>
+      
+      <View style={styles.cardRow}>
+        <Text style={styles.cardLabel}>Hora:</Text>
+        <Text style={styles.cardValue}>{item.hora}</Text>
+      </View>
+    </View>
+    
+    <View style={styles.cardActions}>
+      {item.estado === 'Pendiente' && (
+        <>
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.confirmButton]} 
+            onPress={() => onConfirm(item.id)}
+          >
+            <AntDesign name="checkcircle" size={20} color="white" />
+            <Text style={styles.actionButtonText}>Confirmar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.expireButton]} 
+            onPress={() => onExpire(item.id)}
+          >
+            <AntDesign name="closecircle" size={20} color="white" />
+            <Text style={styles.actionButtonText}>Expirar</Text>
+          </TouchableOpacity>
+        </>
+      )}
+      <TouchableOpacity 
+        style={[styles.viewButton]} 
+        onPress={() => onViewDetail(item.id)}
+      >
+        <FontAwesome name="eye" size={20} color="black" />
+      </TouchableOpacity>
+    </View>
+  </View>
+);
+
 const CitasScreen = () => {
   const [citas, setCitas] = useState([]);
   const [citasFiltradas, setCitasFiltradas] = useState([]);
   const [paginaActual, setPaginaActual] = useState(1);
-  const [citasPorPagina] = useState(4);
+  const [citasPorPagina] = useState(isMobile ? 6 : 4);
   const [busqueda, setBusqueda] = useState('');
   const [modalConfirmarVisible, setModalConfirmarVisible] = useState(false);
   const [modalExpirarVisible, setModalExpirarVisible] = useState(false);
@@ -196,7 +266,7 @@ const CitasScreen = () => {
   }, [busqueda, citas]);
 
   const indiceInicial = (paginaActual - 1) * citasPorPagina;
-  const citasMostrar = citasFiltradas.slice(indiceInicial, indiceInicial + citasPorPagina);
+  const citasMostrar = isMobile ? citasFiltradas : citasFiltradas.slice(indiceInicial, indiceInicial + citasPorPagina);
   const totalPaginas = Math.ceil(citasFiltradas.length / citasPorPagina);
 
   const cambiarPagina = (nuevaPagina) => {
@@ -238,7 +308,6 @@ const CitasScreen = () => {
   const verDetalleCita = (id) => {
     const cita = citas.find(c => c.id === id);
     
-    // Adaptar la estructura de datos para el modal DetalleCita
     const citaAdaptada = {
       ...cita,
       servicio: {
@@ -253,7 +322,6 @@ const CitasScreen = () => {
         nombre: cita.cliente,
         avatar: null
       },
-      // Convertir fecha string a Date object
       fecha: parseFecha(cita.fecha)
     };
     
@@ -261,7 +329,6 @@ const CitasScreen = () => {
     setModalDetalleVisible(true);
   };
 
-  // Función para parsear fecha string a Date object
   const parseFecha = (fechaStr) => {
     const meses = {
       'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 
@@ -276,7 +343,7 @@ const CitasScreen = () => {
       const año = parseInt(partes[2]);
       return new Date(año, mes, dia);
     }
-    return new Date(); // Fallback a fecha actual
+    return new Date();
   };
 
   const crearCita = () => {
@@ -305,9 +372,9 @@ const CitasScreen = () => {
             <Text style={styles.contadorTexto}>{citasFiltradas.length}</Text>
           </View>
         </View>
-        <TouchableOpacity style={styles.botonCrear} onPress={crearCita}>
-          <Ionicons name="add-circle" size={24} color="white" />
-          <Text style={styles.textoBoton}>Crear Cita</Text>
+        <TouchableOpacity style={styles.addButton} onPress={crearCita}>
+          <Ionicons name="add-circle" size={20} color="white" />
+          <Text style={styles.addButtonText}>Crear</Text>
         </TouchableOpacity>
       </View>
 
@@ -317,66 +384,89 @@ const CitasScreen = () => {
         onChangeText={handleSearchChange}
       />
 
-      <View style={styles.tabla}>
-        <View style={styles.filaEncabezado}>
-          <View style={[styles.celdaEncabezado, styles.columnaBarbero]}><Text style={styles.encabezado}>Barbero</Text></View>
-          <View style={[styles.celdaEncabezado, styles.columnaEstado]}><Text style={styles.encabezado}>Estado</Text></View>
-          <View style={[styles.celdaEncabezado, styles.columnaServicio]}><Text style={styles.encabezado}>Servicio</Text></View>
-          <View style={[styles.celdaEncabezado, styles.columnaFecha]}><Text style={styles.encabezado}>Fecha</Text></View>
-          <View style={[styles.celdaEncabezado, styles.columnaHora]}><Text style={styles.encabezado}>Hora</Text></View>
-          <View style={[styles.celdaEncabezado, styles.columnaAcciones]}><Text style={styles.encabezado}>Acciones</Text></View>
-        </View>
-
-        <FlatList
-          data={citasMostrar}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <View style={styles.fila}>
-              <View style={[styles.celda, styles.columnaBarbero]}>
-                <View style={styles.contenedorBarbero}>
-                  <Avatar nombre={item.barbero} />
-                  <Text style={styles.textoBarbero}>{item.barbero}</Text>
-                </View>
-              </View>
-              <View style={[styles.celda, styles.columnaEstado]}>
-                <EstadoCita estado={item.estado} />
-              </View>
-              <View style={[styles.celda, styles.columnaServicio]}>
-                <Text style={styles.textoServicio}>{item.servicio}</Text>
-              </View>
-              <View style={[styles.celda, styles.columnaFecha]}>
-                <FechaHora valor={item.fecha} />
-              </View>
-              <View style={[styles.celda, styles.columnaHora]}>
-                <FechaHora valor={item.hora} />
-              </View>
-              <View style={[styles.celda, styles.columnaAcciones]}>
-                <View style={styles.contenedorAcciones}>
-                  {item.estado === 'Pendiente' && (
-                    <>
-                      <TouchableOpacity onPress={() => confirmarCita(item.id)} style={styles.botonAccion}>
-                        <AntDesign name="checkcircle" size={20} color="black" />
-                      </TouchableOpacity>
-                      <TouchableOpacity onPress={() => expirarCita(item.id)} style={styles.botonAccion}>
-                        <AntDesign name="closecircle" size={20} color="black" />
-                      </TouchableOpacity>
-                    </>
-                  )}
-                  <TouchableOpacity onPress={() => verDetalleCita(item.id)} style={styles.botonAccion}>
-                    <FontAwesome name="eye" size={20} color="black" />
-                  </TouchableOpacity>
-                </View>
-              </View>
+      {isMobile ? (
+        // Vista móvil - Tarjetas con scroll
+        <ScrollView style={styles.scrollContainer}>
+          <View style={styles.cardsContainer}>
+            {citasFiltradas.map(item => (
+              <CitaCard 
+                key={item.id.toString()}
+                item={item}
+                onConfirm={confirmarCita}
+                onExpire={expirarCita}
+                onViewDetail={verDetalleCita}
+              />
+            ))}
+          </View>
+        </ScrollView>
+      ) : (
+        // Vista desktop - Tabla con paginación
+        <>
+          <View style={styles.tabla}>
+            <View style={styles.filaEncabezado}>
+              <View style={[styles.celdaEncabezado, styles.columnaBarbero]}><Text style={styles.encabezado}>Barbero</Text></View>
+              <View style={[styles.celdaEncabezado, styles.columnaEstado]}><Text style={styles.encabezado}>Estado</Text></View>
+              <View style={[styles.celdaEncabezado, styles.columnaServicio]}><Text style={styles.encabezado}>Servicio</Text></View>
+              <View style={[styles.celdaEncabezado, styles.columnaFecha]}><Text style={styles.encabezado}>Fecha</Text></View>
+              <View style={[styles.celdaEncabezado, styles.columnaHora]}><Text style={styles.encabezado}>Hora</Text></View>
+              <View style={[styles.celdaEncabezado, styles.columnaAcciones]}><Text style={styles.encabezado}>Acciones</Text></View>
             </View>
-          )}
-        />
-      </View>
 
-      <Paginacion
-        paginaActual={paginaActual}
-        totalPaginas={totalPaginas}
-        cambiarPagina={cambiarPagina}
-      />
+            <FlatList
+              data={citasMostrar}
+              keyExtractor={(item) => item.id.toString()}
+              renderItem={({ item }) => (
+                <View style={styles.fila}>
+                  <View style={[styles.celda, styles.columnaBarbero]}>
+                    <View style={styles.contenedorBarbero}>
+                      <Avatar nombre={item.barbero} />
+                      <Text style={styles.textoBarbero}>{item.barbero}</Text>
+                    </View>
+                  </View>
+                  <View style={[styles.celda, styles.columnaEstado]}>
+                    <EstadoCita estado={item.estado} />
+                  </View>
+                  <View style={[styles.celda, styles.columnaServicio]}>
+                    <Text style={styles.textoServicio}>{item.servicio}</Text>
+                  </View>
+                  <View style={[styles.celda, styles.columnaFecha]}>
+                    <FechaHora valor={item.fecha} />
+                  </View>
+                  <View style={[styles.celda, styles.columnaHora]}>
+                    <FechaHora valor={item.hora} />
+                  </View>
+                  <View style={[styles.celda, styles.columnaAcciones]}>
+                    <View style={styles.contenedorAcciones}>
+                      {item.estado === 'Pendiente' && (
+                        <>
+                          <TouchableOpacity onPress={() => confirmarCita(item.id)} style={styles.botonAccion}>
+                            <AntDesign name="checkcircle" size={20} color="black" />
+                          </TouchableOpacity>
+                          <TouchableOpacity onPress={() => expirarCita(item.id)} style={styles.botonAccion}>
+                            <AntDesign name="closecircle" size={20} color="black" />
+                          </TouchableOpacity>
+                        </>
+                      )}
+                      <TouchableOpacity 
+                        onPress={() => verDetalleCita(item.id)} 
+                        style={styles.viewButtonDesktop}
+                      >
+                        <FontAwesome name="eye" size={20} color="black" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              )}
+            />
+          </View>
+
+          <Paginacion
+            paginaActual={paginaActual}
+            totalPaginas={totalPaginas}
+            cambiarPagina={cambiarPagina}
+          />
+        </>
+      )}
 
       <ModalConfirmacion
         visible={modalConfirmarVisible}
@@ -413,7 +503,7 @@ const CitasScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    padding: isMobile ? 10 : 16,
     backgroundColor: '#fff',
   },
   header: {
@@ -427,7 +517,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   titulo: {
-    fontSize: 24,
+    fontSize: isMobile ? 20 : 24,
     fontWeight: 'bold',
     marginRight: 10,
   },
@@ -443,21 +533,97 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
-  botonCrear: {
+  addButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#424242',
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: '#424242',
+    borderRadius: 20,
   },
-  textoBoton: {
+  addButtonText: {
     marginLeft: 8,
     color: 'white',
     fontWeight: '500',
+    fontSize: 14,
   },
+  
+  // Estilos para la vista de tarjetas (móvil)
+  scrollContainer: {
+    flex: 1,
+  },
+  cardsContainer: {
+    paddingBottom: 20,
+  },
+  cardContainer: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  cardBarberContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  cardBarberName: {
+    marginLeft: 10,
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  cardBody: {
+    marginVertical: 10,
+  },
+  cardRow: {
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
+  cardLabel: {
+    fontWeight: 'bold',
+    width: 80,
+    color: '#555',
+  },
+  cardValue: {
+    flex: 1,
+    color: '#333',
+  },
+  cardActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 10,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    marginLeft: 10,
+  },
+  confirmButton: {
+    backgroundColor: '#4CAF50',
+  },
+  expireButton: {
+    backgroundColor: '#F44336',
+  },
+  viewButton: {
+    backgroundColor: '#D9D9D9',
+    padding: 8,
+    borderRadius: 20,
+    marginLeft: 10,
+  },
+  
+  // Estilos para la vista de tabla (desktop)
   tabla: {
     borderWidth: 1,
     borderColor: '#ddd',
@@ -519,11 +685,11 @@ const styles = StyleSheet.create({
   },
   textoBarbero: {
     marginLeft: 10,
-    fontWeight: 'bold', // Barbero en negrita
+    fontWeight: 'bold',
   },
   textoServicio: {
     textAlign: 'center',
-    fontWeight: 'bold', // Servicio en negrita
+    fontWeight: 'bold',
   },
   encabezado: {
     fontWeight: 'bold',
@@ -538,6 +704,14 @@ const styles = StyleSheet.create({
   botonAccion: {
     marginHorizontal: 6,
   },
+  viewButtonDesktop: {
+    backgroundColor: '#D9D9D9',
+    padding: 6,
+    borderRadius: 20,
+    marginLeft: 6,
+  },
+  
+  // Estilos compartidos
   estadoContainer: {
     paddingVertical: 4,
     paddingHorizontal: 8,
@@ -556,7 +730,7 @@ const styles = StyleSheet.create({
   },
   fechaHoraTexto: {
     color: '#424242',
-    fontWeight: 'bold', // Fecha y hora en negrita
+    fontWeight: 'bold',
   },
   avatarContainer: {
     width: 36,
@@ -570,6 +744,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 14,
   },
+  
   // Estilos para los modales
   modalOverlay: {
     flex: 1,
@@ -581,7 +756,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 20,
-    width: '80%',
+    width: isMobile ? '90%' : '80%',
     maxWidth: 400,
   },
   modalTitle: {

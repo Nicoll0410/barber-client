@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Dimensions, ScrollView } from 'react-native';
 import { FontAwesome, Feather, Ionicons } from '@expo/vector-icons';
 import Paginacion from '../../components/Paginacion';
 import Buscador from '../../components/Buscador';
@@ -7,6 +7,44 @@ import CrearRol from './CrearRol';
 import DetalleRol from './DetalleRol';
 import EditarRol from './EditarRol';
 import Footer from '../../components/Footer';
+
+const { width } = Dimensions.get('window');
+const isMobile = width < 768;
+
+// Mobile Role Card
+const RolCard = ({ item, onVer, onEditar, onEliminar }) => (
+  <View style={styles.card}>
+    <View style={styles.cardHeader}>
+      <View style={styles.cardHeaderText}>
+        <Text style={styles.cardNombre}>{item.nombre}</Text>
+        <Text style={styles.cardDescripcion}>{item.descripcion}</Text>
+      </View>
+    </View>
+    
+    <View style={styles.cardDetails}>
+      <View style={styles.detailRow}>
+        <Text style={styles.detailLabel}>Asociados:</Text>
+        <View style={styles.asociadosBadge}>
+          <Text style={styles.asociadosText}>{item.asociados}</Text>
+        </View>
+      </View>
+    </View>
+    
+    <View style={styles.cardActions}>
+      <TouchableOpacity style={styles.actionButton} onPress={() => onVer(item.id)}>
+        <FontAwesome name="eye" size={18} color="#424242" />
+      </TouchableOpacity>
+      
+      <TouchableOpacity style={styles.actionButton} onPress={() => onEditar(item.id)}>
+        <Feather name="edit" size={18} color="#424242" />
+      </TouchableOpacity>
+      
+      <TouchableOpacity style={styles.actionButton} onPress={() => onEliminar(item.id)}>
+        <Feather name="trash-2" size={18} color="#d32f2f" />
+      </TouchableOpacity>
+    </View>
+  </View>
+);
 
 const RolesScreen = () => {
   const [roles, setRoles] = useState([]);
@@ -44,7 +82,7 @@ const RolesScreen = () => {
   }, [busqueda, roles]);
 
   const indiceInicial = (paginaActual - 1) * rolesPorPagina;
-  const rolesMostrar = rolesFiltrados.slice(indiceInicial, indiceInicial + rolesPorPagina);
+  const rolesMostrar = isMobile ? rolesFiltrados : rolesFiltrados.slice(indiceInicial, indiceInicial + rolesPorPagina);
   const totalPaginas = Math.ceil(rolesFiltrados.length / rolesPorPagina);
 
   const cambiarPagina = (nuevaPagina) => {
@@ -54,7 +92,6 @@ const RolesScreen = () => {
   };
 
   const crearRol = () => setModalCrearVisible(true);
-
   const handleSearchChange = (texto) => setBusqueda(texto);
 
   const handleCreateRol = (nuevoRol) => {
@@ -96,15 +133,15 @@ const RolesScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.tituloContainer}>
-          <Text style={styles.titulo}>Roles</Text>
-          <View style={styles.contadorContainer}>
-            <Text style={styles.contadorTexto}>{rolesFiltrados.length}</Text>
+        <View style={styles.headerLeft}>
+          <Text style={styles.title}>Roles</Text>
+          <View style={styles.counter}>
+            <Text style={styles.counterText}>{rolesFiltrados.length}</Text>
           </View>
         </View>
-        <TouchableOpacity style={styles.botonCrear} onPress={crearRol}>
-          <Ionicons name="add-circle" size={24} color="white" />
-          <Text style={styles.textoBoton}>Crear Rol</Text>
+        <TouchableOpacity style={styles.addButton} onPress={crearRol}>
+          <Ionicons name="add-circle" size={20} color="white" />
+          <Text style={styles.addButtonText}>Crear</Text>
         </TouchableOpacity>
       </View>
 
@@ -114,53 +151,71 @@ const RolesScreen = () => {
         onChangeText={handleSearchChange}
       />
 
-      <View style={styles.tabla}>
-        <View style={styles.filaEncabezado}>
-          <View style={[styles.celdaEncabezado, styles.columnaNombre]}><Text style={styles.encabezado}>Nombre</Text></View>
-          <View style={[styles.celdaEncabezado, styles.columnaDescripcion]}><Text style={styles.encabezado}>Descripción</Text></View>
-          <View style={[styles.celdaEncabezado, styles.columnaAsociados]}><Text style={styles.encabezado}>Asociados</Text></View>
-          <View style={[styles.celdaEncabezado, styles.columnaAcciones]}><Text style={styles.encabezado}>Acciones</Text></View>
+      {!isMobile ? (
+        <View style={styles.table}>
+          <View style={styles.tableHeader}>
+            <View style={[styles.headerCell, styles.nameColumn]}><Text style={styles.headerText}>Nombre</Text></View>
+            <View style={[styles.headerCell, styles.descColumn]}><Text style={styles.headerText}>Descripción</Text></View>
+            <View style={[styles.headerCell, styles.asociadosColumn]}><Text style={styles.headerText}>Asociados</Text></View>
+            <View style={[styles.headerCell, styles.actionsColumn]}><Text style={styles.headerText}>Acciones</Text></View>
+          </View>
+
+          <FlatList
+            data={rolesMostrar}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => (
+              <View style={styles.tableRow}>
+                <View style={[styles.cell, styles.nameColumn]}>
+                  <Text style={styles.nameText}>{item.nombre}</Text>
+                </View>
+                <View style={[styles.cell, styles.descColumn]}>
+                  <Text style={styles.descText}>{item.descripcion}</Text>
+                </View>
+                <View style={[styles.cell, styles.asociadosColumn]}>
+                  <View style={styles.asociadosBadge}>
+                    <Text style={styles.asociadosText}>{item.asociados}</Text>
+                  </View>
+                </View>
+                <View style={[styles.cell, styles.actionsColumn]}>
+                  <View style={styles.actionsContainer}>
+                    <TouchableOpacity onPress={() => verRol(item.id)} style={styles.actionIcon}>
+                      <FontAwesome name="eye" size={20} color="black" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => editarRol(item.id)} style={styles.actionIcon}>
+                      <Feather name="edit" size={20} color="black" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => eliminarRol(item.id)} style={styles.actionIcon}>
+                      <Feather name="trash-2" size={20} color="black" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            )}
+          />
         </View>
+      ) : (
+        <ScrollView style={styles.scrollContainer}>
+          <View style={styles.cardsContainer}>
+            {rolesFiltrados.map(item => (
+              <RolCard 
+                key={item.id.toString()}
+                item={item}
+                onVer={verRol}
+                onEditar={editarRol}
+                onEliminar={eliminarRol}
+              />
+            ))}
+          </View>
+        </ScrollView>
+      )}
 
-        <FlatList
-          data={rolesMostrar}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <View style={styles.fila}>
-              <View style={[styles.celda, styles.columnaNombre]}>
-                <Text style={styles.textoNombre}>{item.nombre}</Text>
-              </View>
-              <View style={[styles.celda, styles.columnaDescripcion]}>
-                <Text style={styles.textoDescripcion}>{item.descripcion}</Text>
-              </View>
-              <View style={[styles.celda, styles.columnaAsociados]}>
-                <View style={styles.asociadosContainer}>
-                  <Text style={styles.asociadosTexto}>{item.asociados}</Text>
-                </View>
-              </View>
-              <View style={[styles.celda, styles.columnaAcciones]}>
-                <View style={styles.contenedorAcciones}>
-                  <TouchableOpacity onPress={() => verRol(item.id)} style={styles.botonAccion}>
-                    <FontAwesome name="eye" size={20} color="black" />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => editarRol(item.id)} style={styles.botonAccion}>
-                    <Feather name="edit" size={20} color="black" />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => eliminarRol(item.id)} style={styles.botonAccion}>
-                    <Feather name="trash-2" size={20} color="black" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          )}
+      {!isMobile && (
+        <Paginacion
+          paginaActual={paginaActual}
+          totalPaginas={totalPaginas}
+          cambiarPagina={cambiarPagina}
         />
-      </View>
-
-      <Paginacion
-        paginaActual={paginaActual}
-        totalPaginas={totalPaginas}
-        cambiarPagina={cambiarPagina}
-      />
+      )}
 
       <CrearRol
         visible={modalCrearVisible}
@@ -195,122 +250,185 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
-  tituloContainer: {
+  headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  titulo: {
-    fontSize: 24,
+  title: {
+    fontSize: 22,
     fontWeight: 'bold',
-    marginRight: 10,
+    color: '#424242',
+    marginRight: 12,
   },
-  contadorContainer: {
-    backgroundColor: '#D9D9D9',
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+  counter: {
+    backgroundColor: '#EEEEEE',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  contadorTexto: {
+  counterText: {
     fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: 14,
+    color: '#424242',
   },
-  botonCrear: {
+  addButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#424242',
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: '#424242',
+    borderRadius: 20,
   },
-  textoBoton: {
+  addButtonText: {
     marginLeft: 8,
     color: 'white',
     fontWeight: '500',
+    fontSize: 14,
   },
-  tabla: {
+
+  // Desktop Table Styles
+  table: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 4,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
     marginBottom: 16,
     overflow: 'hidden',
   },
-  filaEncabezado: {
+  tableHeader: {
     flexDirection: 'row',
     backgroundColor: '#424242',
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
   },
-  celdaEncabezado: {
+  headerCell: {
     justifyContent: 'center',
-    alignItems: 'center',
     paddingHorizontal: 8,
   },
-  fila: {
+  headerText: {
+    fontWeight: 'bold',
+    color: 'white',
+    fontSize: 14,
+  },
+  tableRow: {
     flexDirection: 'row',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'black',
-    alignItems: 'center',
+    borderBottomColor: '#e0e0e0',
     backgroundColor: 'white',
   },
-  celda: {
+  cell: {
     justifyContent: 'center',
     paddingHorizontal: 8,
   },
-  columnaNombre: {
+  nameColumn: {
+    flex: 2,
+    alignItems: 'flex-start',
+  },
+  descColumn: {
     flex: 3,
     alignItems: 'flex-start',
   },
-  columnaDescripcion: {
-    flex: 4,
-    alignItems: 'flex-start',
-  },
-  columnaAsociados: {
-    flex: 2,
+  asociadosColumn: {
+    flex: 1,
     alignItems: 'center',
   },
-  columnaAcciones: {
+  actionsColumn: {
     flex: 2,
     alignItems: 'flex-end',
   },
-  textoNombre: {
+  nameText: {
     fontWeight: '500',
+    fontSize: 14,
+    color: '#424242',
   },
-  textoDescripcion: {
-    textAlign: 'left',
-    fontWeight: 'bold', // Añadido negrita para las descripciones
+  descText: {
+    fontSize: 14,
+    color: '#616161',
   },
-  asociadosContainer: {
-    backgroundColor: '#D9D9D9',
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    justifyContent: 'center',
+  asociadosBadge: {
+    backgroundColor: '#E0E0E0',
+    borderRadius: 12,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    minWidth: 30,
     alignItems: 'center',
   },
-  asociadosTexto: {
+  asociadosText: {
     fontWeight: 'bold',
     fontSize: 14,
+    color: '#424242',
   },
-  encabezado: {
-    fontWeight: 'bold',
-    textAlign: 'center',
-    color: 'white',
+  actionsContainer: {
+    flexDirection: 'row',
   },
-  contenedorAcciones: {
+  actionIcon: {
+    marginHorizontal: 6,
+  },
+
+  // Mobile Card Styles
+  scrollContainer: {
+    flex: 1,
+  },
+  cardsContainer: {
+    paddingBottom: 16,
+  },
+  card: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  cardHeaderText: {
+    flex: 1,
+  },
+  cardNombre: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#212121',
+    marginBottom: 4,
+  },
+  cardDescripcion: {
+    fontSize: 14,
+    color: '#757575',
+  },
+  cardDetails: {
+    marginBottom: 8,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  detailLabel: {
+    fontSize: 14,
+    color: '#616161',
+    marginRight: 8,
+  },
+  cardActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    width: '100%',
+    marginTop: 8,
   },
-  botonAccion: {
-    marginHorizontal: 6,
+  actionButton: {
+    marginLeft: 12,
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#f5f5f5',
   },
 });
 

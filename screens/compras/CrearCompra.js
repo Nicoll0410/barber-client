@@ -75,6 +75,10 @@ const CrearCompra = ({ visible, onClose, onCreate }) => {
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
   ];
 
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth();
+  const currentDay = new Date().getDate();
+
   const resetForm = () => {
     setFormData({
       metodoPago: 'efectivo',
@@ -83,6 +87,9 @@ const CrearCompra = ({ visible, onClose, onCreate }) => {
       insumos: []
     });
     setPasoActual(1);
+    // Resetear también el calendario a la fecha actual
+    setSelectedMonth(currentMonth);
+    setSelectedYear(currentYear);
   };
 
   const handleChange = (name, value) => {
@@ -110,8 +117,50 @@ const CrearCompra = ({ visible, onClose, onCreate }) => {
       newYear--;
     }
     
-    setSelectedMonth(newMonth);
-    setSelectedYear(newYear);
+    // Validar que el mes no esté fuera del rango permitido (8 días atrás)
+    const fechaLimite = new Date();
+    fechaLimite.setDate(fechaLimite.getDate() - 8);
+    
+    const nuevoMesLimite = new Date(newYear, newMonth, 1);
+    
+    if (nuevoMesLimite >= new Date(fechaLimite.getFullYear(), fechaLimite.getMonth(), 1) || 
+        nuevoMesLimite <= new Date(currentYear, currentMonth, 1)) {
+      setSelectedMonth(newMonth);
+      setSelectedYear(newYear);
+    }
+  };
+
+  const getDisabledDates = () => {
+    const disabledDates = {};
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const fechaMinima = new Date(today);
+    fechaMinima.setDate(today.getDate() - 8);
+    
+    // Calcular fechas a deshabilitar
+    const startDate = new Date(selectedYear, selectedMonth, 1);
+    const endDate = new Date(selectedYear, selectedMonth + 1, 0);
+    const tempDate = new Date(startDate);
+    
+    while (tempDate <= endDate) {
+      // Deshabilitar fechas fuera del rango (8 días atrás hasta hoy)
+      if (tempDate > today || tempDate < fechaMinima) {
+        disabledDates[formatDateString(tempDate)] = { 
+          disabled: true, 
+          disableTouchEvent: true 
+        };
+      }
+      tempDate.setDate(tempDate.getDate() + 1);
+    }
+    
+    return disabledDates;
+  };
+
+  const formatDateString = (date) => {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   const agregarInsumo = () => {
@@ -202,12 +251,6 @@ const CrearCompra = ({ visible, onClose, onCreate }) => {
     }).format(valor || 0);
   };
 
-  // Calcular fecha mínima (8 días antes de hoy)
-  const hoy = new Date();
-  const fechaMinima = new Date(hoy);
-  fechaMinima.setDate(hoy.getDate() - 8);
-  const fechaMinimaStr = fechaMinima.toISOString().split('T')[0];
-
   return (
     <Modal
       animationType="fade"
@@ -279,7 +322,13 @@ const CrearCompra = ({ visible, onClose, onCreate }) => {
                   <Text style={styles.label}>Fecha <Text style={styles.required}>*</Text></Text>
                   <TouchableOpacity 
                     style={styles.dateInput}
-                    onPress={() => setShowDatePicker(true)}
+                    onPress={() => {
+                      setShowDatePicker(true);
+                      // Resetear a fecha actual al abrir
+                      const today = new Date();
+                      setSelectedMonth(today.getMonth());
+                      setSelectedYear(today.getFullYear());
+                    }}
                   >
                     <Text style={[
                       styles.dateText, 
@@ -295,8 +344,23 @@ const CrearCompra = ({ visible, onClose, onCreate }) => {
                   <View style={styles.customDatePickerContainer}>
                     <View style={styles.customDatePicker}>
                       <View style={styles.datePickerHeader}>
-                        <TouchableOpacity onPress={() => changeMonth(-1)}>
-                          <MaterialIcons name="chevron-left" size={24} color="#333" />
+                        <TouchableOpacity 
+                          onPress={() => changeMonth(-1)}
+                          disabled={
+                            new Date(selectedYear, selectedMonth, 1) <= 
+                            new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate() - 8)
+                          }
+                        >
+                          <MaterialIcons 
+                            name="chevron-left" 
+                            size={24} 
+                            color={
+                              new Date(selectedYear, selectedMonth, 1) <= 
+                              new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate() - 8)
+                                ? '#ccc' 
+                                : '#333'
+                            } 
+                          />
                         </TouchableOpacity>
                         
                         <View style={styles.monthYearSelector}>
@@ -305,21 +369,47 @@ const CrearCompra = ({ visible, onClose, onCreate }) => {
                           </Text>
                         </View>
                         
-                        <TouchableOpacity onPress={() => changeMonth(1)}>
-                          <MaterialIcons name="chevron-right" size={24} color="#333" />
+                        <TouchableOpacity 
+                          onPress={() => changeMonth(1)}
+                          disabled={
+                            new Date(selectedYear, selectedMonth, 1) >= 
+                            new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())
+                          }
+                        >
+                          <MaterialIcons 
+                            name="chevron-right" 
+                            size={24} 
+                            color={
+                              new Date(selectedYear, selectedMonth, 1) >= 
+                              new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())
+                                ? '#ccc' 
+                                : '#333'
+                            } 
+                          />
                         </TouchableOpacity>
                       </View>
                       
                       <View style={styles.calendarContainer}>
                         <Calendar
+                          key={`${selectedYear}-${selectedMonth}`}
                           current={`${selectedYear}-${(selectedMonth + 1).toString().padStart(2, '0')}-01`}
-                          minDate={fechaMinimaStr}
-                          maxDate={hoy.toISOString().split('T')[0]}
                           onDayPress={handleDayPress}
                           monthFormat={'MMMM yyyy'}
                           hideArrows={true}
                           hideExtraDays={true}
                           disableMonthChange={true}
+                          markedDates={{
+                            ...getDisabledDates(),
+                            [formData.fecha ? formatDateString(formData.fecha) : '']: {
+                              selected: true,
+                              selectedColor: '#424242',
+                              selectedTextColor: '#fff'
+                            },
+                            [new Date().toISOString().split('T')[0]]: {
+                              marked: true,
+                              dotColor: '#424242'
+                            }
+                          }}
                           theme={{
                             calendarBackground: 'transparent',
                             textSectionTitleColor: '#666',
@@ -341,9 +431,11 @@ const CrearCompra = ({ visible, onClose, onCreate }) => {
                                 flexDirection: 'row',
                                 justifyContent: 'space-between'
                               }
-                            }
+                            },
+                            disabledDayTextColor: '#d9d9d9'
                           }}
                           style={styles.calendar}
+                          disableAllTouchEventsForDisabledDays={true}
                         />
                       </View>
                       
@@ -359,13 +451,10 @@ const CrearCompra = ({ visible, onClose, onCreate }) => {
                         </TouchableOpacity>
                         
                         <TouchableOpacity 
-                          style={styles.datePickerButton}
-                          onPress={() => {
-                            handleChange('fecha', null);
-                            setShowDatePicker(false);
-                          }}
+                          style={styles.closeButton} 
+                          onPress={() => setShowDatePicker(false)}
                         >
-                          <Text style={styles.datePickerButtonText}>Borrar</Text>
+                          <Text style={styles.closeButtonText}>Cerrar</Text>
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -757,6 +846,15 @@ const styles = StyleSheet.create({
   },
   datePickerButtonText: {
     color: '#424242',
+    fontWeight: 'bold',
+  },
+  closeButton: {
+    padding: 10,
+    borderRadius: 5,
+    backgroundColor: '#424242',
+  },
+  closeButtonText: {
+    color: 'white',
     fontWeight: 'bold',
   },
 });

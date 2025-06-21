@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Dimensions, ScrollView } from 'react-native';
 import { MaterialIcons, FontAwesome, Feather, Ionicons } from '@expo/vector-icons';
 import Paginacion from '../../components/Paginacion';
 import Buscador from '../../components/Buscador';
@@ -10,6 +10,9 @@ import EditarProveedor from './EditarProveedor';
 import Footer from '../../components/Footer';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+
+const { width } = Dimensions.get('window');
+const isMobile = width < 768;
 
 // Componente para el avatar del proveedor
 const Avatar = ({ nombre }) => {
@@ -30,13 +33,13 @@ const TipoProveedor = ({ tipo }) => (
   <View style={styles.tipoContainer}>
     {tipo === 'Persona' ? (
       <>
-        <MaterialIcons name="person" size={16} color="black" />
-        <Text style={[styles.tipoTexto, styles.textoNegrita]}>Persona</Text>
+        <MaterialIcons name="person" size={16} color="#424242" />
+        <Text style={styles.tipoTexto}>Persona</Text>
       </>
     ) : (
       <>
-        <MaterialIcons name="business" size={16} color="black" />
-        <Text style={[styles.tipoTexto, styles.textoNegrita]}>Empresa</Text>
+        <MaterialIcons name="business" size={16} color="#424242" />
+        <Text style={styles.tipoTexto}>Empresa</Text>
       </>
     )}
   </View>
@@ -47,20 +50,60 @@ const TipoIdentificacion = ({ tipo }) => (
   <View style={styles.tipoIdContainer}>
     {tipo === 'CC' ? (
       <>
-        <MaterialIcons name="badge" size={16} color="black" />
-        <Text style={[styles.tipoIdTexto, styles.textoNegrita]}>Cédula</Text>
+        <MaterialIcons name="badge" size={16} color="#424242" />
+        <Text style={styles.tipoIdTexto}>Cédula</Text>
       </>
     ) : tipo === 'CE' ? (
       <>
-        <MaterialIcons name="card-membership" size={16} color="black" />
-        <Text style={[styles.tipoIdTexto, styles.textoNegrita]}>Cédula Ext.</Text>
+        <MaterialIcons name="card-membership" size={16} color="#424242" />
+        <Text style={styles.tipoIdTexto}>Cédula Ext.</Text>
       </>
     ) : (
       <>
-        <MaterialIcons name="receipt" size={16} color="black" />
-        <Text style={[styles.tipoIdTexto, styles.textoNegrita]}>NIT</Text>
+        <MaterialIcons name="receipt" size={16} color="#424242" />
+        <Text style={styles.tipoIdTexto}>NIT</Text>
       </>
     )}
+  </View>
+);
+
+// Mobile Provider Card
+const ProveedorCard = ({ item, onVer, onEditar, onEliminar }) => (
+  <View style={styles.card}>
+    <View style={styles.cardHeader}>
+      <Avatar nombre={item.nombre} />
+      <View style={styles.cardHeaderText}>
+        <Text style={styles.cardNombre}>{item.nombre}</Text>
+        <Text style={styles.cardTipo}>
+          {item.tipo === 'Persona' ? 'Persona natural' : 'Empresa'}
+        </Text>
+      </View>
+    </View>
+    
+    <View style={styles.cardDetails}>
+      <View style={styles.detailRow}>
+        <MaterialIcons name="fingerprint" size={16} color="#757575" style={styles.detailIcon}/>
+        <Text style={styles.detailText}>{item.tipoIdentificacion}: {item.identificacion}</Text>
+      </View>
+      <View style={styles.detailRow}>
+        <MaterialIcons name="email" size={16} color="#757575" style={styles.detailIcon}/>
+        <Text style={styles.detailText}>{item.email}</Text>
+      </View>
+    </View>
+    
+    <View style={styles.cardActions}>
+      <TouchableOpacity style={styles.actionButton} onPress={() => onVer(item.id)}>
+        <FontAwesome name="eye" size={18} color="#424242" />
+      </TouchableOpacity>
+      
+      <TouchableOpacity style={styles.actionButton} onPress={() => onEditar(item.id)}>
+        <Feather name="edit" size={18} color="#424242" />
+      </TouchableOpacity>
+      
+      <TouchableOpacity style={styles.actionButton} onPress={() => onEliminar(item.id)}>
+        <Feather name="trash-2" size={18} color="#d32f2f" />
+      </TouchableOpacity>
+    </View>
   </View>
 );
 
@@ -78,7 +121,7 @@ const ProveedoresScreen = () => {
   const fetchProveedores = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await axios.get('http://192.168.1.7:8080/proveedores/all', {
+      const response = await axios.get('http://localhost:8080/proveedores/all', {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -118,7 +161,7 @@ const ProveedoresScreen = () => {
   }, [busqueda, proveedores]);
 
   const indiceInicial = (paginaActual - 1) * proveedoresPorPagina;
-  const proveedoresMostrar = proveedoresFiltrados.slice(indiceInicial, indiceInicial + proveedoresPorPagina);
+  const proveedoresMostrar = isMobile ? proveedoresFiltrados : proveedoresFiltrados.slice(indiceInicial, indiceInicial + proveedoresPorPagina);
   const totalPaginas = Math.ceil(proveedoresFiltrados.length / proveedoresPorPagina);
 
   const cambiarPagina = (nuevaPagina) => {
@@ -167,7 +210,7 @@ const ProveedoresScreen = () => {
   const eliminarProveedor = async (id) => {
     try {
       const token = await AsyncStorage.getItem('token');
-      await axios.delete(`http://192.168.1.7:8080/proveedores/${id}`, {
+      await axios.delete(`http://localhost:8080/proveedores/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -184,15 +227,15 @@ const ProveedoresScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.tituloContainer}>
-          <Text style={styles.titulo}>Proveedores</Text>
-          <View style={styles.contadorContainer}>
-            <Text style={styles.contadorTexto}>{proveedoresFiltrados.length}</Text>
+        <View style={styles.headerLeft}>
+          <Text style={styles.title}>Proveedores</Text>
+          <View style={styles.counter}>
+            <Text style={styles.counterText}>{proveedoresFiltrados.length}</Text>
           </View>
         </View>
-        <TouchableOpacity style={styles.botonCrear} onPress={crearProveedor}>
-          <Ionicons name="add-circle" size={24} color="white" />
-          <Text style={styles.textoBoton}>Crear Proveedor</Text>
+        <TouchableOpacity style={styles.addButton} onPress={crearProveedor}>
+          <Ionicons name="add-circle" size={20} color="white" />
+          <Text style={styles.addButtonText}>Crear Proveedor</Text>
         </TouchableOpacity>
       </View>
 
@@ -202,62 +245,80 @@ const ProveedoresScreen = () => {
         onChangeText={handleSearchChange}
       />
 
-      <View style={styles.tabla}>
-        <View style={styles.filaEncabezado}>
-          <View style={[styles.celdaEncabezado, styles.columnaTipo]}><Text style={styles.encabezado}>Tipo Proveedor</Text></View>
-          <View style={[styles.celdaEncabezado, styles.columnaTipoId]}><Text style={styles.encabezado}>Tipo ID</Text></View>
-          <View style={[styles.celdaEncabezado, styles.columnaIdentificacion]}><Text style={styles.encabezado}>Identificación</Text></View>
-          <View style={[styles.celdaEncabezado, styles.columnaNombre]}><Text style={styles.encabezado}>Nombre</Text></View>
-          <View style={[styles.celdaEncabezado, styles.columnaEmail]}><Text style={styles.encabezado}>Email</Text></View>
-          <View style={[styles.celdaEncabezado, styles.columnaAcciones]}><Text style={styles.encabezado}>Acciones</Text></View>
+      {!isMobile ? (
+        <View style={styles.table}>
+          <View style={styles.tableHeader}>
+            <View style={[styles.headerCell, styles.typeColumn]}><Text style={styles.headerText}>Tipo Proveedor</Text></View>
+            <View style={[styles.headerCell, styles.idTypeColumn]}><Text style={styles.headerText}>Tipo ID</Text></View>
+            <View style={[styles.headerCell, styles.idColumn]}><Text style={styles.headerText}>Identificación</Text></View>
+            <View style={[styles.headerCell, styles.nameColumn]}><Text style={styles.headerText}>Nombre</Text></View>
+            <View style={[styles.headerCell, styles.emailColumn]}><Text style={styles.headerText}>Email</Text></View>
+            <View style={[styles.headerCell, styles.actionsColumn]}><Text style={styles.headerText}>Acciones</Text></View>
+          </View>
+
+          <FlatList
+            data={proveedoresMostrar}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => (
+              <View style={styles.tableRow}>
+                <View style={[styles.cell, styles.typeColumn]}>
+                  <TipoProveedor tipo={item.tipo} />
+                </View>
+                <View style={[styles.cell, styles.idTypeColumn]}>
+                  <TipoIdentificacion tipo={item.tipoIdentificacion} />
+                </View>
+                <View style={[styles.cell, styles.idColumn]}>
+                  <Text style={styles.idText}>{item.identificacion}</Text>
+                </View>
+                <View style={[styles.cell, styles.nameColumn]}>
+                  <View style={styles.nameContainer}>
+                    <Avatar nombre={item.nombre} />
+                    <Text style={styles.nameText}>{item.nombre}</Text>
+                  </View>
+                </View>
+                <View style={[styles.cell, styles.emailColumn]}>
+                  <Text style={styles.emailText}>{item.email}</Text>
+                </View>
+                <View style={[styles.cell, styles.actionsColumn]}>
+                  <View style={styles.actionsContainer}>
+                    <TouchableOpacity onPress={() => verProveedor(item.id)} style={styles.actionIcon}>
+                      <FontAwesome name="eye" size={20} color="#424242" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => editarProveedor(item.id)} style={styles.actionIcon}>
+                      <Feather name="edit" size={20} color="#424242" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => eliminarProveedor(item.id)} style={styles.actionIcon}>
+                      <Feather name="trash-2" size={20} color="#d32f2f" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            )}
+          />
         </View>
+      ) : (
+        <ScrollView style={styles.scrollContainer}>
+          <View style={styles.cardsContainer}>
+            {proveedoresMostrar.map(item => (
+              <ProveedorCard 
+                key={item.id.toString()}
+                item={item}
+                onVer={verProveedor}
+                onEditar={editarProveedor}
+                onEliminar={eliminarProveedor}
+              />
+            ))}
+          </View>
+        </ScrollView>
+      )}
 
-        <FlatList
-          data={proveedoresMostrar}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <View style={styles.fila}>
-              <View style={[styles.celda, styles.columnaTipo]}>
-                <TipoProveedor tipo={item.tipo} />
-              </View>
-              <View style={[styles.celda, styles.columnaTipoId]}>
-                <TipoIdentificacion tipo={item.tipoIdentificacion} />
-              </View>
-              <View style={[styles.celda, styles.columnaIdentificacion]}>
-                <Text style={[styles.textoIdentificacion, styles.textoNegrita]}>{item.identificacion}</Text>
-              </View>
-              <View style={[styles.celda, styles.columnaNombre]}>
-                <View style={styles.contenedorNombre}>
-                  <Avatar nombre={item.nombre} />
-                  <Text style={[styles.textoNombre, styles.textoNegrita]}>{item.nombre}</Text>
-                </View>
-              </View>
-              <View style={[styles.celda, styles.columnaEmail]}>
-                <Text style={[styles.textoEmail, styles.textoNegrita]}>{item.email}</Text>
-              </View>
-              <View style={[styles.celda, styles.columnaAcciones]}>
-                <View style={styles.contenedorAcciones}>
-                  <TouchableOpacity onPress={() => verProveedor(item.id)} style={styles.botonAccion}>
-                    <FontAwesome name="eye" size={20} color="black" />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => editarProveedor(item.id)} style={styles.botonAccion}>
-                    <Feather name="edit" size={20} color="black" />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => eliminarProveedor(item.id)} style={styles.botonAccion}>
-                    <Feather name="trash-2" size={20} color="black" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          )}
+      {!isMobile && (
+        <Paginacion
+          paginaActual={paginaActual}
+          totalPaginas={totalPaginas}
+          cambiarPagina={cambiarPagina}
         />
-      </View>
-
-      <Paginacion
-        paginaActual={paginaActual}
-        totalPaginas={totalPaginas}
-        cambiarPagina={cambiarPagina}
-      />
+      )}
 
       <CrearProveedor
         visible={modalVisible}
@@ -277,6 +338,7 @@ const ProveedoresScreen = () => {
         proveedor={proveedorSeleccionado}
         onUpdate={handleUpdateProveedor}
       />
+      
       <Footer />
     </View>
   );
@@ -292,162 +354,225 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
-  tituloContainer: {
+  headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  titulo: {
-    fontSize: 24,
+  title: {
+    fontSize: 22,
     fontWeight: 'bold',
-    marginRight: 10,
+    color: '#424242',
+    marginRight: 12,
   },
-  contadorContainer: {
-    backgroundColor: '#D9D9D9',
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+  counter: {
+    backgroundColor: '#EEEEEE',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  contadorTexto: {
+  counterText: {
     fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: 14,
+    color: '#424242',
   },
-  botonCrear: {
+  addButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#424242',
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#424242',
   },
-  textoBoton: {
+  addButtonText: {
     marginLeft: 8,
     color: 'white',
     fontWeight: '500',
+    fontSize: 14,
   },
-  tabla: {
+
+  // Desktop Table Styles
+  table: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 4,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
     marginBottom: 16,
     overflow: 'hidden',
   },
-  filaEncabezado: {
+  tableHeader: {
     flexDirection: 'row',
     backgroundColor: '#424242',
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
   },
-  celdaEncabezado: {
+  headerCell: {
     justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 4,
+    paddingHorizontal: 8,
   },
-  fila: {
+  headerText: {
+    fontWeight: 'bold',
+    color: 'white',
+    fontSize: 14,
+  },
+  tableRow: {
     flexDirection: 'row',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'black',
-    alignItems: 'center',
+    borderBottomColor: '#e0e0e0',
     backgroundColor: 'white',
   },
-  celda: {
+  cell: {
     justifyContent: 'center',
-    paddingHorizontal: 4,
+    paddingHorizontal: 8,
   },
-  columnaTipo: {
+  typeColumn: {
     flex: 1,
     alignItems: 'center',
   },
-  columnaTipoId: {
+  idTypeColumn: {
     flex: 1,
     alignItems: 'center',
   },
-  columnaIdentificacion: {
+  idColumn: {
     flex: 2,
     alignItems: 'center',
   },
-  columnaNombre: {
+  nameColumn: {
     flex: 3,
     alignItems: 'flex-start',
   },
-  columnaEmail: {
+  emailColumn: {
     flex: 2,
     alignItems: 'center',
   },
-  columnaAcciones: {
-    flex: 1.5,
+  actionsColumn: {
+    flex: 2,
     alignItems: 'flex-end',
   },
-  contenedorNombre: {
+  nameContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  textoNombre: {
+  nameText: {
     marginLeft: 10,
+    fontWeight: '500',
+    fontSize: 14,
+    color: '#424242',
   },
-  textoIdentificacion: {
-    textAlign: 'center',
-    width: '100%',
+  idText: {
+    fontSize: 14,
+    color: '#424242',
   },
-  textoEmail: {
-    textAlign: 'center',
-    width: '100%',
+  emailText: {
+    fontSize: 14,
+    color: '#424242',
   },
-  encabezado: {
-    fontWeight: 'bold',
-    textAlign: 'center',
-    fontSize: 12,
-    color: 'white',
-  },
-  contenedorAcciones: {
+  actionsContainer: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    width: '100%',
   },
-  botonAccion: {
+  actionIcon: {
     marginHorizontal: 6,
   },
   tipoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
   },
   tipoTexto: {
-    marginLeft: 4,
-    fontSize: 12,
-    color: 'black',
+    marginLeft: 6,
+    fontSize: 14,
+    color: '#424242',
   },
   tipoIdContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
   },
   tipoIdTexto: {
-    marginLeft: 4,
-    fontSize: 12,
-    color: 'black',
+    marginLeft: 6,
+    fontSize: 14,
+    color: '#424242',
   },
+
+  // Mobile Card Styles
+  scrollContainer: {
+    flex: 1,
+  },
+  cardsContainer: {
+    paddingBottom: 16,
+  },
+  card: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  cardHeaderText: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  cardNombre: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#212121',
+    marginBottom: 2,
+  },
+  cardTipo: {
+    fontSize: 14,
+    color: '#757575',
+  },
+  cardDetails: {
+    marginLeft: 52,
+    marginBottom: 8,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  detailIcon: {
+    marginRight: 8,
+  },
+  detailText: {
+    fontSize: 14,
+    color: '#616161',
+  },
+  cardActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 8,
+  },
+  actionButton: {
+    marginLeft: 12,
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#f5f5f5',
+  },
+
+  // Avatar
   avatarContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
     color: 'white',
     fontWeight: 'bold',
-    fontSize: 14,
-  },
-  textoNegrita: {
-    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
 

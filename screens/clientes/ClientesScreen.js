@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
-import { MaterialIcons, FontAwesome, Feather, Ionicons, AntDesign } from '@expo/vector-icons';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Dimensions, ScrollView } from 'react-native';
+import { MaterialIcons, FontAwesome, Feather, Ionicons } from '@expo/vector-icons';
 import Paginacion from '../../components/Paginacion';
 import Buscador from '../../components/Buscador';
 import CrearCliente from '../clientes/CrearCliente';
@@ -8,7 +8,10 @@ import DetalleCliente from './DetalleCliente';
 import EditarCliente from './EditarCliente';
 import Footer from '../../components/Footer';
 
-// Componente para el avatar del cliente
+const { width } = Dimensions.get('window');
+const isMobile = width < 768;
+
+// Avatar Component
 const Avatar = ({ nombre }) => {
   const colors = ['#FF5733', '#33FF57', '#3357FF', '#F333FF', '#33FFF5'];
   const color = colors[nombre.length % colors.length];
@@ -22,7 +25,7 @@ const Avatar = ({ nombre }) => {
   );
 };
 
-// Componente para el estado de verificación
+// Verification Status Component
 const EstadoVerificacion = ({ verificado }) => (
   <View style={[
     styles.estadoContainer,
@@ -30,15 +33,58 @@ const EstadoVerificacion = ({ verificado }) => (
   ]}>
     {verificado ? (
       <>
-        <MaterialIcons name="verified" size={20} color="#2e7d32" />
-        <Text style={[styles.estadoTexto, styles.textoVerificado]}>Verificado</Text>
+        <MaterialIcons name="verified" size={16} color="#2e7d32" />
+        <Text style={styles.estadoTexto}>Verificado</Text>
       </>
     ) : (
       <>
-        <MaterialIcons name="warning" size={20} color="#d32f2f" />
-        <Text style={[styles.estadoTexto, styles.textoNoVerificado]}>No verificado</Text>
+        <MaterialIcons name="warning" size={16} color="#d32f2f" />
+        <Text style={styles.estadoTexto}>No verificado</Text>
       </>
     )}
+  </View>
+);
+
+// Mobile Client Card
+const ClienteCard = ({ item, onVer, onEditar, onEliminar, onReenviar }) => (
+  <View style={styles.card}>
+    <View style={styles.cardHeader}>
+      <Avatar nombre={item.nombre} />
+      <View style={styles.cardHeaderText}>
+        <Text style={styles.cardNombre}>{item.nombre}</Text>
+        <Text style={styles.cardTelefono}>{item.telefono}</Text>
+      </View>
+    </View>
+    
+    <View style={styles.cardDetails}>
+      <View style={styles.detailRow}>
+        <MaterialIcons name="email" size={16} color="#757575" style={styles.detailIcon}/>
+        <Text style={styles.detailText}>{item.email}</Text>
+      </View>
+      <View style={styles.detailRow}>
+        <EstadoVerificacion verificado={item.emailVerificado} />
+      </View>
+    </View>
+    
+    <View style={styles.cardActions}>
+      <TouchableOpacity style={styles.actionButton} onPress={() => onVer(item.id)}>
+        <FontAwesome name="eye" size={18} color="#424242" />
+      </TouchableOpacity>
+      
+      <TouchableOpacity style={styles.actionButton} onPress={() => onEditar(item.id)}>
+        <Feather name="edit" size={18} color="#424242" />
+      </TouchableOpacity>
+      
+      {!item.emailVerificado && (
+        <TouchableOpacity style={styles.actionButton} onPress={() => onReenviar(item.id)}>
+          <MaterialIcons name="email" size={18} color="#424242" />
+        </TouchableOpacity>
+      )}
+      
+      <TouchableOpacity style={styles.actionButton} onPress={() => onEliminar(item.id)}>
+        <Feather name="trash-2" size={18} color="#d32f2f" />
+      </TouchableOpacity>
+    </View>
   </View>
 );
 
@@ -103,7 +149,7 @@ const ClientesScreen = () => {
   }, [busqueda, clientes]);
 
   const indiceInicial = (paginaActual - 1) * clientesPorPagina;
-  const clientesMostrar = clientesFiltrados.slice(indiceInicial, indiceInicial + clientesPorPagina);
+  const clientesMostrar = isMobile ? clientesFiltrados : clientesFiltrados.slice(indiceInicial, indiceInicial + clientesPorPagina);
   const totalPaginas = Math.ceil(clientesFiltrados.length / clientesPorPagina);
 
   const cambiarPagina = (nuevaPagina) => {
@@ -113,7 +159,6 @@ const ClientesScreen = () => {
   };
 
   const crearCliente = () => setModalVisible(true);
-
   const handleSearchChange = (texto) => setBusqueda(texto);
 
   const handleCreateClient = (newClient) => {
@@ -130,7 +175,7 @@ const ClientesScreen = () => {
   };
 
   const reenviarEmail = (id) => console.log(`Reenviar email a cliente con ID: ${id}`);
-
+  
   const verCliente = (id) => {
     const cliente = clientes.find(c => c.id === id);
     setClienteSeleccionado(cliente);
@@ -161,15 +206,15 @@ const ClientesScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.tituloContainer}>
-          <Text style={styles.titulo}>Clientes</Text>
-          <View style={styles.contadorContainer}>
-            <Text style={styles.contadorTexto}>{clientesFiltrados.length}</Text>
+        <View style={styles.headerLeft}>
+          <Text style={styles.title}>Clientes</Text>
+          <View style={styles.counter}>
+            <Text style={styles.counterText}>{clientesFiltrados.length}</Text>
           </View>
         </View>
-        <TouchableOpacity style={styles.botonCrear} onPress={crearCliente}>
-          <Ionicons name="add-circle" size={24} color="white" />
-          <Text style={styles.textoBoton}>Crear Cliente</Text>
+        <TouchableOpacity style={styles.addButton} onPress={crearCliente}>
+          <Ionicons name="add-circle" size={20} color="white" />
+          <Text style={styles.addButtonText}>Crear</Text>
         </TouchableOpacity>
       </View>
 
@@ -179,59 +224,78 @@ const ClientesScreen = () => {
         onChangeText={handleSearchChange}
       />
 
-      <View style={styles.tabla}>
-        <View style={styles.filaEncabezado}>
-          <View style={[styles.celdaEncabezado, styles.columnaNombre]}><Text style={styles.encabezado}>Nombre</Text></View>
-          <View style={[styles.celdaEncabezado, styles.columnaTelefono]}><Text style={styles.encabezado}>Teléfono</Text></View>
-          <View style={[styles.celdaEncabezado, styles.columnaVerificado]}><Text style={styles.encabezado}>Verificación</Text></View>
-          <View style={[styles.celdaEncabezado, styles.columnaAcciones]}><Text style={styles.encabezado}>Acciones</Text></View>
-        </View>
+      {!isMobile ? (
+        <View style={styles.table}>
+          <View style={styles.tableHeader}>
+            <View style={[styles.headerCell, styles.nameColumn]}><Text style={styles.headerText}>Nombre</Text></View>
+            <View style={[styles.headerCell, styles.phoneColumn]}><Text style={styles.headerText}>Teléfono</Text></View>
+            <View style={[styles.headerCell, styles.statusColumn]}><Text style={styles.headerText}>Verificación</Text></View>
+            <View style={[styles.headerCell, styles.actionsColumn]}><Text style={styles.headerText}>Acciones</Text></View>
+          </View>
 
-        <FlatList
-          data={clientesMostrar}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <View style={styles.fila}>
-              <View style={[styles.celda, styles.columnaNombre]}>
-                <View style={styles.contenedorNombre}>
-                  <Avatar nombre={item.nombre} />
-                  <Text style={styles.textoNombre}>{item.nombre}</Text>
+          <FlatList
+            data={clientesMostrar}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => (
+              <View style={styles.tableRow}>
+                <View style={[styles.cell, styles.nameColumn]}>
+                  <View style={styles.nameContainer}>
+                    <Avatar nombre={item.nombre} />
+                    <Text style={styles.nameText}>{item.nombre}</Text>
+                  </View>
                 </View>
-              </View>
-              <View style={[styles.celda, styles.columnaTelefono]}>
-                <Text style={styles.textoTelefono}>{item.telefono}</Text>
-              </View>
-              <View style={[styles.celda, styles.columnaVerificado]}>
-                <EstadoVerificacion verificado={item.emailVerificado} />
-              </View>
-              <View style={[styles.celda, styles.columnaAcciones]}>
-                <View style={styles.contenedorAcciones}>
-                  {!item.emailVerificado && (
-                    <TouchableOpacity onPress={() => reenviarEmail(item.id)} style={styles.botonAccion}>
-                      <MaterialIcons name="email" size={20} color="black" />
+                <View style={[styles.cell, styles.phoneColumn]}>
+                  <Text style={styles.phoneText}>{item.telefono}</Text>
+                </View>
+                <View style={[styles.cell, styles.statusColumn]}>
+                  <EstadoVerificacion verificado={item.emailVerificado} />
+                </View>
+                <View style={[styles.cell, styles.actionsColumn]}>
+                  <View style={styles.actionsContainer}>
+                    {!item.emailVerificado && (
+                      <TouchableOpacity onPress={() => reenviarEmail(item.id)} style={styles.actionIcon}>
+                        <MaterialIcons name="email" size={20} color="black" />
+                      </TouchableOpacity>
+                    )}
+                    <TouchableOpacity onPress={() => verCliente(item.id)} style={styles.actionIcon}>
+                      <FontAwesome name="eye" size={20} color="black" />
                     </TouchableOpacity>
-                  )}
-                  <TouchableOpacity onPress={() => verCliente(item.id)} style={styles.botonAccion}>
-                    <FontAwesome name="eye" size={20} color="black" />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => editarCliente(item.id)} style={styles.botonAccion}>
-                    <Feather name="edit" size={20} color="black" />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => eliminarCliente(item.id)} style={styles.botonAccion}>
-                    <Feather name="trash-2" size={20} color="black" />
-                  </TouchableOpacity>
+                    <TouchableOpacity onPress={() => editarCliente(item.id)} style={styles.actionIcon}>
+                      <Feather name="edit" size={20} color="black" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => eliminarCliente(item.id)} style={styles.actionIcon}>
+                      <Feather name="trash-2" size={20} color="black" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
-            </View>
-          )}
-        />
-      </View>
+            )}
+          />
+        </View>
+      ) : (
+        <ScrollView style={styles.scrollContainer}>
+          <View style={styles.cardsContainer}>
+            {clientesMostrar.map(item => (
+              <ClienteCard 
+                key={item.id.toString()}
+                item={item}
+                onVer={verCliente}
+                onEditar={editarCliente}
+                onEliminar={eliminarCliente}
+                onReenviar={reenviarEmail}
+              />
+            ))}
+          </View>
+        </ScrollView>
+      )}
 
-      <Paginacion
-        paginaActual={paginaActual}
-        totalPaginas={totalPaginas}
-        cambiarPagina={cambiarPagina}
-      />
+      {!isMobile && (
+        <Paginacion
+          paginaActual={paginaActual}
+          totalPaginas={totalPaginas}
+          cambiarPagina={cambiarPagina}
+        />
+      )}
 
       <CrearCliente
         visible={modalVisible}
@@ -251,6 +315,7 @@ const ClientesScreen = () => {
         cliente={clienteSeleccionado}
         onUpdate={handleUpdateClient}
       />
+      
       <Footer />
     </View>
   );
@@ -266,152 +331,221 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
-  tituloContainer: {
+  headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  titulo: {
-    fontSize: 24,
+  title: {
+    fontSize: 22,
     fontWeight: 'bold',
-    marginRight: 10,
+    color: '#424242',
+    marginRight: 12,
   },
-  contadorContainer: {
-    backgroundColor: '#D9D9D9',
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+  counter: {
+    backgroundColor: '#EEEEEE',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  contadorTexto: {
+  counterText: {
     fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: 14,
+    color: '#424242',
   },
-  botonCrear: {
+  addButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#424242',
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: '#424242',
+    borderRadius: 20,
   },
-  textoBoton: {
+  addButtonText: {
     marginLeft: 8,
     color: 'white',
     fontWeight: '500',
+    fontSize: 14,
   },
-  tabla: {
+
+  // Desktop Table Styles
+  table: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 4,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
     marginBottom: 16,
     overflow: 'hidden',
   },
-  filaEncabezado: {
+  tableHeader: {
     flexDirection: 'row',
     backgroundColor: '#424242',
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
   },
-  celdaEncabezado: {
+  headerCell: {
     justifyContent: 'center',
-    alignItems: 'center',
     paddingHorizontal: 8,
   },
-  fila: {
+  headerText: {
+    fontWeight: 'bold',
+    color: 'white',
+    fontSize: 14,
+  },
+  tableRow: {
     flexDirection: 'row',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'black',
-    alignItems: 'center',
+    borderBottomColor: '#e0e0e0',
     backgroundColor: 'white',
   },
-  celda: {
+  cell: {
     justifyContent: 'center',
     paddingHorizontal: 8,
   },
-  columnaNombre: {
+  nameColumn: {
     flex: 3,
     alignItems: 'flex-start',
   },
-  columnaTelefono: {
+  phoneColumn: {
     flex: 2,
     alignItems: 'center',
   },
-  columnaVerificado: {
+  statusColumn: {
     flex: 2,
     alignItems: 'center',
   },
-  columnaAcciones: {
+  actionsColumn: {
     flex: 2,
     alignItems: 'flex-end',
   },
-  contenedorNombre: {
+  nameContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  textoNombre: {
+  nameText: {
     marginLeft: 10,
-    fontWeight: 'bold', // Añadido negrita para el nombre
+    fontWeight: '500',
+    fontSize: 14,
+    color: '#424242',
   },
-  textoTelefono: {
-    textAlign: 'center',
-    width: '100%',
-    fontWeight: 'bold', // Añadido negrita para el teléfono
+  phoneText: {
+    fontSize: 14,
+    color: '#424242',
   },
-  encabezado: {
-    fontWeight: 'bold',
-    textAlign: 'center',
-    color: 'white',
-  },
-  contenedorAcciones: {
+  actionsContainer: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    width: '100%',
   },
-  botonAccion: {
+  actionIcon: {
     marginHorizontal: 6,
   },
+
+  // Mobile Card Styles
+  scrollContainer: {
+    flex: 1,
+  },
+  cardsContainer: {
+    paddingBottom: 16,
+  },
+  card: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  cardHeaderText: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  cardNombre: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#212121',
+    marginBottom: 2,
+  },
+  cardTelefono: {
+    fontSize: 14,
+    color: '#757575',
+  },
+  cardDetails: {
+    marginLeft: 52,
+    marginBottom: 8,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  detailIcon: {
+    marginRight: 8,
+  },
+  detailText: {
+    fontSize: 14,
+    color: '#616161',
+  },
+  cardActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 8,
+  },
+  actionButton: {
+    marginLeft: 12,
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#f5f5f5',
+  },
+
+  // Verification Status
   estadoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: 12,
-    justifyContent: 'center',
   },
   verificado: {
-    backgroundColor: '#e8f5e9',
+    backgroundColor: '#E8F5E9',
   },
   noVerificado: {
-    backgroundColor: '#ffebee',
+    backgroundColor: '#FFEBEE',
   },
   estadoTexto: {
-    marginLeft: 4,
-    fontWeight: 'bold',
+    marginLeft: 6,
+    fontSize: 13,
+    fontWeight: '500',
   },
-  textoVerificado: {
+  verificadoText: {
     color: '#2e7d32',
   },
-  textoNoVerificado: {
+  noVerificadoText: {
     color: '#d32f2f',
   },
+
+  // Avatar
   avatarContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
     color: 'white',
     fontWeight: 'bold',
-    fontSize: 14,
+    fontSize: 16,
   },
 });
 

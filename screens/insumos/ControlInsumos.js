@@ -1,189 +1,240 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, TextInput, Dimensions } from 'react-native';
-import { MaterialIcons, FontAwesome, Feather, Ionicons } from '@expo/vector-icons';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  FlatList,
+  TextInput,
+  Dimensions,
+  Platform,
+  ScrollView,
+  ActivityIndicator,
+} from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import Paginacion from '../../components/Paginacion';
 import Buscador from '../../components/Buscador';
 import Footer from '../../components/Footer';
+import InfoModal from '../../components/InfoModal';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 
-const { width } = Dimensions.get('window');
-const isMobile = width < 768;
+const isMobile = Dimensions.get('window').width < 768;
+const INSUMOS_POR_PAGINA = 4;
 
-const ControlInsumos = ({ route, navigation }) => {
-  const { insumos: insumosIniciales = [] } = route.params || {};
-  
-  const [insumos, setInsumos] = useState(insumosIniciales);
-  const [insumosFiltrados, setInsumosFiltrados] = useState(insumosIniciales);
+const ControlInsumos = () => {
+  const [insumos, setInsumos] = useState([]);
+  const [insumosFiltrados, setInsumosFiltrados] = useState([]);
   const [paginaActual, setPaginaActual] = useState(1);
-  const [insumosPorPagina] = useState(5);
   const [busqueda, setBusqueda] = useState('');
   const [cantidadReducir, setCantidadReducir] = useState({});
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (insumosIniciales.length === 0) {
-      Alert.alert('Información', 'No se recibieron insumos, mostrando datos de ejemplo');
-      const datosEjemplo = [
-        { 
-          id: 1, 
-          nombre: 'crema chocolate', 
-          descripcion: 'crema actualizada', 
-          cantidad: 0,
-          categoria: 'Repostería',
-          unidad: 'gramos'
-        },
-        { 
-          id: 2, 
-          nombre: 'crema de chocolate', 
-          descripcion: 'chocolate', 
-          cantidad: 90,
-          categoria: 'Repostería',
-          unidad: 'gramos'
-        },
-        { 
-          id: 3, 
-          nombre: 'Hidratante de coco', 
-          descripcion: 'asijklasjdl', 
-          cantidad: 400,
-          categoria: 'Cuidado personal',
-          unidad: 'mililitros'
-        },
-        { 
-          id: 4, 
-          nombre: 'wilson insumo', 
-          descripcion: 'wilson', 
-          cantidad: 25,
-          categoria: 'Otros',
-          unidad: 'unidades'
-        },
-      ];
-      setInsumos(datosEjemplo);
-      setInsumosFiltrados(datosEjemplo);
+  /* InfoModal */
+  const [infoVisible, setInfoVisible] = useState(false);
+  const [infoTitle, setInfoTitle] = useState('');
+  const [infoMsg, setInfoMsg] = useState('');
+
+  /* ============ Cargar insumos ============ */
+  const cargarInsumos = useCallback(async () => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem('token');
+      const { data } = await axios.get('http://localhost:8080/insumos/all', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const lista = (data.insumos || []).map((i) => ({
+        ...i,
+        categoria: i.categorias_insumo || i.CategoriaProducto || null,
+      }));
+      console.log('📦 Insumos cargados 👉', lista);
+      setInsumos(lista);
+      setInsumosFiltrados(lista);
+    } catch (e) {
+      console.error(e);
+      setInfoTitle('❌ Error');
+      setInfoMsg('No se pudieron cargar los insumos');
+      setInfoVisible(true);
+    } finally {
+      setLoading(false);
     }
   }, []);
 
+  /* Primera carga */
   useEffect(() => {
-    if (busqueda.trim() === '') {
-      setInsumosFiltrados(insumos);
-    } else {
-      const termino = busqueda.toLowerCase();
-      const filtrados = insumos.filter(i =>
-        i.nombre.toLowerCase().includes(termino) || 
-        i.descripcion.toLowerCase().includes(termino)
-      );
-      setInsumosFiltrados(filtrados);
-    }
+    cargarInsumos();
+  }, [cargarInsumos]);
+
+  /* Refresco automático al volver a la pantalla */
+  useFocusEffect(
+    useCallback(() => {
+      cargarInsumos();
+    }, [cargarInsumos])
+  );
+
+  /* ============ Filtro ============ */
+  useEffect(() => {
+    const term = busqueda.trim().toLowerCase();
+    const filtrados =
+      term === ''
+        ? insumos
+        : insumos.filter(
+            (i) =>
+              i.nombre.toLowerCase().includes(term) ||
+              i.descripcion.toLowerCase().includes(term) ||
+              (i.categoria?.nombre &&
+                i.categoria.nombre.toLowerCase().includes(term))
+          );
+    console.log('🔍 Filtro:', { term, resultado: filtrados.length });
+    setInsumosFiltrados(filtrados);
     setPaginaActual(1);
   }, [busqueda, insumos]);
 
-  // Solo usamos paginación en desktop
-  const insumosMostrar = isMobile 
-    ? insumosFiltrados 
-    : insumosFiltrados.slice(
-        (paginaActual - 1) * insumosPorPagina, 
-        (paginaActual - 1) * insumosPorPagina + insumosPorPagina
-      );
+  /* ============ Paginación ============ */
+  const indiceInicial = (paginaActual - 1) * INSUMOS_POR_PAGINA;
+  const insumosMostrar = insumosFiltrados.slice(
+    indiceInicial,
+    indiceInicial + INSUMOS_POR_PAGINA
+  );
+  const totalPaginas = Math.ceil(insumosFiltrados.length / INSUMOS_POR_PAGINA);
 
-  const totalPaginas = Math.ceil(insumosFiltrados.length / insumosPorPagina);
-
-  const cambiarPagina = (nuevaPagina) => {
-    if (nuevaPagina > 0 && nuevaPagina <= totalPaginas) {
-      setPaginaActual(nuevaPagina);
-    }
-  };
-
-  const handleSearchChange = (texto) => setBusqueda(texto);
-
-  const handleCantidadChange = (id, value) => {
-    setCantidadReducir(prev => ({
-      ...prev,
-      [id]: parseInt(value) || 0
+  /* ============ Reducción ============ */
+  const handleCantidadChange = (id, v) => {
+    setCantidadReducir((p) => ({
+      ...p,
+      [id]: Math.max(0, parseInt(v) || 0),
     }));
   };
 
-  const reducirInsumo = (id) => {
-    const cantidad = cantidadReducir[id] || 0;
-    if (cantidad <= 0) {
-      Alert.alert('Error', 'La cantidad debe ser mayor a cero');
+  const reducirInsumo = async (id) => {
+    const cantidadSolicitada = cantidadReducir[id] || 0;
+    const item = insumos.find((i) => i.id === id);
+
+    console.log('🔻 Reducir', { id, cantidadSolicitada, item });
+
+    if (!item) return;
+    if (cantidadSolicitada <= 0) {
+      setInfoTitle('⚠️ Atención');
+      setInfoMsg('La cantidad a reducir debe ser mayor a cero');
+      setInfoVisible(true);
+      return;
+    }
+    if (cantidadSolicitada > item.cantidad) {
+      setInfoTitle('⚠️ No disponible');
+      setInfoMsg(
+        `🚫 Solo hay ${item.cantidad} unidades. No puedes reducir ${cantidadSolicitada}.`
+      );
+      setInfoVisible(true);
       return;
     }
 
-    const nuevosInsumos = insumos.map(i => {
-      if (i.id === id) {
-        if (i.cantidad < cantidad) {
-          Alert.alert('Error', 'No hay suficiente cantidad para reducir');
-          return i;
-        }
-        return { 
-          ...i, 
-          cantidad: i.cantidad - cantidad 
-        };
-      }
-      return i;
-    });
-    
-    setInsumos(nuevosInsumos);
-    setInsumosFiltrados(nuevosInsumos);
-    setCantidadReducir(prev => ({
-      ...prev,
-      [id]: 0
-    }));
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem('token');
+      const { data } = await axios.patch(
+        `http://localhost:8080/insumos/${id}/reducir`,
+        { cantidad: cantidadSolicitada },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      console.log('✅ Respuesta backend:', data);
+
+      /* Refrescamos desde backend para evitar des‑sincronización */
+      await cargarInsumos();
+
+      setCantidadReducir((p) => ({ ...p, [id]: 0 }));
+      setInfoTitle('✅ ¡Éxito!');
+      setInfoMsg('La cantidad se redujo correctamente 🎉');
+      setInfoVisible(true);
+    } catch (e) {
+      console.error('Error al reducir:', e);
+      setInfoTitle('❌ Error');
+      setInfoMsg('Hubo un problema al reducir el insumo 😢');
+      setInfoVisible(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Renderizado para móvil (tarjetas)
+  /* ============ Render Item Móvil / Desktop ============ */
   const renderMobileItem = ({ item }) => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <View style={styles.cardHeaderText}>
           <Text style={styles.cardTitle}>{item.nombre}</Text>
-          <Text style={styles.cardSubtitle}>{item.categoria}</Text>
+          <Text style={styles.cardSubtitle}>
+            {item.categoria?.nombre || 'Sin categoría'}
+          </Text>
         </View>
         <View style={styles.unidadContainer}>
-          <Text style={styles.textoUnidad}>{item.unidad}</Text>
+          <Text style={styles.textoUnidad}>{item.unidadMedida}</Text>
         </View>
       </View>
-      
+
       <Text style={styles.cardDescription}>{item.descripcion}</Text>
-      
+
       <View style={styles.cardInfoRow}>
-        <Text style={styles.cardLabel}>Cantidad:</Text>
+        <Text style={styles.cardLabel}>Disponible:</Text>
         <View style={styles.cantidadContainer}>
           <Text style={styles.textoCantidad}>{item.cantidad}</Text>
         </View>
       </View>
-      
+
       <View style={styles.cardActions}>
         <TextInput
           style={styles.inputCantidad}
           keyboardType="numeric"
-          placeholder="Cantidad"
-          value={cantidadReducir[item.id] ? cantidadReducir[item.id].toString() : ''}
-          onChangeText={(text) => handleCantidadChange(item.id, text)}
+          placeholder="0"
+          value={
+            cantidadReducir[item.id] ? cantidadReducir[item.id].toString() : ''
+          }
+          onChangeText={(t) => handleCantidadChange(item.id, t)}
         />
-        <TouchableOpacity 
-          onPress={() => reducirInsumo(item.id)} 
-          style={[styles.botonReducir, item.cantidad <= 0 && styles.botonDisabled]}
-          disabled={item.cantidad <= 0}
+        <TouchableOpacity
+          onPress={() => reducirInsumo(item.id)}
+          style={[
+            styles.botonReducir,
+            (item.cantidad <= 0 || loading) && styles.botonDisabled,
+          ]}
+          disabled={item.cantidad <= 0 || loading}
         >
-          <MaterialIcons name="remove" size={20} color="white" />
+          <MaterialIcons name="remove" size={20} color="#fff" />
         </TouchableOpacity>
       </View>
     </View>
   );
 
-  // Renderizado para desktop (tabla)
   const renderDesktopItem = ({ item }) => (
     <View style={styles.fila}>
-      <View style={[styles.celda, styles.columnaNombre]}>
-        <Text style={styles.textoNombre}>{item.nombre}</Text>
-      </View>
-      <View style={[styles.celda, styles.columnaDescripcion]}>
-        <Text style={styles.textoDescripcion}>{item.descripcion}</Text>
-      </View>
-      <View style={[styles.celda, styles.columnaCategoria]}>
-        <Text style={styles.textoCategoria}>{item.categoria}</Text>
-      </View>
+      {[item.nombre, item.descripcion, item.categoria?.nombre || 'Sin categoría']
+        .map((txt, idx) => (
+          <View
+            key={idx}
+            style={[
+              styles.celda,
+              idx === 0 && styles.columnaNombre,
+              idx === 1 && styles.columnaDescripcion,
+              idx === 2 && styles.columnaCategoria,
+            ]}
+          >
+            <Text
+              style={
+                idx === 0
+                  ? styles.textoNombre
+                  : idx === 1
+                  ? styles.textoDescripcion
+                  : styles.textoCategoria
+              }
+            >
+              {txt}
+            </Text>
+          </View>
+        ))}
       <View style={[styles.celda, styles.columnaUnidad]}>
         <View style={styles.unidadContainer}>
-          <Text style={styles.textoUnidad}>{item.unidad}</Text>
+          <Text style={styles.textoUnidad}>{item.unidadMedida}</Text>
         </View>
       </View>
       <View style={[styles.celda, styles.columnaCantidad]}>
@@ -196,14 +247,21 @@ const ControlInsumos = ({ route, navigation }) => {
           <TextInput
             style={styles.inputCantidad}
             keyboardType="numeric"
-            placeholder="Cant."
-            value={cantidadReducir[item.id] ? cantidadReducir[item.id].toString() : ''}
-            onChangeText={(text) => handleCantidadChange(item.id, text)}
+            placeholder="0"
+            value={
+              cantidadReducir[item.id]
+                ? cantidadReducir[item.id].toString()
+                : ''
+            }
+            onChangeText={(t) => handleCantidadChange(item.id, t)}
           />
-          <TouchableOpacity 
-            onPress={() => reducirInsumo(item.id)} 
-            style={[styles.botonReducir, item.cantidad <= 0 && styles.botonDisabled]}
-            disabled={item.cantidad <= 0}
+          <TouchableOpacity
+            onPress={() => reducirInsumo(item.id)}
+            style={[
+              styles.botonReducir,
+              (item.cantidad <= 0 || loading) && styles.botonDisabled,
+            ]}
+            disabled={item.cantidad <= 0 || loading}
           >
             <MaterialIcons name="remove" size={18} color="#fff" />
           </TouchableOpacity>
@@ -212,123 +270,147 @@ const ControlInsumos = ({ route, navigation }) => {
     </View>
   );
 
-  // Render diferente para móvil y desktop
-  if (isMobile) {
-    return (
-      <View style={styles.mobileContainer}>
-        <View style={styles.mobileContent}>
-          <View style={styles.header}>
-            <View style={styles.tituloContainer}>
-              <Text style={styles.titulo}>Control de insumos</Text>
-              <View style={styles.contadorContainer}>
-                <Text style={styles.contadorTexto}>{insumosFiltrados.length}</Text>
+  /* ============ Render principal ============ */
+  return (
+    <View style={styles.mainContainer}>
+      <View style={styles.contentWrapper}>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={styles.contentContainer}>
+            {/* Header */}
+            <View style={styles.header}>
+              <View style={styles.tituloContainer}>
+                <Text style={styles.titulo}>Control de insumos</Text>
+                <View style={styles.contadorContainer}>
+                  <Text style={styles.contadorTexto}>
+                    {insumosFiltrados.length}
+                  </Text>
+                </View>
               </View>
             </View>
-          </View>
 
-          <Buscador
-            placeholder="Buscar insumos por nombre o descripción"
-            value={busqueda}
-            onChangeText={handleSearchChange}
-          />
-
-          {insumosMostrar.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>No se encontraron insumos</Text>
-            </View>
-          ) : (
-            <FlatList
-              data={insumosMostrar}
-              keyExtractor={(item) => item.id.toString()}
-              renderItem={renderMobileItem}
-              contentContainerStyle={styles.mobileListContainer}
-              style={styles.mobileFlatList}
+            <Buscador
+              placeholder="Buscar insumos por nombre, descripción o categoría"
+              value={busqueda}
+              onChangeText={setBusqueda}
             />
-          )}
+
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#424242" />
+                <Text style={styles.loadingText}>Cargando insumos...</Text>
+              </View>
+            ) : insumosMostrar.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>No se encontraron insumos</Text>
+              </View>
+            ) : isMobile ? (
+              <FlatList
+                data={insumosMostrar}
+                keyExtractor={(i) => i.id.toString()}
+                renderItem={renderMobileItem}
+                contentContainerStyle={styles.mobileListContainer}
+                style={styles.mobileFlatList}
+              />
+            ) : (
+              <View style={styles.tableWrapper}>
+                <View style={styles.tableContainer}>
+                  <View style={styles.tabla}>
+                    <View style={styles.filaEncabezado}>
+                      {[
+                        'Nombre',
+                        'Descripción',
+                        'Categoría',
+                        'Unidad',
+                        'Cantidad',
+                        'Reducir',
+                      ].map((h, idx) => (
+                        <View
+                          key={idx}
+                          style={[
+                            styles.celdaEncabezado,
+                            idx === 0 && styles.columnaNombre,
+                            idx === 1 && styles.columnaDescripcion,
+                            idx === 2 && styles.columnaCategoria,
+                            idx === 3 && styles.columnaUnidad,
+                            idx === 4 && styles.columnaCantidad,
+                            idx === 5 && styles.columnaAcciones,
+                          ]}
+                        >
+                          <Text style={styles.encabezado}>{h}</Text>
+                        </View>
+                      ))}
+                    </View>
+                    <FlatList
+                      data={insumosMostrar}
+                      keyExtractor={(i) => i.id.toString()}
+                      renderItem={renderDesktopItem}
+                      scrollEnabled={false}
+                    />
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {insumosFiltrados.length > INSUMOS_POR_PAGINA && (
+              <View style={styles.paginationContainer}>
+                <Paginacion
+                  paginaActual={paginaActual}
+                  totalPaginas={totalPaginas}
+                  cambiarPagina={setPaginaActual}
+                />
+              </View>
+            )}
+          </View>
+        </ScrollView>
+
+        {/* Footer */}
+        <View style={styles.footerContainer}>
+          <Footer />
         </View>
-        
-        <Footer />
       </View>
-    );
-  }
 
-  // Render para desktop
-  return (
-    <View style={styles.desktopContainer}>
-      <View style={styles.desktopContent}>
-        <View style={styles.header}>
-          <View style={styles.tituloContainer}>
-            <Text style={styles.titulo}>Control de insumos</Text>
-            <View style={styles.contadorContainer}>
-              <Text style={styles.contadorTexto}>{insumosFiltrados.length}</Text>
-            </View>
-          </View>
-        </View>
-
-        <Buscador
-          placeholder="Buscar insumos por nombre o descripción"
-          value={busqueda}
-          onChangeText={handleSearchChange}
-        />
-
-        {insumosMostrar.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No se encontraron insumos</Text>
-          </View>
-        ) : (
-          <View style={styles.tabla}>
-            <View style={styles.filaEncabezado}>
-              <View style={[styles.celdaEncabezado, styles.columnaNombre]}><Text style={styles.encabezado}>Nombre</Text></View>
-              <View style={[styles.celdaEncabezado, styles.columnaDescripcion]}><Text style={styles.encabezado}>Descripción</Text></View>
-              <View style={[styles.celdaEncabezado, styles.columnaCategoria]}><Text style={styles.encabezado}>Categoría</Text></View>
-              <View style={[styles.celdaEncabezado, styles.columnaUnidad]}><Text style={styles.encabezado}>Unidad</Text></View>
-              <View style={[styles.celdaEncabezado, styles.columnaCantidad]}><Text style={styles.encabezado}>Cantidad</Text></View>
-              <View style={[styles.celdaEncabezado, styles.columnaAcciones]}><Text style={styles.encabezado}>Reducir</Text></View>
-            </View>
-            <FlatList
-              data={insumosMostrar}
-              keyExtractor={(item) => item.id.toString()}
-              renderItem={renderDesktopItem}
-              scrollEnabled={false}
-            />
-          </View>
-        )}
-
-        <Paginacion
-          paginaActual={paginaActual}
-          totalPaginas={totalPaginas}
-          cambiarPagina={cambiarPagina}
-        />
-      </View>
-      
-      <Footer />
+      <InfoModal
+        visible={infoVisible}
+        title={infoTitle}
+        message={infoMsg}
+        onClose={() => setInfoVisible(false)}
+      />
     </View>
   );
 };
 
+/* ============ Estilos ============ */
 const styles = StyleSheet.create({
-  // Estilos base
-  mobileContainer: {
+  /* Layout principal */
+  mainContainer: {
     flex: 1,
     backgroundColor: '#fff',
   },
-  desktopContainer: {
+  contentWrapper: {
     flex: 1,
-    backgroundColor: '#fff',
+    justifyContent: 'space-between',
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  contentContainer: {
+    flex: 1,
     padding: 16,
+    paddingBottom: 0,
   },
-  mobileContent: {
-    flex: 1,
-    padding: 16,
+  footerContainer: {
+    paddingHorizontal: 25,
+    paddingBottom: 25,
+    paddingTop: 4,
   },
-  desktopContent: {
-    flex: 1,
+  paginationContainer: {
+    paddingVertical: 16,
   },
+
+  /* Header */
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
   },
   tituloContainer: {
     flexDirection: 'row',
@@ -351,7 +433,99 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 14,
   },
-  // Estilos para móvil
+
+  /* Loading */
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: 200,
+  },
+  loadingText: {
+    marginTop: 10,
+    color: '#424242',
+  },
+
+  /* Tabla desktop */
+  tableWrapper: {
+    flex: 1,
+  },
+  tableContainer: {
+    flex: 1,
+  },
+  tabla: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  filaEncabezado: {
+    flexDirection: 'row',
+    backgroundColor: '#424242',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+  },
+  celdaEncabezado: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+  },
+  encabezado: {
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  fila: {
+    flexDirection: 'row',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+    backgroundColor: 'white',
+  },
+  celda: {
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  columnaNombre: {
+    flex: 2,
+  },
+  columnaDescripcion: {
+    flex: 3,
+  },
+  columnaCategoria: {
+    flex: 2,
+    alignItems: 'center',
+  },
+  columnaUnidad: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  columnaCantidad: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  columnaAcciones: {
+    flex: 1.5,
+    alignItems: 'flex-end',
+    paddingRight: 16,
+  },
+  textoNombre: {
+    fontWeight: '500',
+  },
+  textoDescripcion: {
+    color: '#666',
+  },
+  textoCategoria: {
+    color: '#555',
+    fontWeight: '500',
+  },
+  contenedorAcciones: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  /* Card móvil */
   mobileFlatList: {
     flex: 1,
   },
@@ -363,11 +537,17 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
     borderWidth: 1,
     borderColor: '#eee',
   },
@@ -414,14 +594,15 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   inputCantidad: {
-    flex: 1,
+    width: 60,
     height: 40,
     borderWidth: 1,
     borderColor: '#ddd',
-    borderRadius: 20,
-    paddingHorizontal: 12,
+    borderRadius: 8,
+    paddingHorizontal: 8,
     marginRight: 10,
     fontSize: 14,
+    textAlign: 'center',
   },
   botonReducir: {
     backgroundColor: '#424242',
@@ -444,7 +625,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   textoUnidad: {
-    color: '#000',
     fontSize: 12,
     fontWeight: 'bold',
   },
@@ -458,85 +638,10 @@ const styles = StyleSheet.create({
   },
   textoCantidad: {
     fontWeight: 'bold',
-    color: '#000',
-    fontSize: 12,
+    fontSize: 14,
   },
-  // Estilos para desktop
-  tabla: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 4,
-    marginBottom: 16,
-    overflow: 'hidden',
-  },
-  filaEncabezado: {
-    flexDirection: 'row',
-    backgroundColor: '#424242',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
-  },
-  celdaEncabezado: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-  },
-  encabezado: {
-    fontWeight: 'bold',
-    textAlign: 'center',
-    color: 'white',
-  },
-  fila: {
-    flexDirection: 'row',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'black',
-    alignItems: 'center',
-    backgroundColor: 'white',
-  },
-  celda: {
-    justifyContent: 'center',
-    paddingHorizontal: 8,
-  },
-  columnaNombre: {
-    flex: 2,
-    alignItems: 'flex-start',
-  },
-  columnaDescripcion: {
-    flex: 3,
-    alignItems: 'flex-start',
-  },
-  columnaCategoria: {
-    flex: 2,
-    alignItems: 'center',
-  },
-  columnaUnidad: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  columnaCantidad: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  columnaAcciones: {
-    flex: 1.5,
-    alignItems: 'center',
-  },
-  textoNombre: {
-    fontWeight: '500',
-  },
-  textoDescripcion: {
-    color: '#666',
-  },
-  textoCategoria: {
-    color: '#555',
-    fontWeight: '500',
-  },
-  contenedorAcciones: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+
+  /* Empty state */
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',

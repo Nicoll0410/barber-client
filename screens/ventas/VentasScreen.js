@@ -1,160 +1,200 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Dimensions } from 'react-native';
-import { FontAwesome, Ionicons } from '@expo/vector-icons';
-import Paginacion from '../../components/Paginacion';
-import Buscador from '../../components/Buscador';
-import DetalleVenta from './DetalleVenta';
-import Footer from '../../components/Footer';
+import React, { useState, useEffect, useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  FlatList,
+  Dimensions,
+  ActivityIndicator
+} from "react-native";
+import { FontAwesome } from "@expo/vector-icons";
+import Buscador from "../../components/Buscador";
+import DetalleVenta from "./DetalleVenta";
+import Footer from "../../components/Footer";
+import InfoModal from "../../components/InfoModal";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
+import Paginacion from "../../components/Paginacion";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 const isMobile = width < 768;
 
 const VentasScreen = () => {
   const [ventas, setVentas] = useState([]);
   const [ventasFiltradas, setVentasFiltradas] = useState([]);
-  const [paginaActual, setPaginaActual] = useState(1);
-  const [ventasPorPagina] = useState(5);
-  const [busqueda, setBusqueda] = useState('');
+  const [busqueda, setBusqueda] = useState("");
   const [modalDetalleVisible, setModalDetalleVisible] = useState(false);
   const [ventaSeleccionada, setVentaSeleccionada] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [pagina, setPagina] = useState(1);
+  const porPagina = 4;
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalTitle, setModalTitle] = useState("");
+  const [modalMessage, setModalMessage] = useState("");
+
+  const showModal = (title, message) => {
+    setModalTitle(title);
+    setModalMessage(message);
+    setModalVisible(true);
+  };
+
+  const fetchVentas = async () => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem("token");
+      const { data } = await axios.get(
+        "http://localhost:8080/ventas",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setVentas(data.ventas || []);
+      setVentasFiltradas(data.ventas || []);
+    } catch (err) {
+      console.error("Error al obtener ventas:", err);
+      showModal(
+        "Error 🚨",
+        "No se pudieron cargar las ventas. Por favor, inténtalo nuevamente."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const datosEjemplo = [
-      { 
-        id: 1,
-        fecha: '11 de septiembre de 2024',
-        hora: '08:00 AM',
-        cliente: 'Juan Pérez',
-        precio: '$ 45.000',
-        servicio: 'Corte de cabello',
-        descripcion: 'Corte clásico con tijera y máquina',
-        duracion: '30 minutos',
-        direccion: 'Calle 65',
-        profesional: 'Carlos Barbero'
-      },
-      { 
-        id: 2,
-        fecha: '10 de septiembre de 2024',
-        hora: '08:30 AM',
-        cliente: 'Luis Gómez',
-        precio: '$ 60.000',
-        servicio: 'Afeitado clásico',
-        descripcion: 'Afeitado con navaja y productos premium',
-        duracion: '45 minutos',
-        direccion: 'Calle 72',
-        profesional: 'Pedro Barbero'
-      },
-      { 
-        id: 3,
-        fecha: '09 de septiembre de 2024',
-        hora: '10:00 AM',
-        cliente: 'Andrés Rodríguez',
-        precio: '$ 75.000',
-        servicio: 'Corte y barba',
-        descripcion: 'Corte completo con arreglo de barba',
-        duracion: '60 minutos',
-        direccion: 'Carrera 15',
-        profesional: 'Mario Barbero'
-      },
-    ];
-    setVentas(datosEjemplo);
-    setVentasFiltradas(datosEjemplo);
+    fetchVentas();
   }, []);
 
+  useFocusEffect(
+    useCallback(() => {
+      fetchVentas();
+    }, [])
+  );
+
   useEffect(() => {
-    if (busqueda.trim() === '') {
+    if (!busqueda.trim()) {
       setVentasFiltradas(ventas);
     } else {
-      const termino = busqueda.toLowerCase();
-      const filtradas = ventas.filter(v =>
-        v.cliente.toLowerCase().includes(termino) || 
-        v.servicio.toLowerCase().includes(termino) ||
-        v.fecha.toLowerCase().includes(termino)
-      );
+      const term = busqueda.toLowerCase();
+      const filtradas = ventas.filter((v) => {
+        const cliente = v.cliente?.nombre?.toLowerCase() || "";
+        const servicio = v.servicio?.nombre?.toLowerCase() || "";
+        const barbero = v.barbero?.nombre?.toLowerCase() || "";
+        const fecha = v.fecha?.toLowerCase() || "";
+        return (
+          cliente.includes(term) ||
+          servicio.includes(term) ||
+          barbero.includes(term) ||
+          fecha.includes(term)
+        );
+      });
       setVentasFiltradas(filtradas);
     }
-    setPaginaActual(1);
+    setPagina(1); // Resetear a primera página al buscar
   }, [busqueda, ventas]);
 
-  const indiceInicial = (paginaActual - 1) * ventasPorPagina;
-  const ventasMostrar = isMobile ? ventasFiltradas : ventasFiltradas.slice(indiceInicial, indiceInicial + ventasPorPagina);
-  const totalPaginas = Math.ceil(ventasFiltradas.length / ventasPorPagina);
+  // Cálculos para paginación
+  const idxStart = (pagina - 1) * porPagina;
+  const ventasPaginadas = isMobile ? ventasFiltradas : ventasFiltradas.slice(idxStart, idxStart + porPagina);
+  const totalPags = Math.max(1, Math.ceil(ventasFiltradas.length / porPagina));
 
-  const cambiarPagina = (nuevaPagina) => {
-    if (nuevaPagina > 0 && nuevaPagina <= totalPaginas) {
-      setPaginaActual(nuevaPagina);
-    }
+  const formatFecha = (yymmdd) => {
+    if (!yymmdd) return "Fecha no disponible";
+    const fecha = new Date(yymmdd);
+    return fecha.toLocaleDateString("es-ES", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
   };
 
-  const handleSearchChange = (texto) => {
-    setBusqueda(texto);
-  };
+  const formatoHora = (hhmmss) => (hhmmss ? hhmmss.slice(0, 5) : "--:--");
 
   const verVenta = (venta) => {
     setVentaSeleccionada(venta);
     setModalDetalleVisible(true);
   };
 
-  // Renderizado para móvil (tarjetas)
   const renderMobileItem = ({ item }) => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <View style={styles.cardHeaderText}>
-          <Text style={styles.cardTitle}>{item.cliente}</Text>
-          <Text style={styles.cardSubtitle}>{item.fecha} - {item.hora}</Text>
+          <Text style={styles.cardTitle}>
+            {item.cliente?.nombre || "Cliente sin nombre"}
+          </Text>
+          <Text style={styles.cardSubtitle}>
+            {formatFecha(item.fecha)} – {formatoHora(item.hora)}
+          </Text>
         </View>
         <View style={styles.precioContainer}>
-          <Text style={styles.textoPrecio}>{item.precio}</Text>
+          <Text style={styles.textoPrecio}>
+            $
+            {(item.servicio?.precio ?? item.total ?? 0).toLocaleString("es-CO")}
+          </Text>
         </View>
       </View>
-      
+
       <View style={styles.cardInfoRow}>
         <Text style={styles.cardLabel}>Servicio:</Text>
-        <Text style={styles.cardValue}>{item.servicio}</Text>
+        <Text style={styles.cardValue}>
+          {item.servicio?.nombre || "—"}
+        </Text>
       </View>
-      
+
       <View style={styles.cardInfoRow}>
         <Text style={styles.cardLabel}>Profesional:</Text>
-        <Text style={styles.cardValue}>{item.profesional}</Text>
+        <Text style={styles.cardValue}>
+          {item.barbero?.nombre || "—"}
+        </Text>
       </View>
-      
+
       <View style={styles.cardActions}>
-        <TouchableOpacity onPress={() => verVenta(item)} style={styles.actionButton}>
+        <TouchableOpacity
+          onPress={() => verVenta(item)}
+          style={styles.actionButton}
+        >
           <FontAwesome name="eye" size={20} color="#424242" />
         </TouchableOpacity>
       </View>
     </View>
   );
 
-  // Renderizado para desktop (tabla)
   const renderDesktopItem = ({ item }) => (
     <View style={styles.fila}>
       <View style={[styles.celda, styles.columnaFecha]}>
-        <Text style={styles.textoNombre}>{item.fecha}</Text>
+        <Text style={styles.textoNombre}>{formatFecha(item.fecha)}</Text>
       </View>
       <View style={[styles.celda, styles.columnaHora]}>
-        <Text style={styles.textoNombre}>{item.hora}</Text>
+        <Text style={styles.textoNombre}>{formatoHora(item.hora)}</Text>
       </View>
       <View style={[styles.celda, styles.columnaCliente]}>
-        <Text style={styles.textoNombre}>{item.cliente}</Text>
+        <Text style={styles.textoNombre}>
+          {item.cliente?.nombre || "—"}
+        </Text>
       </View>
       <View style={[styles.celda, styles.columnaServicio]}>
-        <Text style={styles.textoServicio}>{item.servicio}</Text>
+        <Text style={styles.textoServicio}>
+          {item.servicio?.nombre || "—"}
+        </Text>
       </View>
       <View style={[styles.celda, styles.columnaPrecio]}>
         <View style={styles.precioContainer}>
-          <Text style={styles.textoPrecio}>{item.precio}</Text>
+          <Text style={styles.textoPrecio}>
+            $
+            {(item.servicio?.precio ?? item.total ?? 0).toLocaleString("es-CO")}
+          </Text>
         </View>
       </View>
       <View style={[styles.celda, styles.columnaAcciones]}>
-        <View style={styles.contenedorAcciones}>
-          <TouchableOpacity 
-            onPress={() => verVenta(item)} 
-            style={styles.botonAccion}
-          >
-            <FontAwesome name="eye" size={20} color="black" />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          onPress={() => verVenta(item)}
+          style={styles.botonAccion}
+        >
+          <FontAwesome name="eye" size={20} color="black" />
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -163,7 +203,7 @@ const VentasScreen = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.tituloContainer}>
-          <Text style={styles.titulo}>Ventas</Text>
+          <Text style={styles.titulo}>Ventas ✂️</Text>
           <View style={styles.contadorContainer}>
             <Text style={styles.contadorTexto}>{ventasFiltradas.length}</Text>
           </View>
@@ -171,60 +211,71 @@ const VentasScreen = () => {
       </View>
 
       <Buscador
-        placeholder="Buscar ventas por cliente, servicio o fecha"
+        placeholder="🔍 Buscar ventas (cliente, servicio, profesional, fecha)"
         value={busqueda}
-        onChangeText={handleSearchChange}
+        onChangeText={setBusqueda}
       />
 
-      {ventasMostrar.length === 0 ? (
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#0000ff" />
+          <Text>Cargando ventas...</Text>
+        </View>
+      ) : ventasFiltradas.length === 0 ? (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyText}>No se encontraron ventas</Text>
+          <Text style={styles.emptyText}>No se encontraron ventas 😕</Text>
+          {busqueda.trim() && (
+            <Text style={styles.emptySubText}>
+              Intenta con otros términos de búsqueda
+            </Text>
+          )}
         </View>
       ) : isMobile ? (
         <FlatList
-          data={ventasMostrar}
+          data={ventasFiltradas}
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderMobileItem}
           contentContainerStyle={styles.listContainer}
           style={styles.mobileList}
         />
       ) : (
-        <View style={styles.tabla}>
-          <View style={styles.filaEncabezado}>
-            <View style={[styles.celdaEncabezado, styles.columnaFecha]}>
-              <Text style={styles.encabezado}>Fecha</Text>
+        <>
+          <View style={styles.tabla}>
+            <View style={styles.filaEncabezado}>
+              <View style={[styles.celdaEncabezado, styles.columnaFecha]}>
+                <Text style={styles.encabezado}>📅 Fecha</Text>
+              </View>
+              <View style={[styles.celdaEncabezado, styles.columnaHora]}>
+                <Text style={styles.encabezado}>⏰ Hora</Text>
+              </View>
+              <View style={[styles.celdaEncabezado, styles.columnaCliente]}>
+                <Text style={styles.encabezado}>👤 Cliente</Text>
+              </View>
+              <View style={[styles.celdaEncabezado, styles.columnaServicio]}>
+                <Text style={styles.encabezado}>💈 Servicio</Text>
+              </View>
+              <View style={[styles.celdaEncabezado, styles.columnaPrecio]}>
+                <Text style={styles.encabezado}>💰 Total</Text>
+              </View>
+              <View style={[styles.celdaEncabezado, styles.columnaAcciones]}>
+                <Text style={styles.encabezado}>⚙️</Text>
+              </View>
             </View>
-            <View style={[styles.celdaEncabezado, styles.columnaHora]}>
-              <Text style={styles.encabezado}>Hora</Text>
-            </View>
-            <View style={[styles.celdaEncabezado, styles.columnaCliente]}>
-              <Text style={styles.encabezado}>Cliente</Text>
-            </View>
-            <View style={[styles.celdaEncabezado, styles.columnaServicio]}>
-              <Text style={styles.encabezado}>Servicio</Text>
-            </View>
-            <View style={[styles.celdaEncabezado, styles.columnaPrecio]}>
-              <Text style={styles.encabezado}>Precio</Text>
-            </View>
-            <View style={[styles.celdaEncabezado, styles.columnaAcciones]}>
-              <Text style={styles.encabezado}>Acciones</Text>
-            </View>
+            <FlatList
+              data={ventasPaginadas}
+              keyExtractor={(item) => item.id.toString()}
+              renderItem={renderDesktopItem}
+            />
           </View>
-          <FlatList
-            data={ventasMostrar}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={renderDesktopItem}
-            scrollEnabled={false}
-          />
-        </View>
-      )}
 
-      {!isMobile && (
-        <Paginacion
-          paginaActual={paginaActual}
-          totalPaginas={totalPaginas}
-          cambiarPagina={cambiarPagina}
-        />
+          <View style={styles.paginacionContainer}>
+            <Paginacion
+              paginaActual={pagina}
+              totalPaginas={totalPags}
+              cambiarPagina={setPagina}
+            />
+          </View>
+        </>
       )}
 
       <DetalleVenta
@@ -232,6 +283,14 @@ const VentasScreen = () => {
         onClose={() => setModalDetalleVisible(false)}
         venta={ventaSeleccionada}
       />
+
+      <InfoModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        title={modalTitle}
+        message={modalMessage}
+      />
+
       <Footer />
     </View>
   );
@@ -299,6 +358,11 @@ const styles = StyleSheet.create({
   },
   cardHeaderText: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   cardTitle: {
     fontSize: 18,
@@ -370,7 +434,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'black',
+    borderBottomColor: '#eee',
     alignItems: 'center',
     backgroundColor: 'white',
   },
@@ -426,10 +490,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
   },
+  emptySubText: {
+    fontSize: 14,
+    color: '#999',
+    marginTop: 8,
+  },
   encabezado: {
     fontWeight: 'bold',
     textAlign: 'center',
     color: 'white',
+  },
+  paginacionContainer: {
+    marginBottom: 35,
   },
 });
 

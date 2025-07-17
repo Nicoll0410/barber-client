@@ -1,220 +1,209 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, FlatList, Image, TextInput, ScrollView } from 'react-native';
+/* ───────────────────────────────────────────────────────────
+   screens/citas/CrearCita.js
+   Wizard de 5 pasos (Admin/Barbero) o 4 pasos (Cliente)
+   ─────────────────────────────────────────────────────────── */
+import React, { useState, useEffect, useContext } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Modal,
+  TouchableOpacity,
+  FlatList,
+  TextInput,
+  ScrollView,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AuthContext } from '../../contexts/AuthContext';
 
-// Datos de ejemplo
-const servicios = [
-  { id: '1', nombre: 'Corte de cabello', precio: '$80.000', descripcion: 'Corte profesional con técnicas modernas' },
-  { id: '2', nombre: 'Afeitado clásico', precio: '$120.000', descripcion: 'Afeitado con navaja y productos premium' },
-  { id: '3', nombre: 'Corte y barba', precio: '$100.000', descripcion: 'Combo completo de corte y arreglo de barba' },
-  { id: '4', nombre: 'Tinte para cabello', precio: '$180.000', descripcion: 'Tinte profesional con productos de calidad' },
-  { id: '5', nombre: 'Tratamiento capilar', precio: '$150.000', descripcion: 'Tratamiento revitalizante para el cabello' },
-];
+/* -------------------- Constantes ------------------------ */
+const API = 'http://localhost:8080';
 
-const barberos = [
-  { id: '1', nombre: 'Juan Martínez', avatar: require('../../assets/avatar.png') },
-  { id: '2', nombre: 'Carlos Rodríguez', avatar: require('../../assets/avatar.png') },
-  { id: '3', nombre: 'Andrés Gómez', avatar: require('../../assets/avatar.png') },
-];
+/* ======================================================== */
+const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
+  const { userRole } = useContext(AuthContext);
+  const isClient = userRole === 'Cliente';
 
-const clientes = [
-  { id: '1', nombre: 'Santiago Pérez', avatar: require('../../assets/avatar.png') },
-  { id: '2', nombre: 'Carlos López', avatar: require('../../assets/avatar.png') },
-  { id: '3', nombre: 'Mario García', avatar: require('../../assets/avatar.png') },
-  { id: '4', nombre: 'Andrés Rodríguez', avatar: require('../../assets/avatar.png') },
-];
-
-const citasExistentes = [
-  { barberoId: '1', fecha: '2025-05-30', hora: '15:00' },
-  { barberoId: '1', fecha: '2025-05-30', hora: '16:30' },
-  { barberoId: '2', fecha: '2025-05-30', hora: '14:00' },
-];
-
-const CrearCita = ({ visible, onClose, onCreate }) => {
+  /* ------------------- State ---------------------------- */
   const [paso, setPaso] = useState(1);
-  const [servicioSeleccionado, setServicioSeleccionado] = useState(null);
-  const [barberoSeleccionado, setBarberoSeleccionado] = useState(null);
-  const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
-  const [fechaSeleccionada, setFechaSeleccionada] = useState(null);
-  const [horaSeleccionada, setHoraSeleccionada] = useState(null);
-  const [busquedaCliente, setBusquedaCliente] = useState('');
-  const [busquedaBarbero, setBusquedaBarbero] = useState('');
+
+  const [servicioSel, setServicioSel] = useState(null);
+  const [barberoSel, setBarberoSel] = useState(null);
+  const [clienteSel, setClienteSel] = useState(null);
+
+  const [fechaSel, setFechaSel] = useState(null); // "YYYY-MM-DD"
+  const [horaSel, setHoraSel] = useState(null);   // "h:mm AM"
+
   const [mesActual, setMesActual] = useState(new Date());
   const [diasMes, setDiasMes] = useState([]);
-  const [horasDisponibles, setHorasDisponibles] = useState([]);
+  const [horasDisp, setHorasDisp] = useState([]);
+  const [loadingHoras, setLoadingHoras] = useState(false);
+
+  const [busBarbero, setBusBarbero] = useState('');
+  const [busCliente, setBusCliente] = useState('');
+
+  /* ------------ Datos origen ---------------------------- */
+  const servicios = infoCreacion?.servicios || [];
+  const barberos  = infoCreacion?.barberos  || [];
+  const clientes  = infoCreacion?.clientes  || [];
+
   const diasSemana = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
-  // Inicializar fechas y horas
+  /* ----------------- Efectos ---------------------------- */
+  useEffect(() => { if (visible) reset(false); }, [visible]);
+  useEffect(() => { if (paso === (isClient ? 3 : 4)) generarDiasMes(); }, [paso, mesActual]);
   useEffect(() => {
-    if (paso === 4) {
-      generarDiasMes();
+    if (paso === (isClient ? 3 : 4) && fechaSel && barberoSel && servicioSel) {
+      obtenerHoras();
     }
-  }, [paso, mesActual]);
+  }, [fechaSel, barberoSel, servicioSel]);
 
-  useEffect(() => {
-    if (fechaSeleccionada && barberoSeleccionado && paso === 4) {
-      generarHorasDisponibles();
-    }
-  }, [fechaSeleccionada, barberoSeleccionado]);
-
-  const resetForm = () => {
-    setServicioSeleccionado(null);
-    setBarberoSeleccionado(null);
-    setClienteSeleccionado(null);
-    setFechaSeleccionada(null);
-    setHoraSeleccionada(null);
-    setBusquedaCliente('');
-    setBusquedaBarbero('');
-    setPaso(1);
+  /* --------------- Helpers fecha/hora ------------------ */
+  const formatearFecha = (d) => {
+    const y = d.getFullYear();
+    const m = `${d.getMonth() + 1}`.padStart(2, '0');
+    const da = `${d.getDate()}`.padStart(2, '0');
+    return `${y}-${m}-${da}`;
+  };
+  const esPasada = (d) => {
+    const h = new Date();
+    h.setHours(0, 0, 0, 0);
+    const cmp = new Date(d);
+    cmp.setHours(0, 0, 0, 0);
+    return cmp < h;
   };
 
-  const handleClose = () => {
-    resetForm();
-    onClose();
-  };
+  /* ---------- Helper para asegurar el ID correcto ------- */
+  const getId = (obj) =>
+    obj?.id
+    ?? obj?.barberoID
+    ?? obj?.servicioID
+    ?? obj?.pacienteID
+    ?? obj?._id
+    ?? null;
 
-  const handleCrear = () => {
-    onCreate({
-      cliente: clienteSeleccionado.nombre,
-      servicio: servicioSeleccionado.nombre,
-      descripcion: servicioSeleccionado.descripcion,
-      barbero: barberoSeleccionado.nombre,
-      fecha: fechaSeleccionada,
-      hora: horaSeleccionada
-    });
-    resetForm();
-  };
-
-  const clientesFiltrados = clientes.filter(cliente =>
-    cliente.nombre.toLowerCase().includes(busquedaCliente.toLowerCase())
-  );
-
-  const barberosFiltrados = barberos.filter(barbero =>
-    barbero.nombre.toLowerCase().includes(busquedaBarbero.toLowerCase())
-  );
-
+  /* ----------------- Generar calendario ---------------- */
   const generarDiasMes = () => {
-    const año = mesActual.getFullYear();
-    const mes = mesActual.getMonth();
-    const primerDiaMes = new Date(año, mes, 1);
-    const ultimoDiaMes = new Date(año, mes + 1, 0);
-    const primerDiaSemana = primerDiaMes.getDay(); // 0 = Domingo, 1 = Lunes, etc.
-    
-    const dias = [];
-    
-    // Agregar días vacíos para alinear el primer día del mes
-    for (let i = 0; i < primerDiaSemana; i++) {
-      dias.push(null);
-    }
-    
-    // Agregar los días del mes
-    for (let dia = 1; dia <= ultimoDiaMes.getDate(); dia++) {
-      dias.push(new Date(año, mes, dia));
-    }
-    
-    // Calcular días vacíos para completar la última semana (6 semanas)
-    const totalCeldas = 42; // 6 semanas * 7 días
-    while (dias.length < totalCeldas) {
-      dias.push(null);
-    }
-    
-    setDiasMes(dias);
+    const y = mesActual.getFullYear();
+    const m = mesActual.getMonth();
+    const primero = new Date(y, m, 1);
+    const ultimo  = new Date(y, m + 1, 0);
+    const offset  = primero.getDay();
+
+    const arr = [];
+    for (let i = 0; i < offset; i++) arr.push(null);
+    for (let d = 1; d <= ultimo.getDate(); d++) arr.push(new Date(y, m, d));
+    while (arr.length < 42) arr.push(null);
+    setDiasMes(arr);
   };
 
-  const generarHorasDisponibles = () => {
-    const horas = [];
-    const [año, mes, dia] = fechaSeleccionada.split('-').map(Number);
-    const fecha = new Date(año, mes - 1, dia);
-    const diaSemana = fecha.getDay();
-    
-    let horaInicio, horaFin;
-    if (diaSemana >= 1 && diaSemana <= 3) {
-      horaInicio = 11;
-      horaFin = 21;
-    } else {
-      horaInicio = 9;
-      horaFin = 22.5;
-    }
-    
-    const hoy = new Date();
-    if (fecha.toDateString() === hoy.toDateString()) {
-      const horaActual = hoy.getHours() + (hoy.getMinutes() / 60);
-      horaInicio = Math.max(horaInicio, Math.ceil(horaActual + 0.5));
-    }
-    
-    for (let hora = horaInicio; hora < horaFin; hora += 0.5) {
-      const horaFormato = Math.floor(hora);
-      const minutosFormato = hora % 1 === 0 ? '00' : '30';
-      const horaStr = `${horaFormato.toString().padStart(2, '0')}:${minutosFormato}`;
-      
-      const citaOcupada = citasExistentes.some(cita => 
-        cita.barberoId === barberoSeleccionado.id && 
-        cita.fecha === fechaSeleccionada && 
-        cita.hora === horaStr
+  const cambiarMes = (inc) => {
+    const n = new Date(mesActual);
+    n.setMonth(n.getMonth() + inc);
+    setMesActual(n);
+    setFechaSel(null);
+    setHoraSel(null);
+    setHorasDisp([]);
+  };
+
+  /* -------------- API horas disponibles ---------------- */
+  const obtenerHoras = async () => {
+    try {
+      setLoadingHoras(true);
+      const token = await AsyncStorage.getItem('token');
+      const params = new URLSearchParams({
+        servicioID: getId(servicioSel),
+        barberoID : getId(barberoSel),
+        fecha     : fechaSel,
+      });
+      const { data } = await axios.get(
+        `${API}/citas/get-availability-of-barber?${params.toString()}`,
+        { headers: { Authorization: `Bearer ${token}` } },
       );
-      
-      if (!citaOcupada) {
-        horas.push(horaStr);
-      }
-    }
-    
-    setHorasDisponibles(horas);
-    if (horas.length === 0) {
-      setHoraSeleccionada(null);
+      setHorasDisp(data);
+    } catch {
+      Alert.alert('Error', 'No se pudieron cargar las horas');
+    } finally {
+      setLoadingHoras(false);
     }
   };
 
-  const cambiarMes = (incremento) => {
-    const nuevoMes = new Date(mesActual);
-    nuevoMes.setMonth(nuevoMes.getMonth() + incremento);
-    setMesActual(nuevoMes);
-    setFechaSeleccionada(null);
-    setHoraSeleccionada(null);
+  /* -------------------- Handlers ----------------------- */
+  const crearCita = () => {
+    if (
+      !servicioSel ||
+      !barberoSel  ||
+      !fechaSel    ||
+      !horaSel     ||
+      (!isClient && !clienteSel)
+    ) {
+      Alert.alert('Error', 'Completa todos los campos');
+      return;
+    }
+
+    const payload = {
+      servicioID: getId(servicioSel),
+      barberoID : getId(barberoSel),
+      fecha     : fechaSel,
+      hora      : horaSel,
+      ...(isClient ? {} : { pacienteID: getId(clienteSel) }),
+    };
+
+    if (!payload.barberoID || !payload.servicioID) {
+      Alert.alert('Error', 'Ocurrió un problema con los IDs seleccionados');
+      return;
+    }
+
+    console.log('Payload enviado a /citas ->', payload);
+    onCreate(payload);
+    reset();
   };
 
-  const formatearFecha = (fecha) => {
-    const año = fecha.getFullYear();
-    const mes = (fecha.getMonth() + 1).toString().padStart(2, '0');
-    const dia = fecha.getDate().toString().padStart(2, '0');
-    return `${año}-${mes}-${dia}`;
+  const reset = (close = true) => {
+    setPaso(1);
+    setServicioSel(null);
+    setBarberoSel(null);
+    setClienteSel(null);
+    setFechaSel(null);
+    setHoraSel(null);
+    setBusBarbero('');
+    setBusCliente('');
+    setMesActual(new Date());
+    setDiasMes([]);
+    setHorasDisp([]);
+    if (close) onClose();
   };
 
-  const esFechaPasada = (fecha) => {
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    const fechaComparar = new Date(fecha);
-    fechaComparar.setHours(0, 0, 0, 0);
-    return fechaComparar < hoy;
-  };
-
-  // Paso 1: Selección de servicio
+  /* ---------------- Render Paso ------------------------ */
   const Paso1 = () => (
     <View style={styles.pasoContainer}>
-      <Text style={styles.subtitulo}>Por favor, selecciona el servicio que se realizará en la cita</Text>
-      
+      <Text style={styles.subtitulo}>Selecciona el servicio</Text>
       <FlatList
         data={servicios}
-        keyExtractor={item => item.id}
+        keyExtractor={(i) => getId(i)}
         renderItem={({ item }) => (
           <TouchableOpacity
             style={[
               styles.servicioItem,
-              servicioSeleccionado?.id === item.id && styles.servicioSeleccionado
+              servicioSel && getId(servicioSel) === getId(item) && styles.servicioSeleccionado,
             ]}
-            onPress={() => setServicioSeleccionado(item)}
+            onPress={() => setServicioSel(item)}
           >
             <Text style={styles.servicioNombre}>{item.nombre}</Text>
-            <Text style={styles.servicioPrecio}>{item.precio}</Text>
+            <Text style={styles.servicioPrecio}>${item.precio}</Text>
           </TouchableOpacity>
         )}
       />
-      
       <View style={styles.botonContainerCentrado}>
         <TouchableOpacity
-          style={[styles.botonSiguiente, !servicioSeleccionado && styles.botonDisabled]}
+          style={[styles.botonSiguiente, !servicioSel && styles.botonDisabled]}
+          disabled={!servicioSel}
           onPress={() => setPaso(2)}
-          disabled={!servicioSeleccionado}
         >
           <Text style={styles.botonTexto}>Siguiente</Text>
         </TouchableOpacity>
@@ -222,50 +211,57 @@ const CrearCita = ({ visible, onClose, onCreate }) => {
     </View>
   );
 
-  // Paso 2: Selección de barbero
+  const barberosFiltrados = barberos.filter((b) =>
+    b.nombre.toLowerCase().includes(busBarbero.toLowerCase()),
+  );
+  const clientesFiltrados = clientes.filter((c) =>
+    c.nombre.toLowerCase().includes(busCliente.toLowerCase()),
+  );
+
   const Paso2 = () => (
     <View style={styles.pasoContainer}>
-      <Text style={styles.subtitulo}>Por favor, selecciona el barbero para la cita</Text>
-      
+      <Text style={styles.subtitulo}>Selecciona el barbero</Text>
       <View style={styles.buscadorContainer}>
-        <MaterialIcons name="search" size={20} color="#666" style={styles.buscadorIcono} />
+        <MaterialIcons name="search" size={20} color="#666" />
         <TextInput
           style={styles.buscadorInput}
-          placeholder="Buscar barbero por nombre"
-          value={busquedaBarbero}
-          onChangeText={setBusquedaBarbero}
+          placeholder="Buscar barbero"
+          value={busBarbero}
+          onChangeText={setBusBarbero}
         />
       </View>
-      
       <FlatList
         data={barberosFiltrados}
-        keyExtractor={item => item.id}
+        keyExtractor={(i) => getId(i)}
         renderItem={({ item }) => (
           <TouchableOpacity
             style={[
               styles.barberoItem,
-              barberoSeleccionado?.id === item.id && styles.barberoSeleccionado
+              barberoSel && getId(barberoSel) === getId(item) && styles.barberoSeleccionado,
             ]}
-            onPress={() => setBarberoSeleccionado(item)}
+            onPress={() => setBarberoSel(item)}
           >
-            <Image source={item.avatar} style={styles.barberoAvatar} />
+            <View style={styles.avatarContainer}>
+              <Text style={styles.avatarText}>
+                {item.nombre
+                  .split(' ')
+                  .map((p) => p[0])
+                  .join('')
+                  .toUpperCase()}
+              </Text>
+            </View>
             <Text style={styles.barberoNombre}>{item.nombre}</Text>
           </TouchableOpacity>
         )}
       />
-      
       <View style={styles.botonesNavegacion}>
-        <TouchableOpacity
-          style={styles.botonVolver}
-          onPress={() => setPaso(1)}
-        >
+        <TouchableOpacity style={styles.botonVolver} onPress={() => setPaso(1)}>
           <Text style={styles.botonTextoVolver}>Volver</Text>
         </TouchableOpacity>
-        
         <TouchableOpacity
-          style={[styles.botonSiguiente, !barberoSeleccionado && styles.botonDisabled]}
-          onPress={() => setPaso(3)}
-          disabled={!barberoSeleccionado}
+          style={[styles.botonSiguiente, !barberoSel && styles.botonDisabled]}
+          disabled={!barberoSel}
+          onPress={() => setPaso(isClient ? 3 : 3)}
         >
           <Text style={styles.botonTexto}>Siguiente</Text>
         </TouchableOpacity>
@@ -273,50 +269,50 @@ const CrearCita = ({ visible, onClose, onCreate }) => {
     </View>
   );
 
-  // Paso 3: Selección de cliente
-  const Paso3 = () => (
+  const Paso3ClienteSel = () => (
     <View style={styles.pasoContainer}>
-      <Text style={styles.subtitulo}>Por favor, selecciona el cliente al que se realizará la cita</Text>
-      
+      <Text style={styles.subtitulo}>Selecciona el cliente</Text>
       <View style={styles.buscadorContainer}>
-        <MaterialIcons name="search" size={20} color="#666" style={styles.buscadorIcono} />
+        <MaterialIcons name="search" size={20} color="#666" />
         <TextInput
           style={styles.buscadorInput}
-          placeholder="Buscar por nombre"
-          value={busquedaCliente}
-          onChangeText={setBusquedaCliente}
+          placeholder="Buscar cliente"
+          value={busCliente}
+          onChangeText={setBusCliente}
         />
       </View>
-      
       <FlatList
         data={clientesFiltrados}
-        keyExtractor={item => item.id}
+        keyExtractor={(i) => getId(i)}
         renderItem={({ item }) => (
           <TouchableOpacity
             style={[
               styles.clienteItem,
-              clienteSeleccionado?.id === item.id && styles.clienteSeleccionado
+              clienteSel && getId(clienteSel) === getId(item) && styles.clienteSeleccionado,
             ]}
-            onPress={() => setClienteSeleccionado(item)}
+            onPress={() => setClienteSel(item)}
           >
-            <Image source={item.avatar} style={styles.clienteAvatar} />
+            <View style={styles.avatarContainer}>
+              <Text style={styles.avatarText}>
+                {item.nombre
+                  .split(' ')
+                  .map((p) => p[0])
+                  .join('')
+                  .toUpperCase()}
+              </Text>
+            </View>
             <Text style={styles.clienteNombre}>{item.nombre}</Text>
           </TouchableOpacity>
         )}
       />
-      
       <View style={styles.botonesNavegacion}>
-        <TouchableOpacity
-          style={styles.botonVolver}
-          onPress={() => setPaso(2)}
-        >
+        <TouchableOpacity style={styles.botonVolver} onPress={() => setPaso(2)}>
           <Text style={styles.botonTextoVolver}>Volver</Text>
         </TouchableOpacity>
-        
         <TouchableOpacity
-          style={[styles.botonSiguiente, !clienteSeleccionado && styles.botonDisabled]}
+          style={[styles.botonSiguiente, !clienteSel && styles.botonDisabled]}
+          disabled={!clienteSel}
           onPress={() => setPaso(4)}
-          disabled={!clienteSeleccionado}
         >
           <Text style={styles.botonTexto}>Siguiente</Text>
         </TouchableOpacity>
@@ -324,69 +320,72 @@ const CrearCita = ({ visible, onClose, onCreate }) => {
     </View>
   );
 
-  // Paso 4: Selección de fecha y hora (versión corregida)
-  const Paso4 = () => (
+  const PasoFechaHora = () => (
     <View style={styles.pasoContainer}>
-      <Text style={styles.subtitulo}>Elige la fecha y el horario deseados para tu tratamiento</Text>
-      
+      <Text style={styles.subtitulo}>Elige fecha y hora</Text>
+
+      {/* Header mes */}
       <View style={styles.calendarioHeader}>
         <TouchableOpacity onPress={() => cambiarMes(-1)}>
           <MaterialIcons name="chevron-left" size={24} color="#424242" />
         </TouchableOpacity>
-        
         <Text style={styles.mesActual}>
-          {mesActual.toLocaleString('es-ES', { month: 'long', year: 'numeric' })}
+          {mesActual.toLocaleString('es-ES', {
+            month: 'long',
+            year: 'numeric',
+          })}
         </Text>
-        
         <TouchableOpacity onPress={() => cambiarMes(1)}>
           <MaterialIcons name="chevron-right" size={24} color="#424242" />
         </TouchableOpacity>
       </View>
-      
-      {/* Días de la semana - ahora correctamente alineados */}
+
+      {/* Días semana */}
       <View style={styles.diasSemanaContainer}>
-        {diasSemana.map((dia, index) => (
-          <View key={index} style={styles.diaSemanaItem}>
-            <Text style={styles.diaSemanaTexto}>{dia}</Text>
+        {diasSemana.map((d) => (
+          <View key={d} style={styles.diaSemanaItem}>
+            <Text style={styles.diaSemanaTexto}>{d}</Text>
           </View>
         ))}
       </View>
-      
-      {/* Días del mes - ahora con 6 filas completas */}
+
+      {/* Días mes */}
       <View style={styles.diasMesContainer}>
-        {Array.from({ length: 6 }).map((_, semanaIndex) => (
-          <View key={semanaIndex} style={styles.semanaContainer}>
-            {diasSemana.map((_, diaSemanaIndex) => {
-              const index = semanaIndex * 7 + diaSemanaIndex;
-              const dia = diasMes[index];
-              
-              if (!dia) {
-                return <View key={index} style={styles.diaVacio} />;
-              }
-              
-              const fechaFormateada = formatearFecha(dia);
-              const esSeleccionado = fechaFormateada === fechaSeleccionada;
-              const esHoy = dia.toDateString() === new Date().toDateString();
-              const esPasada = esFechaPasada(dia);
-              
+        {Array.from({ length: 6 }).map((_, s) => (
+          <View key={s} style={styles.semanaContainer}>
+            {diasSemana.map((_, d) => {
+              const idx = s * 7 + d;
+              const dia = diasMes[idx];
+              if (!dia) return <View key={idx} style={styles.diaVacio} />;
+
+              const fStr = formatearFecha(dia);
+              const sel  = fStr === fechaSel;
+              const hoy  = dia.toDateString() === new Date().toDateString();
+              const pas  = esPasada(dia);
+
               return (
                 <TouchableOpacity
-                  key={index}
+                  key={idx}
                   style={[
                     styles.diaItem,
-                    esHoy && styles.diaHoy,
-                    esSeleccionado && styles.diaSeleccionado,
-                    esPasada && styles.diaPasado
+                    hoy && styles.diaHoy,
+                    sel && styles.diaSeleccionado,
+                    pas && styles.diaPasado,
                   ]}
-                  onPress={() => !esPasada && setFechaSeleccionada(fechaFormateada)}
-                  disabled={esPasada}
+                  disabled={pas}
+                  onPress={() => {
+                    setFechaSel(fStr);
+                    setHoraSel(null);
+                  }}
                 >
-                  <Text style={[
-                    styles.diaNumero,
-                    esSeleccionado && styles.diaNumeroSeleccionado,
-                    esHoy && styles.diaNumeroHoy,
-                    esPasada && styles.diaNumeroPasado
-                  ]}>
+                  <Text
+                    style={[
+                      styles.diaNumero,
+                      hoy && styles.diaNumeroHoy,
+                      sel && styles.diaNumeroSeleccionado,
+                      pas && styles.diaNumeroPasado,
+                    ]}
+                  >
                     {dia.getDate()}
                   </Text>
                 </TouchableOpacity>
@@ -395,52 +394,62 @@ const CrearCita = ({ visible, onClose, onCreate }) => {
           </View>
         ))}
       </View>
-      
-      {fechaSeleccionada && (
+
+      {/* Horas */}
+      {fechaSel && (
         <View style={styles.horasContainer}>
           <Text style={styles.horasTitulo}>Horarios disponibles:</Text>
-          
-          {horasDisponibles.length > 0 ? (
+          {loadingHoras ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color="#424242" />
+              <Text style={styles.loadingText}>Cargando…</Text>
+            </View>
+          ) : horasDisp.length ? (
             <View style={styles.horasGrid}>
-              {horasDisponibles.map((hora, index) => (
+              {horasDisp.map((h) => (
                 <TouchableOpacity
-                  key={index}
+                  key={h}
                   style={[
                     styles.horaButton,
-                    hora === horaSeleccionada && styles.horaSeleccionada
+                    h === horaSel && styles.horaSeleccionada,
                   ]}
-                  onPress={() => setHoraSeleccionada(hora)}
+                  onPress={() => setHoraSel(h)}
                 >
-                  <Text style={[
-                    styles.horaTexto,
-                    hora === horaSeleccionada && styles.horaTextoSeleccionado
-                  ]}>
-                    {hora}
+                  <Text
+                    style={[
+                      styles.horaTexto,
+                      h === horaSel && styles.horaTextoSeleccionado,
+                    ]}
+                  >
+                    {h}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
           ) : (
             <View style={styles.sinDisponibilidad}>
-              <Text style={styles.sinDisponibilidadTitulo}>Sin citas disponibles para esta fecha</Text>
-              <Text style={styles.sinDisponibilidadTexto}>Encuentra una fecha y hora disponibles para crear la reserva</Text>
+              <Text style={styles.sinDisponibilidadTitulo}>Sin citas disponibles</Text>
+              <Text style={styles.sinDisponibilidadTexto}>Selecciona otra fecha</Text>
             </View>
           )}
         </View>
       )}
-      
+
+      {/* Navegación */}
       <View style={styles.botonesNavegacion}>
         <TouchableOpacity
           style={styles.botonVolver}
-          onPress={() => setPaso(3)}
+          onPress={() => setPaso(isClient ? 2 : 3)}
         >
           <Text style={styles.botonTextoVolver}>Volver</Text>
         </TouchableOpacity>
-        
         <TouchableOpacity
-          style={[styles.botonSiguiente, (!fechaSeleccionada || !horaSeleccionada) && styles.botonDisabled]}
+          style={[
+            styles.botonSiguiente,
+            (!fechaSel || !horaSel) && styles.botonDisabled,
+          ]}
+          disabled={!fechaSel || !horaSel}
           onPress={() => setPaso(5)}
-          disabled={!fechaSeleccionada || !horaSeleccionada}
         >
           <Text style={styles.botonTexto}>Siguiente</Text>
         </TouchableOpacity>
@@ -448,84 +457,67 @@ const CrearCita = ({ visible, onClose, onCreate }) => {
     </View>
   );
 
-  // Paso 5: Confirmación
-  const Paso5 = () => (
+  const PasoRevisa = () => (
     <View style={styles.pasoContainer}>
-      <Text style={styles.subtitulo}>Por favor, revisa y asegúrate que la información de la cita es correcta</Text>
-      
+      <Text style={styles.subtitulo}>Revisa la información</Text>
       <View style={styles.infoConfirmacion}>
-        <Text style={styles.infoTitulo}>Servicio:</Text>
-        <Text style={styles.infoTexto}>{servicioSeleccionado.nombre}</Text>
-        
-        <Text style={styles.infoTitulo}>Descripción:</Text>
-        <Text style={styles.infoTexto}>{servicioSeleccionado.descripcion}</Text>
-        
-        <Text style={styles.infoTitulo}>Barbero:</Text>
-        <Text style={styles.infoTexto}>{barberoSeleccionado.nombre}</Text>
-        
-        <Text style={styles.infoTitulo}>Cliente:</Text>
-        <Text style={styles.infoTexto}>{clienteSeleccionado.nombre}</Text>
-        
-        <Text style={styles.infoTitulo}>Fecha:</Text>
-        <Text style={styles.infoTexto}>
-          {new Date(fechaSeleccionada + 'T00:00:00').toLocaleDateString('es-ES', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          })}
-        </Text>
-        
-        <Text style={styles.infoTitulo}>Hora:</Text>
-        <Text style={styles.infoTexto}>{horaSeleccionada}</Text>
+        {[
+          ['Servicio:', servicioSel?.nombre],
+          ['Barbero:',  barberoSel?.nombre],
+          !isClient && ['Cliente:', clienteSel?.nombre],
+          [
+            'Fecha:',
+            new Date(`${fechaSel}T00:00:00`).toLocaleDateString('es-ES', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            }),
+          ],
+          ['Hora:', horaSel],
+        ]
+          .filter(Boolean)
+          .map(([k, v]) => (
+            <React.Fragment key={k}>
+              <Text style={styles.infoTitulo}>{k}</Text>
+              <Text style={styles.infoTexto}>{v}</Text>
+            </React.Fragment>
+          ))}
       </View>
-      
       <View style={styles.botonesNavegacion}>
-        <TouchableOpacity
-          style={styles.botonVolver}
-          onPress={() => setPaso(4)}
-        >
+        <TouchableOpacity style={styles.botonVolver} onPress={() => setPaso(4)}>
           <Text style={styles.botonTextoVolver}>Volver</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={styles.botonConfirmar}
-          onPress={handleCrear}
-        >
-          <Text style={styles.botonTexto}>Confirmar cita</Text>
+        <TouchableOpacity style={styles.botonConfirmar} onPress={crearCita}>
+          <Text style={styles.botonTexto}>Confirmar</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 
   const renderPaso = () => {
-    switch(paso) {
-      case 1: return <Paso1 />;
-      case 2: return <Paso2 />;
-      case 3: return <Paso3 />;
-      case 4: return <Paso4 />;
-      case 5: return <Paso5 />;
-      default: return <Paso1 />;
-    }
+    if (paso === 1) return <Paso1 />;
+    if (paso === 2) return <Paso2 />;
+    if (paso === 3) return isClient ? <PasoFechaHora /> : <Paso3ClienteSel />;
+    if (paso === 4) return <PasoFechaHora />;
+    return <PasoRevisa />;
   };
 
+  /* -------------------- Modal --------------------------- */
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-    >
+    <Modal visible={visible} animationType="slide" transparent>
       <BlurView intensity={20} tint="light" style={styles.blurContainer}>
         <View style={styles.modalContent}>
+          {/* Header */}
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>
-              {paso === 1 && 'Seleccionar servicio'}
-              {paso === 2 && 'Seleccionar barbero'}
-              {paso === 3 && 'Seleccionar cliente'}
-              {paso === 4 && 'Seleccionar fecha y hora'}
-              {paso === 5 && 'Revisa y confirma'}
+              {
+                ['Servicio', 'Barbero', isClient ? 'Fecha & Hora' : 'Cliente', 'Fecha & Hora', 'Revisión'][
+                  paso - 1
+                ]
+              }
             </Text>
-            <TouchableOpacity onPress={handleClose}>
+            <TouchableOpacity onPress={() => reset()}>
               <MaterialIcons name="close" size={24} color="#000" />
             </TouchableOpacity>
           </View>
@@ -539,6 +531,7 @@ const CrearCita = ({ visible, onClose, onCreate }) => {
   );
 };
 
+/* ──────────────────── ESTILOS ───────────────────────── */
 const styles = StyleSheet.create({
   blurContainer: {
     flex: 1,
@@ -645,11 +638,19 @@ const styles = StyleSheet.create({
     borderColor: '#424242',
     backgroundColor: '#D9D9D9',
   },
-  barberoAvatar: {
+  avatarContainer: {
     width: 42,
     height: 42,
     borderRadius: 21,
+    backgroundColor: '#424242',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 15,
+  },
+  avatarText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   barberoNombre: {
     fontSize: 16,
@@ -670,16 +671,25 @@ const styles = StyleSheet.create({
     borderColor: '#424242',
     backgroundColor: '#D9D9D9',
   },
-  clienteAvatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    marginRight: 15,
-  },
   clienteNombre: {
     fontSize: 16,
     fontWeight: '600',
     color: '#222',
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#555',
+    marginTop: 10,
+    marginBottom: 5,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 15,
+    backgroundColor: '#fafafa',
   },
   calendarioHeader: {
     flexDirection: 'row',
@@ -802,6 +812,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     textAlign: 'center',
+  },
+  loadingContainer: {
+    padding: 15,
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 14,
+    color: '#666',
   },
   infoConfirmacion: {
     marginTop: 10,

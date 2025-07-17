@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Dimensions, Alert } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Dimensions, ScrollView, Alert } from 'react-native';
 import { MaterialIcons, FontAwesome, Feather, Ionicons } from '@expo/vector-icons';
 import Paginacion from '../../components/Paginacion';
 import Buscador from '../../components/Buscador';
@@ -7,6 +8,10 @@ import CrearServicio from './CrearServicio';
 import DetalleServicio from './DetalleServicio';
 import EditarServicio from './EditarServicio';
 import Footer from '../../components/Footer';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import ConfirmarModal from '../../components/ConfirmarModal';
+import InfoModal from '../../components/InfoModal';
 
 const { width } = Dimensions.get('window');
 const isMobile = width < 768;
@@ -21,70 +26,51 @@ const ServiciosScreen = () => {
   const [modalDetalleVisible, setModalDetalleVisible] = useState(false);
   const [modalEditarVisible, setModalEditarVisible] = useState(false);
   const [servicioSeleccionado, setServicioSeleccionado] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [insumosDisponibles, setInsumosDisponibles] = useState([]);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [infoModalVisible, setInfoModalVisible] = useState(false);
+  const [infoModalMessage, setInfoModalMessage] = useState('');
+
+  const fetchServicios = async () => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem('token');
+      
+      const serviciosResponse = await axios.get('http://localhost:8080/servicios', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      const insumosResponse = await axios.get('http://localhost:8080/insumos/all', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      setServicios(serviciosResponse.data.servicios || []);
+      setServiciosFiltrados(serviciosResponse.data.servicios || []);
+      setInsumosDisponibles(insumosResponse.data.insumos || []);
+    } catch (error) {
+      console.error('Error al obtener datos:', error);
+      showInfoModal('Error ❌', 'No se pudieron cargar los datos');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const showInfoModal = (title, message) => {
+    setInfoModalMessage({ title, message });
+    setInfoModalVisible(true);
+  };
 
   useEffect(() => {
-    // Datos de ejemplo específicos para barbería
-    const datosEjemplo = [
-      {
-        id: 1,
-        nombre: 'Corte Clásico',
-        descripcion: 'Corte de cabello tradicional con tijeras y máquina, incluye lavado',
-        duracion: '45 min',
-        precio: '$ 25.000'
-      },
-      {
-        id: 2,
-        nombre: 'Afeitado Premium',
-        descripcion: 'Afeitado con navaja tradicional y tratamiento post-afeitado',
-        duracion: '30 min',
-        precio: '$ 30.000'
-      },
-      {
-        id: 3,
-        nombre: 'Corte + Barba',
-        descripcion: 'Combo completo: corte de cabello más arreglo de barba profesional',
-        duracion: '60 min',
-        precio: '$ 45.000'
-      },
-      {
-        id: 4,
-        nombre: 'Tinte para Barba',
-        descripcion: 'Aplicación de tinte profesional para barba con productos de calidad',
-        duracion: '40 min',
-        precio: '$ 35.000'
-      },
-      {
-        id: 5,
-        nombre: 'Tratamiento Capilar',
-        descripcion: 'Hidratación profunda con queratina para cabello seco o dañado',
-        duracion: '35 min',
-        precio: '$ 40.000'
-      },
-      {
-        id: 6,
-        nombre: 'Diseño de Barba',
-        descripcion: 'Diseño personalizado de barba según la forma de tu rostro',
-        duracion: '25 min',
-        precio: '$ 20.000'
-      },
-      {
-        id: 7,
-        nombre: 'Corte Infantil',
-        descripcion: 'Corte especial para niños con terminaciones suaves',
-        duracion: '30 min',
-        precio: '$ 18.000'
-      },
-      {
-        id: 8,
-        nombre: 'Mascarilla Reafirmante',
-        descripcion: 'Tratamiento facial con mascarilla reafirmante para piel',
-        duracion: '20 min',
-        precio: '$ 15.000'
-      },
-    ];
-    setServicios(datosEjemplo);
-    setServiciosFiltrados(datosEjemplo);
+    fetchServicios();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchServicios();
+    }, [])
+  );
 
   useEffect(() => {
     if (busqueda.trim() === '') {
@@ -114,70 +100,117 @@ const ServiciosScreen = () => {
 
   const handleSearchChange = (texto) => setBusqueda(texto);
 
-  const handleCreateService = (newService) => {
-    const newId = servicios.length > 0 ? Math.max(...servicios.map(s => s.id)) + 1 : 1;
-    const nuevoServicio = {
-      id: newId,
-      ...newService
-    };
-    const nuevosServicios = [...servicios, nuevoServicio];
-    setServicios(nuevosServicios);
-    setServiciosFiltrados(nuevosServicios);
-    setModalVisible(false);
+  const handleCreateService = async (newService) => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const response = await axios.post('http://localhost:8080/servicios', newService, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      setServicios([...servicios, response.data.servicio]);
+      setServiciosFiltrados([...serviciosFiltrados, response.data.servicio]);
+      setModalVisible(false);
+      showInfoModal('Éxito ✅', 'Servicio creado exitosamente 🎉');
+    } catch (error) {
+      console.error('Error al crear servicio:', error);
+      showInfoModal('Error ❌', error.response?.data?.mensaje || 'Error al crear servicio');
+    }
   };
 
-  const verServicio = (id) => {
-    const servicio = servicios.find(s => s.id === id);
-    setServicioSeleccionado(servicio);
-    setModalDetalleVisible(true);
+  const verServicio = async (id) => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const response = await axios.get(`http://localhost:8080/servicios/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setServicioSeleccionado({
+        ...response.data.servicio,
+        serviciosPorInsumo: response.data.serviciosPorInsumo
+      });
+      setModalDetalleVisible(true);
+    } catch (error) {
+      console.error('Error al obtener detalles del servicio:', error);
+      showInfoModal('Error ❌', 'No se pudo cargar la información del servicio');
+    }
   };
 
-  const editarServicio = (id) => {
-    const servicio = servicios.find(s => s.id === id);
-    setServicioSeleccionado(servicio);
-    setModalEditarVisible(true);
+  const editarServicio = async (id) => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const response = await axios.get(`http://localhost:8080/servicios/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setServicioSeleccionado({
+        ...response.data.servicio,
+        insumos: response.data.serviciosPorInsumo.map(item => ({
+          id: item.insumoID,
+          nombre: item.insumo?.nombre || 'Insumo no encontrado',
+          cantidad: item.unidades.toString(),
+          categoria: item.insumo?.categoriaProducto?.nombre || 'Sin categoría'
+        }))
+      });
+      setModalEditarVisible(true);
+    } catch (error) {
+      console.error('Error al cargar servicio para editar:', error);
+      showInfoModal('Error ❌', 'No se pudo cargar el servicio para editar');
+    }
   };
 
-  const handleUpdateService = (updatedService) => {
-    const nuevosServicios = servicios.map(s =>
-      s.id === updatedService.id ? updatedService : s
-    );
-    setServicios(nuevosServicios);
-    setServiciosFiltrados(nuevosServicios);
-    setModalEditarVisible(false);
+  const handleUpdateService = async (updatedService) => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const response = await axios.put(
+        `http://localhost:8080/servicios/${updatedService.id}`,
+        updatedService,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const nuevosServicios = servicios.map(s => 
+        s.id === updatedService.id ? response.data.servicioActualizado : s
+      );
+      
+      setServicios(nuevosServicios);
+      setServiciosFiltrados(nuevosServicios);
+      setModalEditarVisible(false);
+      showInfoModal('Éxito ✅', 'Servicio actualizado exitosamente ✨');
+    } catch (error) {
+      console.error('Error al actualizar servicio:', error);
+      showInfoModal('Error ❌', error.response?.data?.mensaje || 'Error al actualizar servicio');
+    }
   };
 
-  const eliminarServicio = (id) => {
-    Alert.alert(
-      "Confirmar eliminación",
-      "¿Estás seguro de que deseas eliminar este servicio?",
-      [
-        {
-          text: "Cancelar",
-          style: "cancel"
-        },
-        {
-          text: "Eliminar",
-          onPress: () => {
-            const nuevosServicios = servicios.filter(s => s.id !== id);
-            setServicios(nuevosServicios);
-            setServiciosFiltrados(nuevosServicios);
-          }
-        }
-      ]
-    );
+  const handleDeleteConfirmation = (id) => {
+    setItemToDelete(id);
+    setShowConfirmModal(true);
   };
 
-  // Renderizado para móvil (tarjetas)
+  const handleDeleteService = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      await axios.delete(`http://localhost:8080/servicios/${itemToDelete}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      const nuevosServicios = servicios.filter(s => s.id !== itemToDelete);
+      setServicios(nuevosServicios);
+      setServiciosFiltrados(nuevosServicios);
+      setShowConfirmModal(false);
+      showInfoModal('Éxito ✅', 'Servicio eliminado exitosamente 🗑️');
+    } catch (error) {
+      console.error('Error al eliminar servicio:', error);
+      showInfoModal('Error ❌', error.response?.data?.mensaje || 'Error al eliminar servicio');
+    }
+  };
+
   const renderMobileItem = ({ item }) => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <View style={styles.cardHeaderText}>
           <Text style={styles.cardTitle}>{item.nombre}</Text>
-          <Text style={styles.cardSubtitle}>{item.duracion}</Text>
+          <Text style={styles.cardSubtitle}>{item.duracionMaximaConvertido}</Text>
         </View>
         <View style={styles.precioContainer}>
-          <Text style={styles.textoPrecio}>{item.precio}</Text>
+          <Text style={styles.textoPrecio}>$ {item.precio}</Text>
         </View>
       </View>
      
@@ -190,14 +223,13 @@ const ServiciosScreen = () => {
         <TouchableOpacity onPress={() => editarServicio(item.id)} style={styles.actionButton}>
           <Feather name="edit" size={20} color="#424242" />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => eliminarServicio(item.id)} style={styles.actionButton}>
+        <TouchableOpacity onPress={() => handleDeleteConfirmation(item.id)} style={styles.actionButton}>
           <Feather name="trash-2" size={20} color="#d32f2f" />
         </TouchableOpacity>
       </View>
     </View>
   );
 
-  // Renderizado para desktop (tabla)
   const renderDesktopItem = ({ item }) => (
     <View style={styles.fila}>
       <View style={[styles.celda, styles.columnaNombre]}>
@@ -208,12 +240,12 @@ const ServiciosScreen = () => {
       </View>
       <View style={[styles.celda, styles.columnaDuracion]}>
         <View style={styles.duracionContainer}>
-          <Text style={styles.textoDuracion}>{item.duracion}</Text>
+          <Text style={styles.textoDuracion}>{item.duracionMaximaConvertido}</Text>
         </View>
       </View>
       <View style={[styles.celda, styles.columnaPrecio]}>
         <View style={styles.precioContainer}>
-          <Text style={styles.textoPrecio}>{item.precio}</Text>
+          <Text style={styles.textoPrecio}>$ {item.precio}</Text>
         </View>
       </View>
       <View style={[styles.celda, styles.columnaAcciones]}>
@@ -224,8 +256,8 @@ const ServiciosScreen = () => {
           <TouchableOpacity onPress={() => editarServicio(item.id)} style={styles.botonAccion}>
             <Feather name="edit" size={20} color="black" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => eliminarServicio(item.id)} style={styles.botonAccion}>
-            <Feather name="trash-2" size={20} color="black" />
+          <TouchableOpacity onPress={() => handleDeleteConfirmation(item.id)} style={styles.botonAccion}>
+            <Feather name="trash-2" size={20} color="#d32f2f" />
           </TouchableOpacity>
         </View>
       </View>
@@ -257,14 +289,18 @@ const ServiciosScreen = () => {
         onChangeText={handleSearchChange}
       />
 
-      {serviciosMostrar.length === 0 ? (
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <Text>Cargando servicios...</Text>
+        </View>
+      ) : serviciosMostrar.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyText}>No se encontraron servicios</Text>
         </View>
       ) : isMobile ? (
         <FlatList
           data={serviciosMostrar}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={(item) => item.id}
           renderItem={renderMobileItem}
           contentContainerStyle={styles.listContainer}
           style={styles.mobileList}
@@ -280,7 +316,7 @@ const ServiciosScreen = () => {
           </View>
           <FlatList
             data={serviciosMostrar}
-            keyExtractor={(item) => item.id.toString()}
+            keyExtractor={(item) => item.id}
             renderItem={renderDesktopItem}
             scrollEnabled={false}
           />
@@ -299,6 +335,7 @@ const ServiciosScreen = () => {
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
         onCreate={handleCreateService}
+        insumosDisponibles={insumosDisponibles}
       />
 
       <DetalleServicio
@@ -312,6 +349,22 @@ const ServiciosScreen = () => {
         onClose={() => setModalEditarVisible(false)}
         servicio={servicioSeleccionado}
         onUpdate={handleUpdateService}
+        insumosDisponibles={insumosDisponibles}
+      />
+
+      <ConfirmarModal
+        visible={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={handleDeleteService}
+        title="Confirmar eliminación ⚠️"
+        message="¿Estás seguro de que deseas eliminar este servicio? Esta acción no se puede deshacer."
+      />
+
+      <InfoModal
+        visible={infoModalVisible}
+        onClose={() => setInfoModalVisible(false)}
+        title={infoModalMessage.title}
+        message={infoModalMessage.message}
       />
      
       <Footer />
@@ -324,6 +377,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
     padding: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   mobileList: {
     flex: 1,
@@ -376,7 +434,6 @@ const styles = StyleSheet.create({
   listContainer: {
     paddingBottom: 16,
   },
-  // Estilos para móvil (tarjetas)
   card: {
     backgroundColor: 'white',
     borderRadius: 10,
@@ -385,7 +442,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 6,
     elevation: 3,
     borderWidth: 1,
     borderColor: '#eee',
@@ -435,7 +492,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 14,
   },
-  // Estilos para desktop (tabla)
   tabla: {
     borderWidth: 1,
     borderColor: '#ddd',

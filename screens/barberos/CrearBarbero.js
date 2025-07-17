@@ -1,117 +1,219 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
+/* ───────────────────────────────────────────────────────────
+   screens/barberos/CrearBarbero.js
+   ─────────────────────────────────────────────────────────── */
+import React, { useState, useEffect, useRef } from "react";
+import {
+  View,
+  Text,
   Modal,
-  TouchableOpacity, 
-  TextInput, 
-  Image, 
-  Alert,
+  TextInput,
+  TouchableOpacity,
   StyleSheet,
   ScrollView,
+  Image,
+  Alert,
   Dimensions,
-  Picker
-} from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
-import { BlurView } from 'expo-blur';
-import { Calendar, LocaleConfig } from 'react-native-calendars';
+  ActivityIndicator,
+  Platform,
+} from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+import { BlurView } from "expo-blur";
+import { Calendar, LocaleConfig } from "react-native-calendars";
+import { Picker } from "@react-native-picker/picker";
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// Configuración de localización en español
-LocaleConfig.locales['es'] = {
+/* ─── localización ES ─── */
+LocaleConfig.locales.es = {
   monthNames: [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    "Enero","Febrero","Marzo","Abril","Mayo","Junio",
+    "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre",
   ],
   monthNamesShort: [
-    'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
-    'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
+    "Ene","Feb","Mar","Abr","May","Jun",
+    "Jul","Ago","Sep","Oct","Nov","Dic",
   ],
   dayNames: [
-    'Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'
+    "Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado",
   ],
-  dayNamesShort: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
-  today: 'Hoy'
+  dayNamesShort: ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"],
+  today: "Hoy",
 };
-LocaleConfig.defaultLocale = 'es';
+LocaleConfig.defaultLocale = "es";
 
-const { width } = Dimensions.get('window');
+/* ─── helpers constantes ─── */
+const { width } = Dimensions.get("window");
+const currentYear = new Date().getFullYear();
+const months = [
+  "Enero","Febrero","Marzo","Abril","Mayo","Junio",
+  "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre",
+];
+const years = Array.from({ length: 81 }, (_, i) => currentYear - i);
 
+/* ╔════════════════════════════════╗
+   ║          Componente           ║
+   ╚════════════════════════════════╝ */
 const CrearBarbero = ({ visible, onClose, onCreate }) => {
-  // Roles de ejemplo
-  const [roles, setRoles] = useState([
-    { id: 1, nombre: 'Barbero Master' },
-    { id: 2, nombre: 'Barbero Senior' },
-    { id: 3, nombre: 'Barbero Junior' },
-    { id: 4, nombre: 'Aprendiz' }
-  ]);
-
-  const [formData, setFormData] = useState({
-    rol: '',
-    cedula: '',
-    nombre: '',
-    telefono: '',
-    email: '',
-    fechaNacimiento: null,
-    fechaContratacion: null,
-    password: '',
-    confirmPassword: '',
-    avatar: null
-  });
-  
+  /* ───────── estado ───────── */
+  const [roles, setRoles] = useState([]);
+  const [loadingRoles, setLoadingRoles] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [errors, setErrors] = useState({});
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [pickerType, setPickerType] = useState('nacimiento');
   const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
-  const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
+  const [calendarYear, setCalendarYear] = useState(currentYear);
 
-  const months = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-  ];
+  const [formData, setFormData] = useState({
+    nombre: "",
+    cedula: "",
+    telefono: "",
+    rolID: "",
+    fechaNacimiento: null,
+    fechaContratacion: null,
+    email: "",
+    password: "",
+    confirmPassword: "",
+    avatar: null,
+  });
 
-  const currentYear = new Date().getFullYear();
-  // Años para fecha de nacimiento (80 años atrás)
-  const yearsNacimiento = Array.from({ length: 81 }, (_, i) => currentYear - i);
-  // Años para fecha de contratación (35 años atrás y 10 años adelante)
-  const yearsContratacion = Array.from({ length: 46 }, (_, i) => currentYear - 35 + i);
+  const [pickerField, setPickerField] = useState("nacimiento");
+  const scrollRef = useRef(null);
 
+  /* ─── cargar roles ─── */
+  useEffect(() => {
+    if (!visible) return;
+
+    (async () => {
+      try {
+        const token = await AsyncStorage.getItem("token");
+        const { data } = await axios.get(
+          "http://localhost:8080/roles/workers",
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setRoles(data.roles || []);
+      } catch (e) {
+        console.error(e);
+        Alert.alert("Error", "No se pudieron cargar los roles");
+      } finally {
+        setLoadingRoles(false);
+      }
+    })();
+  }, [visible]);
+
+  /* ─── helpers ─── */
   const resetForm = () => {
     setFormData({
-      rol: '',
-      cedula: '',
-      nombre: '',
-      telefono: '',
-      email: '',
+      nombre: "",
+      cedula: "",
+      telefono: "",
+      rolID: "",
       fechaNacimiento: null,
       fechaContratacion: null,
-      password: '',
-      confirmPassword: '',
-      avatar: null
+      email: "",
+      password: "",
+      confirmPassword: "",
+      avatar: null,
     });
-    // Resetear también el calendario a la fecha actual
+    setErrors({});
     setCalendarMonth(new Date().getMonth());
     setCalendarYear(currentYear);
   };
 
-  const handleChange = (name, value) => {
-    setFormData({
-      ...formData,
-      [name]: value
+  const handleChange = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    setErrors((err) => ({ ...err, [field]: null }));
+  };
+
+  const formatDate = (d) =>
+    !d
+      ? "dd/mm/aaaa"
+      : d.toLocaleDateString("es-ES", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        });
+
+  const toISODate = (d) => (d ? d.toISOString().split("T")[0] : "");
+
+  const formatDateString = (date) => {
+    if (!date) return "";
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const day = date.getDate().toString().padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  /* ─── imagen ─── */
+  const pickImage = async () => {
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
     });
+    if (!res.canceled) handleChange("avatar", res.assets[0].uri);
   };
 
-  const handleDayPress = (day) => {
-    const selectedDate = new Date(day.year, day.month - 1, day.day);
-    if (pickerType === 'nacimiento') {
-      handleChange('fechaNacimiento', selectedDate);
-    } else {
-      handleChange('fechaContratacion', selectedDate);
+  /* ─── validación / envío ─── */
+  const isEmail = (mail) =>
+    /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(mail);
+
+  const validate = () => {
+    const {
+      nombre,
+      cedula,
+      telefono,
+      rolID,
+      fechaNacimiento,
+      fechaContratacion,
+      email,
+      password,
+      confirmPassword,
+    } = formData;
+
+    const newErrors = {};
+
+    if (!rolID) newErrors.rolID = "Selecciona un rol";
+    if (!nombre) newErrors.nombre = "Nombre obligatorio";
+    if (!cedula) newErrors.cedula = "Campo obligatorio";
+    else if (!/^\d+$/.test(cedula))
+      newErrors.cedula = "Solo números permitidos";
+    if (!telefono) newErrors.telefono = "Campo obligatorio";
+    else if (!/^\d{7,}$/.test(telefono))
+      newErrors.telefono = "Teléfono inválido";
+    if (!fechaNacimiento) newErrors.fechaNacimiento = "Requerido";
+    if (!fechaContratacion) newErrors.fechaContratacion = "Requerido";
+    if (!email) newErrors.email = "Campo obligatorio";
+    else if (!isEmail(email)) newErrors.email = "Email inválido";
+    if (!password) newErrors.password = "Campo obligatorio";
+    else if (password.length < 6)
+      newErrors.password = "Mínimo 6 caracteres";
+    if (!confirmPassword) newErrors.confirmPassword = "Campo obligatorio";
+    else if (confirmPassword !== password)
+      newErrors.confirmPassword = "No coincide";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = () => {
+    if (!validate()) {
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
+      return;
     }
-    setShowDatePicker(false);
+
+    onCreate({
+      ...formData,
+      fechaNacimiento: toISODate(formData.fechaNacimiento),
+      fechaContratacion: toISODate(formData.fechaContratacion),
+    });
+    onClose();
+    resetForm();
   };
 
+  /* ─── calendario ─── */
   const changeMonth = (increment) => {
     let newMonth = calendarMonth + increment;
     let newYear = calendarYear;
@@ -124,97 +226,38 @@ const CrearBarbero = ({ visible, onClose, onCreate }) => {
       newYear--;
     }
     
-    // Validar según el tipo de calendario
-    if (pickerType === 'nacimiento') {
-      if (newYear <= currentYear && newYear >= (currentYear - 80)) {
+    // Validación para fecha de contratación (15 años atrás)
+    const minYear = pickerField === "contratacion" ? currentYear - 15 : currentYear - 80;
+    
+    if (newYear <= currentYear && newYear >= minYear) {
+      if (newYear === currentYear && newMonth > new Date().getMonth()) {
+        setCalendarMonth(new Date().getMonth());
+      } else {
         setCalendarMonth(newMonth);
-        setCalendarYear(newYear);
       }
-    } else {
-      if (newYear >= (currentYear - 35) && newYear <= (currentYear + 10)) {
-        setCalendarMonth(newMonth);
-        setCalendarYear(newYear);
-      }
+      setCalendarYear(newYear);
     }
   };
 
-  const changeYear = (year) => {
-    // Validar según el tipo de calendario
-    if (pickerType === 'nacimiento') {
-      if (year <= currentYear && year >= (currentYear - 80)) {
-        // Si el año seleccionado es el año actual, asegurarse de que el mes no sea futuro
-        if (year === currentYear && calendarMonth > new Date().getMonth()) {
-          setCalendarMonth(new Date().getMonth());
-        }
-        setCalendarYear(year);
+  const changeYear = (increment) => {
+    const newYear = calendarYear + increment;
+    const minYear = pickerField === "contratacion" ? currentYear - 15 : currentYear - 80;
+    
+    if (newYear <= currentYear && newYear >= minYear) {
+      if (newYear === currentYear && calendarMonth > new Date().getMonth()) {
+        setCalendarMonth(new Date().getMonth());
       }
-    } else {
-      if (year >= (currentYear - 35) && year <= (currentYear + 10)) {
-        // Si el año seleccionado es el año actual, asegurarse de que el mes no sea pasado
-        if (year === currentYear && calendarMonth < new Date().getMonth()) {
-          setCalendarMonth(new Date().getMonth());
-        }
-        setCalendarYear(year);
-      }
+      setCalendarYear(newYear);
     }
   };
 
-  const pickImage = async () => {
-    try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permisos requeridos', 'Necesitamos acceso a tus fotos para seleccionar un avatar');
-        return;
-      }
-
-      let result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.5,
-      });
-
-      if (!result.cancelled) {
-        handleChange('avatar', result.uri);
-      }
-    } catch (error) {
-      console.error('Error al seleccionar imagen:', error);
-      Alert.alert('Error', 'No se pudo seleccionar la imagen');
-    }
-  };
-
-  const handleSubmit = () => {
-    if (formData.rol && formData.cedula && formData.nombre && formData.telefono && 
-        formData.email && formData.fechaNacimiento && formData.fechaContratacion && 
-        formData.password && formData.confirmPassword) {
-      if (formData.password !== formData.confirmPassword) {
-        Alert.alert('Error', 'Las contraseñas no coinciden');
-        return;
-      }
-      onCreate(formData);
-      onClose();
-      resetForm();
-    } else {
-      Alert.alert('Campos requeridos', 'Por favor complete todos los campos obligatorios');
-    }
-  };
-
-  const formatDate = (date) => {
-    if (!date) return 'dd/mm/aaaa';
-    return date.toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
-  };
-
-  const openDatePicker = (type) => {
-    setPickerType(type);
-    // Resetear a fecha actual al abrir
-    const today = new Date();
-    setCalendarMonth(today.getMonth());
-    setCalendarYear(today.getFullYear());
-    setShowDatePicker(true);
+  const handleDayPress = (day) => {
+    const selectedDate = new Date(day.year, day.month - 1, day.day);
+    handleChange(
+      pickerField === "nacimiento" ? "fechaNacimiento" : "fechaContratacion",
+      selectedDate
+    );
+    setShowDatePicker(false);
   };
 
   const getDisabledDates = () => {
@@ -222,30 +265,17 @@ const CrearBarbero = ({ visible, onClose, onCreate }) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    // Calcular fechas a deshabilitar según el tipo
     const startDate = new Date(calendarYear, calendarMonth, 1);
     const endDate = new Date(calendarYear, calendarMonth + 1, 0);
     const tempDate = new Date(startDate);
     
     while (tempDate <= endDate) {
-      if (pickerType === 'nacimiento') {
-        // Deshabilitar fechas futuras y anteriores a 80 años
-        if (tempDate > today || tempDate.getFullYear() < (currentYear - 80)) {
-          disabledDates[formatDateString(tempDate)] = { 
-            disabled: true, 
-            disableTouchEvent: true 
-          };
-        }
-      } else {
-        // Deshabilitar fechas anteriores a 35 años y futuras a 10 años
-        if (tempDate.getFullYear() < (currentYear - 35) || 
-            tempDate.getFullYear() > (currentYear + 10) ||
-            (tempDate.getFullYear() === currentYear && tempDate > today)) {
-          disabledDates[formatDateString(tempDate)] = { 
-            disabled: true, 
-            disableTouchEvent: true 
-          };
-        }
+      if (tempDate > today || 
+          (calendarYear === currentYear && calendarMonth > today.getMonth())) {
+        disabledDates[formatDateString(tempDate)] = { 
+          disabled: true, 
+          disableTouchEvent: true 
+        };
       }
       tempDate.setDate(tempDate.getDate() + 1);
     }
@@ -253,391 +283,316 @@ const CrearBarbero = ({ visible, onClose, onCreate }) => {
     return disabledDates;
   };
 
-  const formatDateString = (date) => {
-    const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
+  /* ───────── UI ───────── */
   return (
-    <Modal
-      animationType="fade"
-      transparent={true}
-      visible={visible}
-      onRequestClose={() => {
-        onClose();
-        resetForm();
-      }}
-    >
-      <BlurView
-        intensity={15}
-        tint="light"
-        style={StyleSheet.absoluteFill}
-      />
-      
+    <Modal visible={visible} transparent animationType="fade">
+      <BlurView intensity={15} tint="light" style={StyleSheet.absoluteFill} />
+
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
-          <ScrollView 
+          <ScrollView
+            ref={scrollRef}
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
           >
-            <View style={styles.header}>
-              <Text style={styles.title}>Crear nuevo barbero</Text>
-              <Text style={styles.subtitle}>Por favor, proporciona las credenciales del nuevo barbero</Text>
-            </View>
-            
-            {/* Rol del barbero */}
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Rol del barbero <Text style={styles.required}>*</Text></Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={formData.rol}
-                  style={styles.picker}
-                  onValueChange={(itemValue) => handleChange('rol', itemValue)}
+            <Text style={styles.title}>Crear nuevo barbero</Text>
+
+            {/* rol */}
+            {loadingRoles ? (
+              <ActivityIndicator style={{ marginVertical: 20 }} />
+            ) : (
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>
+                  Rol <Text style={styles.required}>*</Text>
+                </Text>
+                <View
+                  style={[
+                    styles.pickerContainer,
+                    errors.rolID && styles.errorBorder,
+                  ]}
                 >
-                  <Picker.Item label="Seleccione un rol..." value="" />
-                  {roles.map((rol) => (
-                    <Picker.Item key={rol.id} label={rol.nombre} value={rol.nombre} />
-                  ))}
-                </Picker>
+                  <Picker
+                    selectedValue={formData.rolID}
+                    onValueChange={(v) => handleChange("rolID", v)}
+                    style={styles.picker}
+                    mode="dropdown"
+                  >
+                    <Picker.Item label="Seleccione un rol" value="" />
+                    {roles.map((r) => (
+                      <Picker.Item
+                        key={r.id}
+                        label={r.nombre}
+                        value={r.id}
+                      />
+                    ))}
+                  </Picker>
+                </View>
+                {!!errors.rolID && (
+                  <Text style={styles.errorText}>{errors.rolID}</Text>
+                )}
               </View>
-            </View>
-            
-            {/* Cédula y Nombre */}
+            )}
+
+            {/* cédula y nombre */}
             <View style={styles.doubleRow}>
-              <View style={[styles.formGroup, {flex: 1, marginRight: 10}]}>
-                <Text style={styles.label}>Cédula <Text style={styles.required}>*</Text></Text>
+              <View style={[styles.formGroup, { flex: 1, marginRight: 10 }]}>
+                <Text style={styles.label}>
+                  Cédula <Text style={styles.required}>*</Text>
+                </Text>
                 <TextInput
-                  style={styles.input}
-                  placeholder="Ej: 123456789"
+                  style={[
+                    styles.input,
+                    errors.cedula && styles.errorBorder,
+                  ]}
+                  placeholder="123456789"
                   placeholderTextColor="#929292"
                   keyboardType="numeric"
                   value={formData.cedula}
-                  onChangeText={(text) => handleChange('cedula', text)}
+                  onChangeText={(v) => handleChange("cedula", v)}
                 />
+                {!!errors.cedula && (
+                  <Text style={styles.errorText}>{errors.cedula}</Text>
+                )}
               </View>
-              
-              <View style={[styles.formGroup, {flex: 1}]}>
-                <Text style={styles.label}>Nombre <Text style={styles.required}>*</Text></Text>
+
+              <View style={[styles.formGroup, { flex: 1 }]}>
+                <Text style={styles.label}>
+                  Nombre <Text style={styles.required}>*</Text>
+                </Text>
                 <TextInput
-                  style={styles.input}
-                  placeholder="Ej: Carlos Gómez"
+                  style={[
+                    styles.input,
+                    errors.nombre && styles.errorBorder,
+                  ]}
+                  placeholder="Nombre completo"
                   placeholderTextColor="#929292"
                   value={formData.nombre}
-                  onChangeText={(text) => handleChange('nombre', text)}
+                  onChangeText={(v) => handleChange("nombre", v)}
                 />
+                {!!errors.nombre && (
+                  <Text style={styles.errorText}>{errors.nombre}</Text>
+                )}
               </View>
             </View>
-            
-            {/* Teléfono y Email */}
+
+            {/* teléfono y email */}
             <View style={styles.doubleRow}>
-              <View style={[styles.formGroup, {flex: 1, marginRight: 10}]}>
-                <Text style={styles.label}>Teléfono <Text style={styles.required}>*</Text></Text>
+              <View style={[styles.formGroup, { flex: 1, marginRight: 10 }]}>
+                <Text style={styles.label}>
+                  Teléfono <Text style={styles.required}>*</Text>
+                </Text>
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    errors.telefono && styles.errorBorder,
+                  ]}
                   placeholder="3001234567"
                   placeholderTextColor="#929292"
                   keyboardType="phone-pad"
                   value={formData.telefono}
-                  onChangeText={(text) => handleChange('telefono', text)}
+                  onChangeText={(v) => handleChange("telefono", v)}
                 />
+                {!!errors.telefono && (
+                  <Text style={styles.errorText}>{errors.telefono}</Text>
+                )}
               </View>
-              
-              <View style={[styles.formGroup, {flex: 1}]}>
-                <Text style={styles.label}>Email <Text style={styles.required}>*</Text></Text>
+
+              <View style={[styles.formGroup, { flex: 1 }]}>
+                <Text style={styles.label}>
+                  Email <Text style={styles.required}>*</Text>
+                </Text>
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    errors.email && styles.errorBorder,
+                  ]}
                   placeholder="barbero@email.com"
                   placeholderTextColor="#929292"
                   keyboardType="email-address"
                   autoCapitalize="none"
                   value={formData.email}
-                  onChangeText={(text) => handleChange('email', text)}
+                  onChangeText={(v) => handleChange("email", v)}
                 />
+                {!!errors.email && (
+                  <Text style={styles.errorText}>{errors.email}</Text>
+                )}
               </View>
             </View>
-            
-            {/* Fecha de Nacimiento y Fecha de Contratación */}
+
+            {/* fechas */}
             <View style={styles.doubleRow}>
-              <View style={[styles.formGroup, {flex: 1, marginRight: 10}]}>
-                <Text style={styles.label}>Fecha Nacimiento <Text style={styles.required}>*</Text></Text>
-                <TouchableOpacity 
-                  style={styles.dateInput}
-                  onPress={() => openDatePicker('nacimiento')}
+              <View style={[styles.formGroup, { flex: 1, marginRight: 10 }]}>
+                <Text style={styles.label}>
+                  Fecha nacimiento <Text style={styles.required}>*</Text>
+                </Text>
+                <TouchableOpacity
+                  style={[
+                    styles.dateInput,
+                    errors.fechaNacimiento && styles.errorBorder,
+                  ]}
+                  onPress={() => {
+                    setPickerField("nacimiento");
+                    setShowDatePicker(true);
+                  }}
                 >
-                  <Text style={[
-                    styles.dateText, 
-                    formData.fechaNacimiento && styles.dateTextSelected
-                  ]}>
+                  <Text
+                    style={[
+                      styles.dateText,
+                      formData.fechaNacimiento && styles.dateTextSelected,
+                    ]}
+                  >
                     {formatDate(formData.fechaNacimiento)}
                   </Text>
-                  <MaterialIcons name="calendar-today" size={20} color="#666" />
+                  <MaterialIcons name="calendar-today" size={20} />
                 </TouchableOpacity>
+                {!!errors.fechaNacimiento && (
+                  <Text style={styles.errorText}>{errors.fechaNacimiento}</Text>
+                )}
               </View>
-              
-              <View style={[styles.formGroup, {flex: 1}]}>
-                <Text style={styles.label}>Fecha Contratación <Text style={styles.required}>*</Text></Text>
-                <TouchableOpacity 
-                  style={styles.dateInput}
-                  onPress={() => openDatePicker('contratacion')}
+
+              <View style={[styles.formGroup, { flex: 1 }]}>
+                <Text style={styles.label}>
+                  Fecha contratación <Text style={styles.required}>*</Text>
+                </Text>
+                <TouchableOpacity
+                  style={[
+                    styles.dateInput,
+                    errors.fechaContratacion && styles.errorBorder,
+                  ]}
+                  onPress={() => {
+                    setPickerField("contratacion");
+                    setShowDatePicker(true);
+                  }}
                 >
-                  <Text style={[
-                    styles.dateText, 
-                    formData.fechaContratacion && styles.dateTextSelected
-                  ]}>
+                  <Text
+                    style={[
+                      styles.dateText,
+                      formData.fechaContratacion && styles.dateTextSelected,
+                    ]}
+                  >
                     {formatDate(formData.fechaContratacion)}
                   </Text>
-                  <MaterialIcons name="calendar-today" size={20} color="#666" />
+                  <MaterialIcons name="calendar-today" size={20} />
                 </TouchableOpacity>
+                {!!errors.fechaContratacion && (
+                  <Text style={styles.errorText}>
+                    {errors.fechaContratacion}
+                  </Text>
+                )}
               </View>
             </View>
-            
-            {showDatePicker && (
-              <View style={styles.customDatePickerContainer}>
-                <View style={styles.customDatePicker}>
-                  <View style={styles.datePickerHeader}>
-                    <TouchableOpacity 
-                      onPress={() => changeMonth(-1)}
-                      disabled={
-                        pickerType === 'nacimiento' 
-                          ? calendarYear === (currentYear - 80) && calendarMonth === 0
-                          : calendarYear === (currentYear - 35) && calendarMonth === 0
-                      }
-                    >
-                      <MaterialIcons 
-                        name="chevron-left" 
-                        size={24} 
-                        color={
-                          (pickerType === 'nacimiento' 
-                            ? calendarYear === (currentYear - 80) && calendarMonth === 0
-                            : calendarYear === (currentYear - 35) && calendarMonth === 0)
-                            ? '#ccc' 
-                            : '#333'
-                        } 
-                      />
-                    </TouchableOpacity>
-                    
-                    <View style={styles.monthYearSelector}>
-                      <Text style={styles.monthYearText}>
-                        {months[calendarMonth]} de {calendarYear}
-                      </Text>
-                    </View>
-                    
-                    <TouchableOpacity 
-                      onPress={() => changeMonth(1)}
-                      disabled={
-                        pickerType === 'nacimiento' 
-                          ? calendarYear === currentYear && calendarMonth === new Date().getMonth()
-                          : calendarYear === (currentYear + 10) && calendarMonth === 11
-                      }
-                    >
-                      <MaterialIcons 
-                        name="chevron-right" 
-                        size={24} 
-                        color={
-                          (pickerType === 'nacimiento' 
-                            ? calendarYear === currentYear && calendarMonth === new Date().getMonth()
-                            : calendarYear === (currentYear + 10) && calendarMonth === 11)
-                            ? '#ccc' 
-                            : '#333'
-                        } 
-                      />
-                    </TouchableOpacity>
-                  </View>
-                  
-                  <View style={styles.yearSelectorContainer}>
-                    <ScrollView 
-                      horizontal 
-                      showsHorizontalScrollIndicator={false}
-                      contentContainerStyle={styles.yearScrollContent}
-                    >
-                      {(pickerType === 'nacimiento' ? yearsNacimiento : yearsContratacion).map(year => (
-                        <TouchableOpacity 
-                          key={year}
-                          style={[
-                            styles.yearButton,
-                            calendarYear === year && styles.selectedYearButton
-                          ]}
-                          onPress={() => changeYear(year)}
-                        >
-                          <Text style={[
-                            styles.yearButtonText,
-                            calendarYear === year && styles.selectedYearButtonText
-                          ]}>
-                            {year}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-                  
-                  <View style={styles.calendarContainer}>
-                    <Calendar
-                      key={`${calendarYear}-${calendarMonth}-${pickerType}`}
-                      current={`${calendarYear}-${(calendarMonth + 1).toString().padStart(2, '0')}-01`}
-                      minDate={
-                        pickerType === 'nacimiento' 
-                          ? `${currentYear - 80}-01-01` 
-                          : `${currentYear - 35}-01-01`
-                      }
-                      maxDate={
-                        pickerType === 'nacimiento' 
-                          ? new Date().toISOString().split('T')[0]
-                          : `${currentYear + 10}-12-31`
-                      }
-                      onDayPress={handleDayPress}
-                      monthFormat={'MMMM yyyy'}
-                      hideArrows={true}
-                      hideExtraDays={true}
-                      disableMonthChange={true}
-                      markedDates={{
-                        ...getDisabledDates(),
-                        [pickerType === 'nacimiento' 
-                          ? (formData.fechaNacimiento ? formatDateString(formData.fechaNacimiento) : '')
-                          : (formData.fechaContratacion ? formatDateString(formData.fechaContratacion) : '')]: {
-                          selected: true,
-                          selectedColor: '#424242',
-                          selectedTextColor: '#fff'
-                        },
-                        [new Date().toISOString().split('T')[0]]: {
-                          marked: true,
-                          dotColor: '#424242'
-                        }
-                      }}
-                      theme={{
-                        calendarBackground: 'transparent',
-                        textSectionTitleColor: '#666',
-                        dayTextColor: '#333',
-                        todayTextColor: '#424242',
-                        selectedDayTextColor: '#fff',
-                        selectedDayBackgroundColor: '#424242',
-                        arrowColor: '#424242',
-                        monthTextColor: '#333',
-                        textDayFontWeight: '400',
-                        textMonthFontWeight: 'bold',
-                        textDayHeaderFontWeight: '500',
-                        textDayFontSize: 12,
-                        textMonthFontSize: 14,
-                        textDayHeaderFontSize: 12,
-                        'stylesheet.calendar.header': {
-                          week: {
-                            marginTop: 5,
-                            flexDirection: 'row',
-                            justifyContent: 'space-between'
-                          }
-                        },
-                        disabledDayTextColor: '#d9d9d9'
-                      }}
-                      style={styles.calendar}
-                      disableAllTouchEventsForDisabledDays={true}
-                    />
-                  </View>
-                  
-                  <View style={styles.datePickerActions}>
-                    <TouchableOpacity 
-                      style={styles.datePickerButton}
-                      onPress={() => {
-                        const today = new Date();
-                        if (pickerType === 'nacimiento') {
-                          handleChange('fechaNacimiento', today);
-                        } else {
-                          handleChange('fechaContratacion', today);
-                        }
-                        setCalendarMonth(today.getMonth());
-                        setCalendarYear(today.getFullYear());
-                        setShowDatePicker(false);
-                      }}
-                    >
-                      <Text style={styles.datePickerButtonText}>Hoy</Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity 
-                      style={styles.closeButton} 
-                      onPress={() => setShowDatePicker(false)}
-                    >
-                      <Text style={styles.closeButtonText}>Cerrar</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            )}
-            
-            {/* Contraseña y Confirmar Contraseña */}
+
+            {/* contraseñas */}
             <View style={styles.doubleRow}>
-              <View style={[styles.formGroup, {flex: 1, marginRight: 10}]}>
-                <Text style={styles.label}>Contraseña <Text style={styles.required}>*</Text></Text>
-                <View style={styles.passwordContainer}>
-                  <TextInput
-                    style={styles.passwordInput}
-                    placeholder="••••••••"
-                    placeholderTextColor="#929292"
-                    secureTextEntry={!showPassword}
-                    value={formData.password}
-                    onChangeText={(text) => handleChange('password', text)}
-                  />
-                  <TouchableOpacity 
-                    style={styles.toggleButton}
-                    onPress={() => setShowPassword(!showPassword)}
-                  >
-                    <MaterialIcons 
-                      name={showPassword ? 'visibility-off' : 'visibility'} 
-                      size={20} 
-                      color="#666" 
+              <View style={[styles.formGroup, { flex: 1, marginRight: 10 }]}>
+                <Text style={styles.label}>
+                  Contraseña <Text style={styles.required}>*</Text>
+                </Text>
+                <View>
+                  <View style={styles.passwordContainer}>
+                    <TextInput
+                      style={[
+                        styles.passwordInput,
+                        errors.password && styles.errorBorder,
+                      ]}
+                      placeholder="••••••••"
+                      placeholderTextColor="#929292"
+                      secureTextEntry={!showPassword}
+                      value={formData.password}
+                      onChangeText={(v) => handleChange("password", v)}
                     />
-                  </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.toggleButton}
+                      onPress={() => setShowPassword((p) => !p)}
+                    >
+                      <MaterialIcons
+                        name={showPassword ? "visibility-off" : "visibility"}
+                        size={20}
+                        color="#666"
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  {!!errors.password && (
+                    <Text style={styles.errorText}>{errors.password}</Text>
+                  )}
                 </View>
               </View>
-              
-              <View style={[styles.formGroup, {flex: 1}]}>
-                <Text style={styles.label}>Confirmar <Text style={styles.required}>*</Text></Text>
-                <View style={styles.passwordContainer}>
-                  <TextInput
-                    style={styles.passwordInput}
-                    placeholder="••••••••"
-                    placeholderTextColor="#929292"
-                    secureTextEntry={!showConfirmPassword}
-                    value={formData.confirmPassword}
-                    onChangeText={(text) => handleChange('confirmPassword', text)}
-                  />
-                  <TouchableOpacity 
-                    style={styles.toggleButton}
-                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                  >
-                    <MaterialIcons 
-                      name={showConfirmPassword ? 'visibility-off' : 'visibility'} 
-                      size={20} 
-                      color="#666" 
+
+              <View style={[styles.formGroup, { flex: 1 }]}>
+                <Text style={styles.label}>
+                  Confirmar <Text style={styles.required}>*</Text>
+                </Text>
+                <View>
+                  <View style={styles.passwordContainer}>
+                    <TextInput
+                      style={[
+                        styles.passwordInput,
+                        errors.confirmPassword && styles.errorBorder,
+                      ]}
+                      placeholder="••••••••"
+                      placeholderTextColor="#929292"
+                      secureTextEntry={!showConfirmPassword}
+                      value={formData.confirmPassword}
+                      onChangeText={(v) =>
+                        handleChange("confirmPassword", v)
+                      }
                     />
-                  </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.toggleButton}
+                      onPress={() => setShowConfirmPassword((p) => !p)}
+                    >
+                      <MaterialIcons
+                        name={
+                          showConfirmPassword ? "visibility-off" : "visibility"
+                        }
+                        size={20}
+                        color="#666"
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  {!!errors.confirmPassword && (
+                    <Text style={styles.errorText}>
+                      {errors.confirmPassword}
+                    </Text>
+                  )}
                 </View>
               </View>
             </View>
-            
-            {/* Avatar */}
+
+            {/* avatar */}
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Avatar (Opcional)</Text>
-              <TouchableOpacity style={styles.avatarSelector} onPress={pickImage}>
+              <Text style={styles.label}>Avatar (opcional)</Text>
+              <TouchableOpacity
+                style={styles.avatarSelector}
+                onPress={pickImage}
+              >
                 {formData.avatar ? (
-                  <Image source={{ uri: formData.avatar }} style={styles.avatarImage} />
+                  <Image
+                    source={{ uri: formData.avatar }}
+                    style={styles.avatarImage}
+                  />
                 ) : (
                   <View style={styles.avatarPlaceholder}>
-                    <MaterialIcons name="add-a-photo" size={24} color="#666" />
+                    <MaterialIcons
+                      name="add-a-photo"
+                      size={24}
+                      color="#666"
+                    />
                     <Text style={styles.avatarText}>Seleccionar imagen</Text>
                   </View>
                 )}
               </TouchableOpacity>
             </View>
-            
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity 
+
+            {/* botones */}
+            <View style={styles.buttonRow}>
+              <TouchableOpacity
                 style={[styles.button, styles.createButton]}
                 onPress={handleSubmit}
               >
                 <Text style={styles.buttonText}>Aceptar</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.button, styles.cancelButton]}
                 onPress={() => {
                   onClose();
@@ -650,269 +605,399 @@ const CrearBarbero = ({ visible, onClose, onCreate }) => {
           </ScrollView>
         </View>
       </View>
+
+      {/* ─── date‑picker modal ─── */}
+      {showDatePicker && (
+        <View style={styles.datePickerOverlay}>
+          <View style={styles.datePickerCard}>
+            {/* header mes / año */}
+            <View style={styles.datePickerHeader}>
+              <TouchableOpacity
+                onPress={() => changeMonth(-1)}
+                disabled={
+                  pickerField === "contratacion" 
+                    ? calendarYear === currentYear - 15 && calendarMonth === 0
+                    : calendarYear === currentYear - 80 && calendarMonth === 0
+                }
+              >
+                <MaterialIcons 
+                  name="chevron-left" 
+                  size={24} 
+                  color={
+                    pickerField === "contratacion" 
+                      ? calendarYear === currentYear - 15 && calendarMonth === 0 ? "#ccc" : "#333"
+                      : calendarYear === currentYear - 80 && calendarMonth === 0 ? "#ccc" : "#333"
+                  } 
+                />
+              </TouchableOpacity>
+              
+              <View style={styles.monthYearSelector}>
+                <Text style={styles.monthYearText}>
+                  {months[calendarMonth]} de {calendarYear}
+                </Text>
+              </View>
+              
+              <TouchableOpacity
+                onPress={() => changeMonth(1)}
+                disabled={calendarYear === currentYear && calendarMonth === new Date().getMonth()}
+              >
+                <MaterialIcons 
+                  name="chevron-right" 
+                  size={24} 
+                  color={
+                    calendarYear === currentYear && calendarMonth === new Date().getMonth() 
+                      ? "#ccc" 
+                      : "#333"
+                  } 
+                />
+              </TouchableOpacity>
+            </View>
+            
+            {/* Selector de años con flechas */}
+            <View style={styles.yearSelectorContainer}>
+              <TouchableOpacity 
+                onPress={() => changeYear(-10)}
+                disabled={
+                  pickerField === "contratacion" 
+                    ? calendarYear - 10 < currentYear - 15
+                    : calendarYear - 10 < currentYear - 80
+                }
+                style={styles.yearArrowButton}
+              >
+                <MaterialIcons 
+                  name="keyboard-double-arrow-left" 
+                  size={20} 
+                  color={
+                    pickerField === "contratacion" 
+                      ? calendarYear - 10 < currentYear - 15 ? "#ccc" : "#333"
+                      : calendarYear - 10 < currentYear - 80 ? "#ccc" : "#333"
+                  } 
+                />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                onPress={() => changeYear(-1)}
+                disabled={
+                  pickerField === "contratacion" 
+                    ? calendarYear - 1 < currentYear - 15
+                    : calendarYear - 1 < currentYear - 80
+                }
+                style={styles.yearArrowButton}
+              >
+                <MaterialIcons 
+                  name="chevron-left" 
+                  size={20} 
+                  color={
+                    pickerField === "contratacion" 
+                      ? calendarYear - 1 < currentYear - 15 ? "#ccc" : "#333"
+                      : calendarYear - 1 < currentYear - 80 ? "#ccc" : "#333"
+                  } 
+                />
+              </TouchableOpacity>
+              
+              <View style={styles.yearDisplay}>
+                <Text style={styles.yearText}>{calendarYear}</Text>
+              </View>
+              
+              <TouchableOpacity 
+                onPress={() => changeYear(1)}
+                disabled={calendarYear + 1 > currentYear}
+                style={styles.yearArrowButton}
+              >
+                <MaterialIcons 
+                  name="chevron-right" 
+                  size={20} 
+                  color={calendarYear + 1 > currentYear ? "#ccc" : "#333"} 
+                />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                onPress={() => changeYear(10)}
+                disabled={calendarYear + 10 > currentYear}
+                style={styles.yearArrowButton}
+              >
+                <MaterialIcons 
+                  name="keyboard-double-arrow-right" 
+                  size={20} 
+                  color={calendarYear + 10 > currentYear ? "#ccc" : "#333"} 
+                />
+              </TouchableOpacity>
+            </View>
+            
+            {/* calendario */}
+            <View style={styles.calendarContainer}>
+              <Calendar
+                key={`${calendarYear}-${calendarMonth}`}
+                current={`${calendarYear}-${String(calendarMonth + 1).padStart(2, "0")}-01`}
+                minDate={pickerField === "contratacion" ? `${currentYear - 15}-01-01` : `${currentYear - 80}-01-01`}
+                maxDate={new Date().toISOString().split("T")[0]}
+                onDayPress={handleDayPress}
+                monthFormat={"MMMM yyyy"}
+                hideArrows={true}
+                hideExtraDays={true}
+                disableMonthChange={true}
+                markedDates={{
+                  ...getDisabledDates(),
+                  [formData[pickerField === "nacimiento" ? "fechaNacimiento" : "fechaContratacion"] 
+                    ? formatDateString(formData[pickerField === "nacimiento" ? "fechaNacimiento" : "fechaContratacion"]) 
+                    : ""]: {
+                    selected: true,
+                    selectedColor: "#424242",
+                    selectedTextColor: "#fff"
+                  },
+                  [new Date().toISOString().split("T")[0]]: {
+                    marked: true,
+                    dotColor: "#424242"
+                  }
+                }}
+                theme={{
+                  calendarBackground: "transparent",
+                  textSectionTitleColor: "#666",
+                  dayTextColor: "#333",
+                  todayTextColor: "#424242",
+                  selectedDayTextColor: "#fff",
+                  selectedDayBackgroundColor: "#424242",
+                  arrowColor: "#424242",
+                  monthTextColor: "#333",
+                  textDayFontWeight: "400",
+                  textMonthFontWeight: "bold",
+                  textDayHeaderFontWeight: "500",
+                  textDayFontSize: 12,
+                  textMonthFontSize: 14,
+                  textDayHeaderFontSize: 12,
+                  "stylesheet.calendar.header": {
+                    week: {
+                      marginTop: 5,
+                      flexDirection: "row",
+                      justifyContent: "space-between"
+                    }
+                  },
+                  disabledDayTextColor: "#d9d9d9"
+                }}
+                style={styles.calendar}
+                disableAllTouchEventsForDisabledDays={true}
+              />
+            </View>
+            
+            <View style={styles.datePickerActions}>
+              <TouchableOpacity
+                style={styles.datePickerButton}
+                onPress={() => {
+                  const today = new Date();
+                  handleChange(
+                    pickerField === "nacimiento" ? "fechaNacimiento" : "fechaContratacion",
+                    today
+                  );
+                  setCalendarMonth(today.getMonth());
+                  setCalendarYear(today.getFullYear());
+                  setShowDatePicker(false);
+                }}
+              >
+                <Text style={styles.datePickerButtonText}>Hoy</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setShowDatePicker(false)}
+              >
+                <Text style={styles.closeButtonText}>Cerrar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
     </Modal>
   );
 };
 
+/* ─── estilos ─── */
 const styles = StyleSheet.create({
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  modalContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   modalContent: {
-    width: '90%',
+    width: "90%",
     maxWidth: 500,
-    maxHeight: '90%',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    maxHeight: "92%",
+    backgroundColor: "rgba(255,255,255,0.9)",
     borderRadius: 15,
-    overflow: 'hidden',
     borderWidth: 3,
-    borderColor: 'black',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 10,
+    borderColor: "black",
+    overflow: "hidden",
   },
-  scrollContent: {
-    padding: 20,
-  },
-  header: {
-    marginBottom: 15,
-    alignItems: 'flex-start',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  subtitle: {
-    fontSize: 13,
-    color: '#666',
-    marginTop: 5,
-  },
-  formGroup: {
-    marginBottom: 15,
-  },
-  doubleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  label: {
-    fontSize: 14,
-    color: '#444',
-    marginBottom: 8,
-    fontWeight: '500',
-  },
-  required: {
-    color: 'red',
-  },
-  pickerContainer: {
-    borderWidth: 2,
-    borderColor: '#424242',
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-  },
-  picker: {
-    height: 45,
-    width: '100%',
-  },
+  scrollContent: { padding: 20 },
+  title: { fontSize: 20, fontWeight: "bold", marginBottom: 15, color: "#333" },
+  formGroup: { marginBottom: 15 },
+  label: { fontSize: 14, fontWeight: "500", color: "#444", marginBottom: 8 },
+  required: { color: "red" },
+  doubleRow: { flexDirection: "row", justifyContent: "space-between" },
   input: {
     borderWidth: 2,
-    borderColor: '#424242',
+    borderColor: "#424242",
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    fontSize: 15,
     height: 45,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    backgroundColor: "rgba(255,255,255,0.7)",
   },
+  errorBorder: { borderColor: "#d32f2f" },
+  errorText: { color: "#d32f2f", fontSize: 12, marginTop: 4 },
+
+  pickerContainer: {
+    borderWidth: 2,
+    borderColor: "#424242",
+    borderRadius: 8,
+    overflow: "hidden",
+    backgroundColor: "rgba(255,255,255,0.7)",
+  },
+  picker: { height: 45, width: "100%" },
+
   dateInput: {
     borderWidth: 2,
-    borderColor: '#424242',
+    borderColor: "#424242",
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     height: 45,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.7)",
   },
-  dateText: {
-    fontSize: 15,
-    color: '#999',
-  },
-  dateTextSelected: {
-    color: '#333',
-  },
-  passwordContainer: {
-    position: 'relative',
-  },
+  dateText: { color: "#999" },
+  dateTextSelected: { color: "#333" },
+
+  passwordContainer: { position: "relative" },
   passwordInput: {
+    ...Platform.select({ ios: { paddingVertical: 12 }, default: {} }),
     borderWidth: 2,
-    borderColor: '#424242',
+    borderColor: "#424242",
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    fontSize: 15,
     height: 45,
+    backgroundColor: "rgba(255,255,255,0.7)",
     paddingRight: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
   },
-  toggleButton: {
-    position: 'absolute',
-    right: 10,
-    top: 12,
-  },
+  toggleButton: { position: "absolute", right: 10, top: 10 },
+
   avatarSelector: {
     borderWidth: 2,
-    borderColor: '#424242',
+    borderColor: "#424242",
     borderRadius: 8,
     height: 100,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
+    backgroundColor: "rgba(255,255,255,0.7)",
   },
-  avatarPlaceholder: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  avatarText: {
-    marginTop: 5,
-    color: '#666',
-    fontSize: 13,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 20,
-  },
+  avatarPlaceholder: { alignItems: "center", justifyContent: "center" },
+  avatarImage: { width: "100%", height: "100%" },
+  avatarText: { marginTop: 5, color: "#666" },
+
+  buttonRow: { flexDirection: "row", marginTop: 20 },
   button: {
     flex: 1,
     padding: 12,
     borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
+  createButton: { backgroundColor: "#424242", marginRight: 10 },
   cancelButton: {
-    backgroundColor: 'white',
+    backgroundColor: "#fff",
     borderWidth: 1,
-    borderColor: '#929292',
+    borderColor: "#929292",
     marginLeft: 10,
   },
-  createButton: {
-    backgroundColor: '#424242',
-    marginRight: 10,
-  },
-  buttonText: {
-    fontWeight: '500',
-    fontSize: 15,
-    color: 'white',
-  },
-  cancelButtonText: {
-    fontWeight: '500',
-    fontSize: 15,
-    color: 'black',
-  },
-  customDatePickerContainer: {
-    position: 'absolute',
+  buttonText: { color: "#fff", fontWeight: "500" },
+  cancelButtonText: { color: "#000", fontWeight: "500" },
+
+  datePickerOverlay: {
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
     zIndex: 1000,
   },
-  customDatePicker: {
+  datePickerCard: {
     width: width * 0.85,
     maxWidth: 350,
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 10,
     padding: 12,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
-    maxHeight: '80%',
+    maxHeight: "80%",
   },
   datePickerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 10,
   },
   monthYearSelector: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
   monthYearText: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: "bold",
+    color: "#333",
   },
   yearSelectorContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 10,
-  },
-  yearScrollContent: {
     paddingHorizontal: 10,
   },
-  yearButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    marginHorizontal: 4,
-    borderRadius: 15,
+  yearArrowButton: {
+    padding: 8,
   },
-  selectedYearButton: {
-    backgroundColor: '#424242',
+  yearDisplay: {
+    minWidth: 80,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 10,
   },
-  yearButtonText: {
-    color: '#666',
-  },
-  selectedYearButtonText: {
-    color: 'white',
+  yearText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#424242",
   },
   calendarContainer: {
     height: 250,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   calendar: {
     marginBottom: 10,
   },
   datePickerActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   datePickerButton: {
     padding: 10,
     borderRadius: 5,
   },
   datePickerButtonText: {
-    color: '#424242',
-    fontWeight: 'bold',
+    color: "#424242",
+    fontWeight: "bold",
   },
   closeButton: {
     padding: 10,
     borderRadius: 5,
-    backgroundColor: '#424242',
+    backgroundColor: "#424242",
   },
   closeButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
+    color: "white",
+    fontWeight: "bold",
   },
 });
 

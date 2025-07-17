@@ -1,9 +1,24 @@
-import React, { useState } from 'react';
-import { View, Text, Modal, TextInput, TouchableOpacity, StyleSheet, ScrollView, Image, Alert, Dimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { 
+  View, 
+  Text, 
+  Modal, 
+  TextInput, 
+  TouchableOpacity, 
+  StyleSheet, 
+  ScrollView, 
+  Image, 
+  Alert, 
+  Dimensions, 
+  Keyboard,
+  Platform,
+  ActivityIndicator // 👈 ¡Añade esto!
+} from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { BlurView } from 'expo-blur';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
+import axios from 'axios';
 
 // Configuración de localización en español
 LocaleConfig.locales['es'] = {
@@ -25,7 +40,11 @@ LocaleConfig.defaultLocale = 'es';
 
 const { width } = Dimensions.get('window');
 
-const CrearCliente = ({ visible, onClose, onCreate }) => {
+const BASE_URL = Platform.OS === 'android'
+  ? 'http://10.0.2.2:8080'
+  : 'http://localhost:8080';
+
+const CrearCliente = ({ visible, onClose }) => {
   const [formData, setFormData] = useState({
     nombre: '',
     telefono: '',
@@ -36,20 +55,31 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
     avatar: null
   });
   
+  const [errors, setErrors] = useState({
+    nombre: '',
+    telefono: '',
+    fechaNacimiento: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
+  
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
   const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
+  const [loading, setLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const months = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
   ];
 
-  // Años desde el actual hasta 80 años atrás
+  // Años desde el actual hasta 120 años atrás
   const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 81 }, (_, i) => currentYear - i);
+  const years = Array.from({ length: 121 }, (_, i) => currentYear - i);
 
   const resetForm = () => {
     setFormData({
@@ -61,9 +91,85 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
       confirmPassword: '',
       avatar: null
     });
-    // Resetear también el calendario a la fecha actual
+    setErrors({
+      nombre: '',
+      telefono: '',
+      fechaNacimiento: '',
+      email: '',
+      password: '',
+      confirmPassword: ''
+    });
     setCalendarMonth(new Date().getMonth());
     setCalendarYear(currentYear);
+  };
+
+  const validateField = (name, value) => {
+    let error = '';
+    
+    switch (name) {
+      case 'nombre':
+        if (!value.trim()) {
+          error = 'El nombre es requerido';
+        } else if (value.length < 3) {
+          error = 'El nombre debe tener al menos 3 caracteres';
+        }
+        break;
+      case 'telefono':
+        if (!value.trim()) {
+          error = 'El teléfono es requerido';
+        } else if (!/^\d{7,15}$/.test(value)) {
+          error = 'Teléfono inválido (solo números, 7-15 dígitos)';
+        }
+        break;
+      case 'fechaNacimiento':
+        if (!value) {
+          error = 'La fecha de nacimiento es requerida';
+        } else {
+          const birthDate = new Date(value);
+          const today = new Date();
+          let age = today.getFullYear() - birthDate.getFullYear();
+          const monthDiff = today.getMonth() - birthDate.getMonth();
+          
+          if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+          }
+          
+          if (age > 120) {
+            error = 'Edad inválida';
+          }
+        }
+        break;
+      case 'email':
+        if (!value.trim()) {
+          error = 'El email es requerido';
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+          error = 'Email inválido';
+        }
+        break;
+      case 'password':
+        if (!value.trim()) {
+          error = 'La contraseña es requerida';
+        } else if (value.length < 8) {
+          error = 'La contraseña debe tener al menos 8 caracteres';
+        } else if (!/[A-Z]/.test(value)) {
+          error = 'Debe contener al menos una mayúscula';
+        } else if (!/[0-9]/.test(value)) {
+          error = 'Debe contener al menos un número';
+        }
+        break;
+      case 'confirmPassword':
+        if (!value.trim()) {
+          error = 'Confirma tu contraseña';
+        } else if (value !== formData.password) {
+          error = 'Las contraseñas no coinciden';
+        }
+        break;
+      default:
+        break;
+    }
+    
+    setErrors(prev => ({ ...prev, [name]: error }));
+    return !error;
   };
 
   const handleChange = (name, value) => {
@@ -71,11 +177,21 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
       ...formData,
       [name]: value
     });
+    
+    // Validación en tiempo real solo si ya hubo un error
+    if (errors[name]) {
+      validateField(name, value);
+    }
+  };
+
+  const handleBlur = (name) => {
+    validateField(name, formData[name]);
   };
 
   const handleDayPress = (day) => {
     const selectedDate = new Date(day.year, day.month - 1, day.day);
     handleChange('fechaNacimiento', selectedDate);
+    validateField('fechaNacimiento', selectedDate);
     setShowDatePicker(false);
   };
 
@@ -91,19 +207,20 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
       newYear--;
     }
     
-    // Verificar que el nuevo año esté dentro del rango permitido
-    if (newYear <= currentYear && newYear >= (currentYear - 80)) {
+    if (newYear <= currentYear && newYear >= (currentYear - 120)) {
       setCalendarMonth(newMonth);
       setCalendarYear(newYear);
     }
   };
 
-  const changeYear = (year) => {
-    // Si el año seleccionado es el año actual, asegurarse de que el mes no sea futuro
-    if (year === currentYear && calendarMonth > new Date().getMonth()) {
-      setCalendarMonth(new Date().getMonth());
+  const changeYear = (increment) => {
+    const newYear = calendarYear + increment;
+    if (newYear <= currentYear && newYear >= (currentYear - 120)) {
+      if (newYear === currentYear && calendarMonth > new Date().getMonth()) {
+        setCalendarMonth(new Date().getMonth());
+      }
+      setCalendarYear(newYear);
     }
-    setCalendarYear(year);
   };
 
   const pickImage = async () => {
@@ -121,8 +238,8 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
         quality: 0.5,
       });
 
-      if (!result.cancelled) {
-        handleChange('avatar', result.uri);
+      if (!result.canceled) {
+        handleChange('avatar', result.assets[0].uri);
       }
     } catch (error) {
       console.error('Error al seleccionar imagen:', error);
@@ -130,17 +247,51 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
     }
   };
 
-  const handleSubmit = () => {
-    if (formData.nombre && formData.telefono && formData.fechaNacimiento && formData.email && formData.password && formData.confirmPassword) {
-      if (formData.password !== formData.confirmPassword) {
-        Alert.alert('Error', 'Las contraseñas no coinciden');
-        return;
+  const validateForm = () => {
+    let isValid = true;
+    const fieldsToValidate = ['nombre', 'telefono', 'fechaNacimiento', 'email', 'password', 'confirmPassword'];
+    
+    fieldsToValidate.forEach(field => {
+      const valid = validateField(field, formData[field]);
+      if (!valid) isValid = false;
+    });
+    
+    return isValid;
+  };
+
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
+
+    setLoading(true);
+    try {
+      const payload = {
+        nombre: formData.nombre,
+        telefono: formData.telefono,
+        fecha_nacimiento: formatDateString(formData.fechaNacimiento),
+        email: formData.email,
+        password: formData.password,
+        rolID: 3 // ID del rol Cliente
+      };
+
+      const response = await axios.post(`${BASE_URL}/auth/signup`, payload);
+      
+      if (response.data.success) {
+        setShowSuccess(true);
+        resetForm();
+      } else {
+        throw new Error(response.data.mensaje || 'Error al crear el cliente');
       }
-      onCreate(formData);
-      onClose();
-      resetForm();
-    } else {
-      Alert.alert('Campos requeridos', 'Por favor complete todos los campos obligatorios');
+    } catch (error) {
+      console.error('Error al crear cliente:', error);
+      Alert.alert('Error', error.message || 'No se pudo crear el cliente');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.nativeEvent.key === 'Enter') {
+      handleSubmit();
     }
   };
 
@@ -158,15 +309,13 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    // Deshabilitar fechas futuras
     const startDate = new Date(calendarYear, calendarMonth, 1);
     const endDate = new Date(calendarYear, calendarMonth + 1, 0);
     const tempDate = new Date(startDate);
     
     while (tempDate <= endDate) {
       if (tempDate > today || 
-          (calendarYear === currentYear && calendarMonth > today.getMonth()) ||
-          tempDate.getFullYear() < (currentYear - 80)) {
+          (calendarYear === currentYear && calendarMonth > today.getMonth())) {
         disabledDates[`${tempDate.getFullYear()}-${(tempDate.getMonth() + 1).toString().padStart(2, '0')}-${tempDate.getDate().toString().padStart(2, '0')}`] = { 
           disabled: true, 
           disableTouchEvent: true 
@@ -179,6 +328,7 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
   };
 
   const formatDateString = (date) => {
+    if (!date) return null;
     const year = date.getFullYear();
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const day = date.getDate().toString().padStart(2, '0');
@@ -215,31 +365,39 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
             <View style={styles.formGroup}>
               <Text style={styles.label}>Nombre <Text style={styles.required}>*</Text></Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, errors.nombre && styles.inputError]}
                 placeholder="Ej: Carlos Gómez"
                 placeholderTextColor="#929292"
                 value={formData.nombre}
                 onChangeText={(text) => handleChange('nombre', text)}
+                onBlur={() => handleBlur('nombre')}
+                onSubmitEditing={handleKeyPress}
+                returnKeyType="next"
               />
+              {errors.nombre ? <Text style={styles.errorText}>{errors.nombre}</Text> : null}
             </View>
             
             <View style={styles.doubleRow}>
               <View style={[styles.formGroup, {flex: 1, marginRight: 10}]}>
                 <Text style={styles.label}>Teléfono <Text style={styles.required}>*</Text></Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, errors.telefono && styles.inputError]}
                   placeholder="3001234567"
                   placeholderTextColor="#929292"
                   keyboardType="phone-pad"
                   value={formData.telefono}
                   onChangeText={(text) => handleChange('telefono', text)}
+                  onBlur={() => handleBlur('telefono')}
+                  onSubmitEditing={handleKeyPress}
+                  returnKeyType="next"
                 />
+                {errors.telefono ? <Text style={styles.errorText}>{errors.telefono}</Text> : null}
               </View>
               
               <View style={[styles.formGroup, {flex: 1}]}>
                 <Text style={styles.label}>Fecha Nacimiento<Text style={styles.required}>*</Text></Text>
                 <TouchableOpacity 
-                  style={styles.dateInput}
+                  style={[styles.dateInput, errors.fechaNacimiento && styles.inputError]}
                   onPress={() => setShowDatePicker(true)}
                 >
                   <Text style={[
@@ -250,6 +408,7 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
                   </Text>
                   <MaterialIcons name="calendar-today" size={20} color="#666" />
                 </TouchableOpacity>
+                {errors.fechaNacimiento ? <Text style={styles.errorText}>{errors.fechaNacimiento}</Text> : null}
               </View>
             </View>
             
@@ -259,13 +418,13 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
                   <View style={styles.datePickerHeader}>
                     <TouchableOpacity 
                       onPress={() => changeMonth(-1)}
-                      disabled={calendarYear === (currentYear - 80) && calendarMonth === 0}
+                      disabled={calendarYear === (currentYear - 120) && calendarMonth === 0}
                     >
                       <MaterialIcons 
                         name="chevron-left" 
                         size={24} 
                         color={
-                          calendarYear === (currentYear - 80) && calendarMonth === 0
+                          calendarYear === (currentYear - 120) && calendarMonth === 0
                             ? '#ccc' 
                             : '#333'
                         } 
@@ -295,36 +454,80 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
                   </View>
                   
                   <View style={styles.yearSelectorContainer}>
-                    <ScrollView 
-                      horizontal 
-                      showsHorizontalScrollIndicator={false}
-                      contentContainerStyle={styles.yearScrollContent}
+                    <TouchableOpacity 
+                      onPress={() => changeYear(-10)}
+                      disabled={calendarYear - 10 < (currentYear - 120)}
+                      style={styles.yearArrowButton}
                     >
-                      {years.map(year => (
-                        <TouchableOpacity 
-                          key={year}
-                          style={[
-                            styles.yearButton,
-                            calendarYear === year && styles.selectedYearButton
-                          ]}
-                          onPress={() => changeYear(year)}
-                        >
-                          <Text style={[
-                            styles.yearButtonText,
-                            calendarYear === year && styles.selectedYearButtonText
-                          ]}>
-                            {year}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
+                      <MaterialIcons 
+                        name="keyboard-double-arrow-left" 
+                        size={20} 
+                        color={
+                          calendarYear - 10 < (currentYear - 120)
+                            ? '#ccc' 
+                            : '#333'
+                        } 
+                      />
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      onPress={() => changeYear(-1)}
+                      disabled={calendarYear - 1 < (currentYear - 120)}
+                      style={styles.yearArrowButton}
+                    >
+                      <MaterialIcons 
+                        name="chevron-left" 
+                        size={20} 
+                        color={
+                          calendarYear - 1 < (currentYear - 120)
+                            ? '#ccc' 
+                            : '#333'
+                        } 
+                      />
+                    </TouchableOpacity>
+                    
+                    <View style={styles.yearDisplay}>
+                      <Text style={styles.yearText}>{calendarYear}</Text>
+                    </View>
+                    
+                    <TouchableOpacity 
+                      onPress={() => changeYear(1)}
+                      disabled={calendarYear + 1 > currentYear}
+                      style={styles.yearArrowButton}
+                    >
+                      <MaterialIcons 
+                        name="chevron-right" 
+                        size={20} 
+                        color={
+                          calendarYear + 1 > currentYear
+                            ? '#ccc' 
+                            : '#333'
+                        } 
+                      />
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      onPress={() => changeYear(10)}
+                      disabled={calendarYear + 10 > currentYear}
+                      style={styles.yearArrowButton}
+                    >
+                      <MaterialIcons 
+                        name="keyboard-double-arrow-right" 
+                        size={20} 
+                        color={
+                          calendarYear + 10 > currentYear
+                            ? '#ccc' 
+                            : '#333'
+                        } 
+                      />
+                    </TouchableOpacity>
                   </View>
                   
                   <View style={styles.calendarContainer}>
                     <Calendar
                       key={`${calendarYear}-${calendarMonth}`}
                       current={`${calendarYear}-${(calendarMonth + 1).toString().padStart(2, '0')}-01`}
-                      minDate={`${currentYear - 80}-01-01`}
+                      minDate={`${currentYear - 120}-01-01`}
                       maxDate={new Date().toISOString().split('T')[0]}
                       onDayPress={handleDayPress}
                       monthFormat={'MMMM yyyy'}
@@ -400,14 +603,18 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
             <View style={styles.formGroup}>
               <Text style={styles.label}>Email <Text style={styles.required}>*</Text></Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, errors.email && styles.inputError]}
                 placeholder="cliente@email.com"
                 placeholderTextColor="#929292"
                 keyboardType="email-address"
                 autoCapitalize="none"
                 value={formData.email}
                 onChangeText={(text) => handleChange('email', text)}
+                onBlur={() => handleBlur('email')}
+                onSubmitEditing={handleKeyPress}
+                returnKeyType="next"
               />
+              {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
             </View>
             
             <View style={styles.doubleRow}>
@@ -415,12 +622,15 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
                 <Text style={styles.label}>Contraseña <Text style={styles.required}>*</Text></Text>
                 <View style={styles.passwordContainer}>
                   <TextInput
-                    style={styles.passwordInput}
+                    style={[styles.passwordInput, errors.password && styles.inputError]}
                     placeholder="••••••••"
                     placeholderTextColor="#929292"
                     secureTextEntry={!showPassword}
                     value={formData.password}
                     onChangeText={(text) => handleChange('password', text)}
+                    onBlur={() => handleBlur('password')}
+                    onSubmitEditing={handleKeyPress}
+                    returnKeyType="next"
                   />
                   <TouchableOpacity 
                     style={styles.toggleButton}
@@ -433,18 +643,22 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
                     />
                   </TouchableOpacity>
                 </View>
+                {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
               </View>
               
               <View style={[styles.formGroup, {flex: 1}]}>
                 <Text style={styles.label}>Confirmar <Text style={styles.required}>*</Text></Text>
                 <View style={styles.passwordContainer}>
                   <TextInput
-                    style={styles.passwordInput}
+                    style={[styles.passwordInput, errors.confirmPassword && styles.inputError]}
                     placeholder="••••••••"
                     placeholderTextColor="#929292"
                     secureTextEntry={!showConfirmPassword}
                     value={formData.confirmPassword}
                     onChangeText={(text) => handleChange('confirmPassword', text)}
+                    onBlur={() => handleBlur('confirmPassword')}
+                    onSubmitEditing={handleKeyPress}
+                    returnKeyType="done"
                   />
                   <TouchableOpacity 
                     style={styles.toggleButton}
@@ -457,6 +671,7 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
                     />
                   </TouchableOpacity>
                 </View>
+                {errors.confirmPassword ? <Text style={styles.errorText}>{errors.confirmPassword}</Text> : null}
               </View>
             </View>
             
@@ -478,8 +693,13 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
               <TouchableOpacity 
                 style={[styles.button, styles.createButton]}
                 onPress={handleSubmit}
+                disabled={loading}
               >
-                <Text style={styles.buttonText}>Aceptar</Text>
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.buttonText}>Aceptar</Text>
+                )}
               </TouchableOpacity>
               
               <TouchableOpacity 
@@ -488,6 +708,7 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
                   onClose();
                   resetForm();
                 }}
+                disabled={loading}
               >
                 <Text style={styles.cancelButtonText}>Cancelar</Text>
               </TouchableOpacity>
@@ -495,6 +716,38 @@ const CrearCliente = ({ visible, onClose, onCreate }) => {
           </ScrollView>
         </View>
       </View>
+
+      {/* Modal de éxito */}
+      <Modal
+        visible={showSuccess}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowSuccess(false)}
+      >
+        <View style={styles.successModalOverlay}>
+          <View style={styles.successModalContent}>
+            <View style={styles.successModalIcon}>
+              <MaterialIcons name="check-circle" size={60} color="#4CAF50" />
+            </View>
+            <Text style={styles.successModalTitle}>¡Cliente creado exitosamente!</Text>
+            <Text style={styles.successModalText}>
+              Se ha enviado un correo de verificación a {formData.email}.
+            </Text>
+            <Text style={styles.successModalText}>
+              El cliente debe verificar su cuenta antes de poder iniciar sesión.
+            </Text>
+            <TouchableOpacity
+              style={styles.successModalButton}
+              onPress={() => {
+                setShowSuccess(false);
+                onClose();
+              }}
+            >
+              <Text style={styles.successModalButtonText}>Entendido</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </Modal>
   );
 };
@@ -565,6 +818,14 @@ const styles = StyleSheet.create({
     fontSize: 15,
     height: 45,
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
+  },
+  inputError: {
+    borderColor: 'red',
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 12,
+    marginTop: 4,
   },
   dateInput: {
     borderWidth: 2,
@@ -700,25 +961,25 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   yearSelectorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 10,
-  },
-  yearScrollContent: {
     paddingHorizontal: 10,
   },
-  yearButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    marginHorizontal: 4,
-    borderRadius: 15,
+  yearArrowButton: {
+    padding: 8,
   },
-  selectedYearButton: {
-    backgroundColor: '#424242',
+  yearDisplay: {
+    minWidth: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
   },
-  yearButtonText: {
-    color: '#666',
-  },
-  selectedYearButtonText: {
-    color: 'white',
+  yearText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#424242',
   },
   calendarContainer: {
     height: 250,
@@ -747,6 +1008,60 @@ const styles = StyleSheet.create({
   closeButtonText: {
     color: 'white',
     fontWeight: 'bold',
+  },
+  successModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  successModalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    padding: 25,
+    width: '85%',
+    maxWidth: 350,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  successModalIcon: {
+    marginBottom: 20,
+  },
+  successModalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    color: '#424242',
+    textAlign: 'center',
+  },
+  successModalText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 10,
+    lineHeight: 22,
+  },
+  successModalButton: {
+    backgroundColor: '#424242',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    width: '100%',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  successModalButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
 

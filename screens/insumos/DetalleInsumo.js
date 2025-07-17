@@ -2,32 +2,57 @@ import React from 'react';
 import { View, Text, Modal, TouchableOpacity, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
 
-const DetalleInsumo = ({ visible, onClose, insumo }) => {
-  // Función para formatear la fecha
+/* ---------- Utilidad para obtener nombre de categoría ---------- */
+const getCategoriaNombre = (item = {}, categorias = []) => {
+  if (!item) return 'Sin categoría';
+
+  // 1) Viene anidada desde backend
+  if (item.categorias_insumo?.nombre) return item.categorias_insumo.nombre;
+
+  // 2) Otras posibles llaves
+  if (item.categoria?.nombre) return item.categoria.nombre;
+  if (item.categorium?.nombre) return item.categorium.nombre;
+  if (item.categoriaNombre) return item.categoriaNombre;
+
+  // 3) Buscar por ID
+  const possibleId =
+    item.categoriaID ??
+    item.categoriaId ??
+    item.idCategoria ??
+    item.categoria_id ??
+    null;
+
+  const encontrada = categorias.find((c) => c.id === possibleId);
+  return encontrada ? encontrada.nombre : 'Sin categoría';
+};
+
+const DetalleInsumo = ({
+  visible,
+  onClose,
+  insumo,
+  categoriasExistentes = [],
+}) => {
   const formatDate = (dateString) => {
     if (!dateString) return 'No disponible';
     const options = { day: 'numeric', month: 'long', year: 'numeric' };
     return new Date(dateString).toLocaleDateString('es-ES', options);
   };
 
+  const categoria = getCategoriaNombre(insumo, categoriasExistentes);
+
   return (
     <Modal
       visible={visible}
       animationType="fade"
-      transparent={true}
+      transparent
       onRequestClose={onClose}
     >
-      {/* Fondo con BlurView de Expo */}
-      <BlurView
-        style={styles.absolute}
-        intensity={20}
-        tint="dark"
-      />
-      
+      <BlurView style={styles.absolute} intensity={20} tint="dark" />
+
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
           <Text style={styles.modalTitle}>Detalles del Insumo</Text>
-          
+
           <View style={styles.detailContainer}>
             <View style={styles.detailRow}>
               <Text style={styles.label}>Nombre</Text>
@@ -45,14 +70,14 @@ const DetalleInsumo = ({ visible, onClose, insumo }) => {
 
             <View style={styles.detailRow}>
               <Text style={styles.label}>Cantidad</Text>
-              <Text style={styles.value}>{insumo?.cantidad || '0'}</Text>
+              <Text style={styles.value}>{insumo?.cantidad ?? '0'}</Text>
             </View>
 
             <View style={styles.divider} />
 
             <View style={styles.detailRow}>
               <Text style={styles.label}>Categoría</Text>
-              <Text style={styles.value}>{insumo?.categoria || 'No disponible'}</Text>
+              <Text style={styles.value}>{categoria}</Text>
             </View>
 
             <View style={styles.divider} />
@@ -66,21 +91,18 @@ const DetalleInsumo = ({ visible, onClose, insumo }) => {
 
             <View style={styles.detailRow}>
               <Text style={styles.label}>Fecha De Creación</Text>
-              <Text style={styles.value}>{formatDate(insumo?.fechaCreacion)}</Text>
+              <Text style={styles.value}>{formatDate(insumo?.createdAt)}</Text>
             </View>
 
             <View style={styles.divider} />
 
             <View style={styles.detailRow}>
               <Text style={styles.label}>Fecha De Actualización</Text>
-              <Text style={styles.value}>{formatDate(insumo?.fechaActualizacion)}</Text>
+              <Text style={styles.value}>{formatDate(insumo?.updatedAt)}</Text>
             </View>
           </View>
 
-          <TouchableOpacity 
-            style={styles.closeButton}
-            onPress={onClose}
-          >
+          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <Text style={styles.closeButtonText}>Cerrar</Text>
           </TouchableOpacity>
         </View>
@@ -100,7 +122,7 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
-    paddingHorizontal: 24
+    paddingHorizontal: 24,
   },
   modalContent: {
     backgroundColor: 'white',
@@ -116,29 +138,29 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 5,
     borderWidth: 1,
-    borderColor: 'black'
+    borderColor: 'black',
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#333',
     marginBottom: 16,
-    textAlign: 'center'
+    textAlign: 'center',
   },
   detailContainer: {
-    paddingHorizontal: 8
+    paddingHorizontal: 8,
   },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8
+    paddingVertical: 8,
   },
   label: {
     fontWeight: '500',
     color: '#666',
     fontSize: 14,
-    flex: 1
+    flex: 1,
   },
   value: {
     fontSize: 14,
@@ -146,12 +168,12 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     flex: 1,
     textAlign: 'right',
-    paddingLeft: 8
+    paddingLeft: 8,
   },
   divider: {
     height: 1,
     backgroundColor: '#f0f0f0',
-    marginVertical: 4
+    marginVertical: 4,
   },
   closeButton: {
     backgroundColor: '#424242',
@@ -160,13 +182,13 @@ const styles = StyleSheet.create({
     marginTop: 16,
     alignItems: 'center',
     width: '30%',
-    alignSelf: 'center'
+    alignSelf: 'center',
   },
   closeButtonText: {
     color: 'white',
     fontWeight: '500',
-    fontSize: 15
-  }
+    fontSize: 15,
+  },
 });
 
 export default DetalleInsumo;

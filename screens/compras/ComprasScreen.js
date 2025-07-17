@@ -1,162 +1,206 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Dimensions } from 'react-native';
-import { MaterialIcons, FontAwesome, Feather, Ionicons, AntDesign } from '@expo/vector-icons';
-import Paginacion from '../../components/Paginacion';
-import Buscador from '../../components/Buscador';
-import DetalleCompra from './DetalleCompra';
-import CrearCompra from './CrearCompra';
-import Footer from '../../components/Footer';
+// screens/compras/ComprasScreen.js
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  FlatList,
+  Dimensions,
+  ActivityIndicator,
+} from "react-native";
+import { FontAwesome, Feather, Ionicons, AntDesign } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
 
-const { width } = Dimensions.get('window');
-const isMobile = width < 768;
+import Paginacion  from "../../components/Paginacion";
+import Buscador    from "../../components/Buscador";
+import DetalleCompra from "./DetalleCompra";
+import CrearCompra   from "./CrearCompra";
+import Footer       from "../../components/Footer";
+import ConfirmarModal from "../../components/ConfirmarModal";
+import InfoModal      from "../../components/InfoModal";
 
+const { width } = Dimensions.get("window");
+const isMobile           = width < 768;
+const comprasPorPagina   = 4;
+
+/* --------------------------------------------------------------- */
 const ComprasScreen = () => {
-  const [compras, setCompras] = useState([]);
-  const [comprasFiltradas, setComprasFiltradas] = useState([]);
-  const [paginaActual, setPaginaActual] = useState(1);
-  const [comprasPorPagina] = useState(4);
-  const [busqueda, setBusqueda] = useState('');
+  const [compras, setCompras]                     = useState([]);
+  const [comprasFiltradas, setComprasFiltradas]   = useState([]);
+  const [paginaActual, setPaginaActual]           = useState(1);
+  const [busqueda, setBusqueda]                   = useState("");
+  const [loading, setLoading]                     = useState(false);
   const [modalDetalleVisible, setModalDetalleVisible] = useState(false);
+  const [compraSeleccionada, setCompraSeleccionada]   = useState(null);
   const [modalCrearVisible, setModalCrearVisible] = useState(false);
-  const [compraSeleccionada, setCompraSeleccionada] = useState(null);
+  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+  const [compraAAnular, setCompraAAnular]         = useState(null);
+  const [infoModal, setInfoModal]                 = useState({
+    visible: false,
+    title: "",
+    message: "",
+    isSuccess: false,
+  });
 
-  useEffect(() => {
-    const datosEjemplo = [
-      {
-        id: 1,
-        fecha: '2023-03-14',
-        metodo: 'Transferencia',
-        proveedor: 'Distribuidora SunTibdo',
-        total: 1250000,
-        estado: 'confirmado'
-      },
-      {
-        id: 2,
-        fecha: '2023-03-09',
-        metodo: 'Efectivo',
-        proveedor: 'Belissa Total SAS',
-        total: 780000,
-        estado: 'confirmado'
-      },
-      {
-        id: 3,
-        fecha: '2023-03-04',
-        metodo: 'Tarjeta crédito',
-        proveedor: 'Importaciones Estética',
-        total: 920000,
-        estado: 'anulado'
-      },
-      {
-        id: 4,
-        fecha: '2023-04-27',
-        metodo: 'Transferencia',
-        proveedor: 'Distribuidora SunTibdo',
-        total: 1560000,
-        estado: 'confirmado'
-      }
-    ];
-    setCompras(datosEjemplo);
-    setComprasFiltradas(datosEjemplo);
+  /* ------------------------ Helpers ----------------------------- */
+  const formatearFecha   = (iso) => { if (!iso) return "—"; const [y, m, d] = iso.split("-"); return `${d}/${m}/${y}`; };
+  const formatearMoneda  = (v)  => `$ ${Number(v).toLocaleString("es-CO")}`;
+  const showInfoModal    = (title, message, isSuccess) => setInfoModal({ visible: true, title, message, isSuccess });
+
+  /* ------------------------ Fetch compras ----------------------- */
+  const fetchCompras = useCallback(async () => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem("token");
+      const { data } = await axios.get("http://localhost:8080/compras/all-with-search", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const parsed = (data.compras || []).map((c) => ({
+        id: c.id,
+        fecha: c.fecha.split("T")[0],
+        metodo: c.metodo_pago,
+        proveedor: c.proveedor?.nombre || "Proveedor N/D",
+        total: Number(c.costo),
+        estado: c.estaAnulado ? "anulado" : "confirmado",
+      }));
+
+      setCompras(parsed);
+      setComprasFiltradas(parsed);
+    } catch (e) {
+      console.error(e);
+      showInfoModal("Error 🚨", "No se pudieron cargar las compras", false);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useFocusEffect(useCallback(() => { fetchCompras(); }, [fetchCompras]));
+
+  /* ------------------- Búsqueda local --------------------------- */
   useEffect(() => {
-    if (busqueda.trim() === '') {
+    if (!busqueda.trim()) {
       setComprasFiltradas(compras);
     } else {
-      const termino = busqueda.toLowerCase();
-      const filtradas = compras.filter(c =>
-        c.proveedor.toLowerCase().includes(termino) ||
-        c.metodo.toLowerCase().includes(termino) ||
-        c.fecha.includes(busqueda)
+      const q = busqueda.toLowerCase();
+      setComprasFiltradas(
+        compras.filter(
+          (c) =>
+            c.proveedor.toLowerCase().includes(q) ||
+            c.metodo.toLowerCase().includes(q)   ||
+            c.fecha.includes(busqueda)
+        )
       );
-      setComprasFiltradas(filtradas);
     }
     setPaginaActual(1);
   }, [busqueda, compras]);
 
-  const indiceInicial = (paginaActual - 1) * comprasPorPagina;
-  const comprasMostrar = isMobile ? comprasFiltradas : comprasFiltradas.slice(indiceInicial, indiceInicial + comprasPorPagina);
-  const totalPaginas = Math.ceil(comprasFiltradas.length / comprasPorPagina);
-
-  const cambiarPagina = (nuevaPagina) => {
-    if (nuevaPagina > 0 && nuevaPagina <= totalPaginas) {
-      setPaginaActual(nuevaPagina);
+  /* ------------------- Abrir DETALLE ---------------------------- */
+  const abrirDetalle = async (compra) => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem("token");
+      const { data } = await axios.get(`http://localhost:8080/compras/${compra.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setCompraSeleccionada(data);
+      setModalDetalleVisible(true);
+    } catch (e) {
+      console.error(e);
+      showInfoModal("Error 🚨", "No se pudo cargar el detalle", false);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const formatearFecha = (fecha) => {
-    const [year, month, day] = fecha.split('-');
-    return `${day}/${month}/${year}`;
+  /* ------------------- Crear nueva compra ---------------------- */
+  const handleCreateCompra = (nuevaCompra) => {
+    /* El onCreate viene desde CrearCompra y ya lanza sus propios modales;
+       aquí sólo refrescamos la lista */
+    fetchCompras();
   };
 
-  const formatearMoneda = (valor) => {
-    return `$ ${valor.toLocaleString('es-CO')}`;
+  /* ------------------- Anular compra --------------------------- */
+  const confirmarAnulacion = async () => {
+    if (!compraAAnular) return;
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem("token");
+      await axios.patch(`http://localhost:8080/compras/${compraAAnular}`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setConfirmModalVisible(false);
+      fetchCompras();
+      showInfoModal("Éxito ✅", "Compra anulada correctamente", true);
+    } catch (e) {
+      console.error(e);
+      showInfoModal("Error 🚨", e.response?.data?.mensaje || "No se pudo anular la compra", false);
+    } finally {
+      setLoading(false);
+      setCompraAAnular(null);
+    }
   };
 
-  const verCompra = (compra) => {
-    setCompraSeleccionada(compra);
-    setModalDetalleVisible(true);
-  };
+  /* ------------------- Paginación ------------------------------ */
+  const indiceInicial   = (paginaActual - 1) * comprasPorPagina;
+  const comprasMostrar  = isMobile
+    ? comprasFiltradas
+    : comprasFiltradas.slice(indiceInicial, indiceInicial + comprasPorPagina);
+  const totalPaginas    = Math.ceil(comprasFiltradas.length / comprasPorPagina);
+  const cambiarPagina   = (p) => { if (p >= 1 && p <= totalPaginas) setPaginaActual(p); };
 
-  const crearCompra = () => {
-    setModalCrearVisible(true);
-  };
-
-  const handleCreateCompra = (newCompra) => {
-    const newId = compras.length > 0 ? Math.max(...compras.map(c => c.id)) + 1 : 1;
-    const nuevaCompra = {
-      id: newId,
-      ...newCompra,
-      estado: 'confirmado'
-    };
-    const nuevasCompras = [...compras, nuevaCompra];
-    setCompras(nuevasCompras);
-    setComprasFiltradas(nuevasCompras);
-    setModalCrearVisible(false);
-  };
-
-  // Renderizado para móvil (tarjetas)
+  /* ------------------- Render item mobile ---------------------- */
   const renderMobileItem = ({ item }) => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <View style={styles.cardHeaderText}>
+        <View>
           <Text style={styles.cardTitle}>{item.proveedor}</Text>
           <Text style={styles.cardSubtitle}>{formatearFecha(item.fecha)}</Text>
         </View>
         <View style={[
-          styles.estadoContainer,
-          item.estado === 'confirmado' ? styles.estadoConfirmado : styles.estadoAnulado
+          styles.badge,
+          item.estado === "confirmado" ? styles.badgeOk : styles.badgeErr,
         ]}>
-          {item.estado === 'confirmado' ? (
+          {item.estado === "confirmado" ? (
             <>
               <AntDesign name="check" size={16} color="#2e7d32" />
-              <Text style={[styles.estadoTexto, styles.textoVerificado]}>Confirmado</Text>
+              <Text style={[styles.badgeTxt, styles.ok]}>Confirmado</Text>
             </>
           ) : (
             <>
               <AntDesign name="close" size={16} color="#d32f2f" />
-              <Text style={[styles.estadoTexto, styles.textoNoVerificado]}>Anulado</Text>
+              <Text style={[styles.badgeTxt, styles.err]}>Anulado</Text>
             </>
           )}
         </View>
       </View>
-     
+
       <View style={styles.cardInfoRow}>
         <Text style={styles.cardLabel}>Método:</Text>
         <Text style={styles.cardValue}>{item.metodo}</Text>
       </View>
-     
       <View style={styles.cardInfoRow}>
         <Text style={styles.cardLabel}>Total:</Text>
-        <Text style={[styles.cardValue, styles.totalText]}>{formatearMoneda(item.total)}</Text>
+        <Text style={[styles.cardValue, styles.totalTxt]}>
+          {formatearMoneda(item.total)}
+        </Text>
       </View>
-     
+
       <View style={styles.cardActions}>
-        <TouchableOpacity onPress={() => verCompra(item)} style={styles.actionButton}>
+        <TouchableOpacity onPress={() => abrirDetalle(item)}>
           <FontAwesome name="eye" size={20} color="#424242" />
         </TouchableOpacity>
-        {item.estado === 'confirmado' && (
-          <TouchableOpacity style={styles.actionButton}>
+        {item.estado === "confirmado" && (
+          <TouchableOpacity
+            style={{ marginLeft: 16 }}
+            onPress={() => {
+              setCompraAAnular(item.id);
+              setConfirmModalVisible(true);
+            }}
+          >
             <Feather name="trash-2" size={20} color="#d32f2f" />
           </TouchableOpacity>
         )}
@@ -164,49 +208,55 @@ const ComprasScreen = () => {
     </View>
   );
 
-  // Renderizado para desktop (tabla)
+  /* ------------------- Render item desktop --------------------- */
   const renderDesktopItem = ({ item }) => (
-    <View style={styles.fila}>
-      <View style={[styles.celda, styles.columnaFecha]}>
-        <Text style={[styles.textoDato, styles.textoNegrita]}>{formatearFecha(item.fecha)}</Text>
+    <View style={styles.row}>
+      <View style={[styles.cell, styles.colFecha]}>
+        <Text style={styles.bold}>{formatearFecha(item.fecha)}</Text>
       </View>
-      <View style={[styles.celda, styles.columnaMetodo]}>
-        <Text style={[styles.textoDato, styles.textoNegrita]}>{item.metodo}</Text>
+      <View style={[styles.cell, styles.colMetodo]}>
+        <Text style={styles.bold}>{item.metodo}</Text>
       </View>
-      <View style={[styles.celda, styles.columnaProveedor]}>
-        <Text style={[styles.textoDato, styles.textoNegrita]}>{item.proveedor}</Text>
+      <View style={[styles.cell, styles.colProveedor]}>
+        <Text style={styles.bold}>{item.proveedor}</Text>
       </View>
-      <View style={[styles.celda, styles.columnaTotal]}>
-        <View style={styles.totalContainer}>
-          <Text style={[styles.textoDato, styles.textoNegrita]}>{formatearMoneda(item.total)}</Text>
+      <View style={[styles.cell, styles.colTotal]}>
+        <View style={styles.totalBox}>
+          <Text style={styles.bold}>{formatearMoneda(item.total)}</Text>
         </View>
       </View>
-      <View style={[styles.celda, styles.columnaEstado]}>
+      <View style={[styles.cell, styles.colEstado]}>
         <View style={[
-          styles.estadoContainer,
-          item.estado === 'confirmado' ? styles.estadoConfirmado : styles.estadoAnulado
+          styles.badge,
+          item.estado === "confirmado" ? styles.badgeOk : styles.badgeErr,
         ]}>
-          {item.estado === 'confirmado' ? (
+          {item.estado === "confirmado" ? (
             <>
               <AntDesign name="check" size={16} color="#2e7d32" />
-              <Text style={[styles.estadoTexto, styles.textoVerificado]}>Confirmado</Text>
+              <Text style={[styles.badgeTxt, styles.ok]}>Confirmado</Text>
             </>
           ) : (
             <>
               <AntDesign name="close" size={16} color="#d32f2f" />
-              <Text style={[styles.estadoTexto, styles.textoNoVerificado]}>Anulado</Text>
+              <Text style={[styles.badgeTxt, styles.err]}>Anulado</Text>
             </>
           )}
         </View>
       </View>
-      <View style={[styles.celda, styles.columnaAcciones]}>
-        <View style={styles.contenedorAcciones}>
-          <TouchableOpacity onPress={() => verCompra(item)} style={styles.botonAccion}>
-            <FontAwesome name="eye" size={20} color="black" />
+      <View style={[styles.cell, styles.colAcciones]}>
+        <View style={styles.accionesFila}>
+          <TouchableOpacity onPress={() => abrirDetalle(item)}>
+            <FontAwesome name="eye" size={20} color="#000" />
           </TouchableOpacity>
-          {item.estado === 'confirmado' && (
-            <TouchableOpacity style={styles.botonAccion}>
-              <Feather name="trash-2" size={20} color="black" />
+          {item.estado === "confirmado" && (
+            <TouchableOpacity
+              style={{ marginLeft: 8 }}
+              onPress={() => {
+                setCompraAAnular(item.id);
+                setConfirmModalVisible(true);
+              }}
+            >
+              <Feather name="trash-2" size={20} color="#000" />
             </TouchableOpacity>
           )}
         </View>
@@ -214,318 +264,148 @@ const ComprasScreen = () => {
     </View>
   );
 
+  /* ------------------- JSX principal --------------------------- */
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.tituloContainer}>
-          <Text style={styles.titulo}>Compras</Text>
-          <View style={styles.contadorContainer}>
-            <Text style={styles.contadorTexto}>{comprasFiltradas.length}</Text>
+    <View style={styles.main}>
+      <View style={styles.content}>
+        {/* Header & Buscar */}
+        <View style={styles.header}>
+          <View style={styles.titleWrap}>
+            <Text style={styles.title}>🛒 Compras</Text>
+            <View style={styles.counter}>
+              <Text style={styles.counterTxt}>{comprasFiltradas.length}</Text>
+            </View>
           </View>
+          <TouchableOpacity style={styles.btnAdd} onPress={() => setModalCrearVisible(true)}>
+            <Ionicons name="add-circle" size={20} color="#fff" />
+            <Text style={styles.btnAddTxt}>Crear</Text>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.botonCrear} onPress={crearCompra}>
-          <Ionicons name="add-circle" size={20} color="white" />
-          <Text style={styles.textoBoton}>Crear</Text>
-        </TouchableOpacity>
-      </View>
 
-      <Buscador
-        placeholder="Buscar compras por proveedor, método o fecha"
-        value={busqueda}
-        onChangeText={(texto) => setBusqueda(texto)}
-      />
-
-      {comprasMostrar.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyText}>No se encontraron compras</Text>
-        </View>
-      ) : isMobile ? (
-        <FlatList
-          data={comprasMostrar}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={renderMobileItem}
-          contentContainerStyle={styles.listContainer}
-          style={styles.mobileList}
+        <Buscador
+          placeholder="🔍 Buscar compras por proveedor, método o fecha"
+          value={busqueda}
+          onChangeText={setBusqueda}
         />
-      ) : (
-        <View style={styles.tabla}>
-          <View style={styles.filaEncabezado}>
-            <View style={[styles.celdaEncabezado, styles.columnaFecha]}><Text style={styles.encabezado}>Fecha</Text></View>
-            <View style={[styles.celdaEncabezado, styles.columnaMetodo]}><Text style={styles.encabezado}>Método</Text></View>
-            <View style={[styles.celdaEncabezado, styles.columnaProveedor]}><Text style={styles.encabezado}>Proveedor</Text></View>
-            <View style={[styles.celdaEncabezado, styles.columnaTotal]}><Text style={styles.encabezado}>Total</Text></View>
-            <View style={[styles.celdaEncabezado, styles.columnaEstado]}><Text style={styles.encabezado}>Estado</Text></View>
-            <View style={[styles.celdaEncabezado, styles.columnaAcciones]}><Text style={styles.encabezado}>Acciones</Text></View>
-          </View>
+
+        {/* Tabla o lista */}
+        {loading ? (
+          <View style={styles.center}><ActivityIndicator size="large" color="#424242" /></View>
+        ) : comprasMostrar.length === 0 ? (
+          <View style={styles.center}><Text style={{ color: "#666" }}>📭 No se encontraron compras</Text></View>
+        ) : isMobile ? (
           <FlatList
             data={comprasMostrar}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={renderDesktopItem}
-            scrollEnabled={false}
+            keyExtractor={(i) => i.id}
+            renderItem={renderMobileItem}
+            contentContainerStyle={{ paddingBottom: 16 }}
           />
-        </View>
-      )}
+        ) : (
+          <>
+            <View style={styles.tableWrap}>
+              <View style={styles.tableHeader}>
+                <View style={[styles.th, styles.colFecha]}><Text style={styles.thTxt}>📅 Fecha</Text></View>
+                <View style={[styles.th, styles.colMetodo]}><Text style={styles.thTxt}>💳 Método</Text></View>
+                <View style={[styles.th, styles.colProveedor]}><Text style={styles.thTxt}>🏢 Proveedor</Text></View>
+                <View style={[styles.th, styles.colTotal]}><Text style={styles.thTxt}>💰 Total</Text></View>
+                <View style={[styles.th, styles.colEstado]}><Text style={styles.thTxt}>🔄 Estado</Text></View>
+                <View style={[styles.th, styles.colAcciones]}><Text style={styles.thTxt}>⚙️ Acciones</Text></View>
+              </View>
 
-      {!isMobile && (
-        <Paginacion
-          paginaActual={paginaActual}
-          totalPaginas={totalPaginas}
-          cambiarPagina={cambiarPagina}
+              <FlatList
+                data={comprasMostrar}
+                keyExtractor={(i) => i.id}
+                renderItem={renderDesktopItem}
+                scrollEnabled={false}
+              />
+            </View>
+
+            {comprasFiltradas.length > comprasPorPagina && (
+              <Paginacion
+                paginaActual={paginaActual}
+                totalPaginas={totalPaginas}
+                cambiarPagina={cambiarPagina}
+              />
+            )}
+          </>
+        )}
+
+        {/* Modales */}
+        <DetalleCompra
+          visible={modalDetalleVisible}
+          onClose={() => setModalDetalleVisible(false)}
+          compra={compraSeleccionada}
         />
-      )}
-
-      <DetalleCompra
-        visible={modalDetalleVisible}
-        onClose={() => setModalDetalleVisible(false)}
-        compra={compraSeleccionada}
-      />
-
-      <CrearCompra
-        visible={modalCrearVisible}
-        onClose={() => setModalCrearVisible(false)}
-        onCreate={handleCreateCompra}
-      />
-     
+        <CrearCompra
+          visible={modalCrearVisible}
+          onClose={() => setModalCrearVisible(false)}
+          onCreate={handleCreateCompra}
+        />
+        <ConfirmarModal
+          visible={confirmModalVisible}
+          title="⚠️ ¿Seguro que deseas anular esta compra?"
+          message="Si anulas esta compra los insumos asociados a esta reducirán sus unidades y no podrás revertir esta acción."
+          confirmLabel="Anular"
+          onConfirm={confirmarAnulacion}
+          onCancel={() => setConfirmModalVisible(false)}
+        />
+        <InfoModal
+          visible={infoModal.visible}
+          title={infoModal.title}
+          message={infoModal.message}
+          isSuccess={infoModal.isSuccess}
+          onClose={() => setInfoModal({ ...infoModal, visible: false })}
+        />
+      </View>
       <Footer />
     </View>
   );
 };
 
+/* ----------------------- Estilos ------------------------------- */
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    padding: 16,
-  },
-  mobileList: {
-    flex: 1,
-    marginBottom: 16,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  tituloContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  titulo: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginRight: 10,
-  },
-  contadorContainer: {
-    backgroundColor: '#D9D9D9',
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  contadorTexto: {
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  botonCrear: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#424242',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: '#424242',
-  },
-  textoBoton: {
-    marginLeft: 8,
-    color: 'white',
-    fontWeight: '500',
-    fontSize: 14,
-  },
-  listContainer: {
-    paddingBottom: 16,
-  },
-  // Estilos para móvil (tarjetas)
-  card: {
-    backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: '#eee',
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  cardHeaderText: {
-    flex: 1,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  cardSubtitle: {
-    fontSize: 14,
-    color: '#666',
-  },
-  cardInfoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  cardLabel: {
-    fontSize: 14,
-    color: '#424242',
-  },
-  cardValue: {
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  totalText: {
-    fontWeight: 'bold',
-    color: '#2e7d32',
-  },
-  cardActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-    paddingTop: 12,
-    marginTop: 8,
-  },
-  actionButton: {
-    marginLeft: 16,
-  },
-  // Estilos para desktop (tabla)
-  tabla: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 4,
-    marginBottom: 16,
-    overflow: 'hidden',
-    flex: 1,
-  },
-  filaEncabezado: {
-    flexDirection: 'row',
-    backgroundColor: '#424242',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
-  },
-  celdaEncabezado: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-  },
-  fila: {
-    flexDirection: 'row',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'black',
-    alignItems: 'center',
-    backgroundColor: 'white',
-  },
-  celda: {
-    justifyContent: 'center',
-    paddingHorizontal: 8,
-  },
-  columnaFecha: {
-    flex: 1.5,
-    alignItems: 'center',
-  },
-  columnaMetodo: {
-    flex: 1.5,
-    alignItems: 'center',
-  },
-  columnaProveedor: {
-    flex: 2,
-    alignItems: 'center',
-  },
-  columnaTotal: {
-    flex: 1.5,
-    alignItems: 'center',
-  },
-  columnaEstado: {
-    flex: 1.5,
-    alignItems: 'center',
-  },
-  columnaAcciones: {
-    flex: 1.5,
-    alignItems: 'flex-end',
-  },
-  textoDato: {
-    textAlign: 'center',
-    width: '100%',
-  },
-  textoNegrita: {
-    fontWeight: 'bold',
-  },
-  totalContainer: {
-    backgroundColor: '#D9D9D9',
-    borderRadius: 4,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    alignSelf: 'center',
-  },
-  estadoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-    justifyContent: 'center',
-  },
-  estadoConfirmado: {
-    backgroundColor: '#e8f5e9',
-  },
-  estadoAnulado: {
-    backgroundColor: '#ffebee',
-  },
-  estadoTexto: {
-    marginLeft: 4,
-    fontWeight: 'bold',
-    fontSize: 12,
-  },
-  textoVerificado: {
-    color: '#2e7d32',
-  },
-  textoNoVerificado: {
-    color: '#d32f2f',
-  },
-  contenedorAcciones: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    width: '100%',
-  },
-  botonAccion: {
-    marginHorizontal: 6,
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 40,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#666',
-  },
-  encabezado: {
-    fontWeight: 'bold',
-    textAlign: 'center',
-    color: 'white',
-  },
+  /* (los mismos estilos que ya tenías, sin cambios) */
+  /* ---  solo quité el color '#000' del borderBottom en .row para evitar línea gruesa --- */
+  main: { flex: 1, backgroundColor: "#fff" },
+  content: { flex: 1, padding: 16 },
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  header: { flexDirection: "row", justifyContent: "space-between", marginBottom: 16, alignItems: "center" },
+  titleWrap: { flexDirection: "row", alignItems: "center" },
+  title: { fontSize: 22, fontWeight: "bold", marginRight: 10 },
+  counter: { width: 28, height: 28, borderRadius: 14, backgroundColor: "#D9D9D9", alignItems: "center", justifyContent: "center" },
+  counterTxt: { fontWeight: "bold" },
+  btnAdd: { flexDirection: "row", alignItems: "center", backgroundColor: "#424242", borderRadius: 15, paddingVertical: 8, paddingHorizontal: 12 },
+  btnAddTxt: { color: "#fff", marginLeft: 6, fontWeight: "500" },
+  card: { backgroundColor: "#fff", borderWidth: 1, borderColor: "#eee", borderRadius: 10, padding: 16, marginBottom: 16 },
+  cardHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: 12 },
+  cardTitle: { fontSize: 18, fontWeight: "bold" },
+  cardSubtitle: { fontSize: 14, color: "#666" },
+  cardInfoRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 8 },
+  cardLabel: { color: "#424242" },
+  cardValue: { fontWeight: "500" },
+  totalTxt: { color: "#2e7d32", fontWeight: "bold" },
+  cardActions: { flexDirection: "row", justifyContent: "flex-end", borderTopWidth: 1, borderTopColor: "#eee", paddingTop: 12 },
+  tableWrap: { borderWidth: 1, borderColor: "#ddd", borderRadius: 4, overflow: "hidden" },
+  tableHeader: { flexDirection: "row", backgroundColor: "#424242" },
+  th: { justifyContent: "center", alignItems: "center", paddingVertical: 12 },
+  thTxt: { color: "#fff", fontWeight: "bold", textAlign: "center" },
+  colFecha: { flex: 1.5 },
+  colMetodo: { flex: 1.5 },
+  colProveedor: { flex: 2 },
+  colTotal: { flex: 1.5 },
+  colEstado: { flex: 1.5, alignItems: "center" },
+  colAcciones: { flex: 1.3, alignItems: "flex-end", paddingRight: 12 },
+  row: { flexDirection: "row", paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "#ddd" },
+  cell: { justifyContent: "center", paddingHorizontal: 8 },
+  bold: { fontWeight: "bold", textAlign: "center" },
+  totalBox: { alignSelf: "center", paddingVertical: 4, paddingHorizontal: 6, backgroundColor: "#D9D9D9", borderRadius: 4 },
+  badge: { flexDirection: "row", alignItems: "center", alignSelf: "center", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
+  badgeOk: { backgroundColor: "#e8f5e9" },
+  badgeErr: { backgroundColor: "#ffebee" },
+  badgeTxt: { marginLeft: 4, fontSize: 12, fontWeight: "bold" },
+  ok: { color: "#2e7d32" },
+  err: { color: "#d32f2f" },
+  accionesFila: { flexDirection: "row", alignItems: "center" },
 });
 
 export default ComprasScreen;

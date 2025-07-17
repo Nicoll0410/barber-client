@@ -7,40 +7,82 @@ import axios from 'axios';
 
 const DashboardScreen = () => {
   const [dashboardData, setDashboardData] = useState({
-    ventas: [
-      { mes: 'Sept', total: 28 },
-      { mes: 'Oct', total: 20 },
-      { mes: 'Nov', total: 15 },
-      { mes: 'Dec', total: 10 },
-      { mes: 'Ene', total: 5 },
-      { mes: 'Feb', total: 0 }
-    ],
-    compras: [
-      { mes: 'Sept', total: 20 },
-      { mes: 'Oct', total: 18 },
-      { mes: 'Nov', total: 12 },
-      { mes: 'Dec', total: 7 },
-      { mes: 'Ene', total: 3 },
-      { mes: 'Feb', total: 0 }
-    ],
-    ganancias: [
-      { mes: 'Enero', total: 5 },
-      { mes: 'Febrero', total: 10 },
-      { mes: 'Marzo', total: 6 },
-      { mes: 'Abril', total: 8 }
-    ],
-    resumen: {
-      ventasMesActual: 1250000,
-      ventasMesAnterior: 1000000,
-      comprasMesActual: 780000,
-      comprasMesAnterior: 850000,
-      gananciasMesActual: 470000,
-      gananciasMesAnterior: 150000
-    }
+    ventasPorMes: [],
+    comprasPorMes: [],
+    gananciasPorMes: [],
+    ventasEsteMes: 0,
+    comprasEsteMes: 0,
+    profitEsteMes: 0,
+    ventasChange: 0,
+    comprasChange: 0,
+    profitChange: 0
   });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dimensions, setDimensions] = useState(Dimensions.get('window'));
+
+  const fetchDashboardData = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const response = await axios.get('http://localhost:8080/dashboard', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      const data = response.data || {};
+      
+      // Validar y mapear datos para gráficos con valores por defecto
+      const ventasPorMes = (data.ventasPorMes || []).map(item => ({
+        mes: item?.x || 'Mes',
+        total: item?.y || 0
+      }));
+
+      const comprasPorMes = (data.comprasPorMes || []).map(item => ({
+        mes: item?.x || 'Mes',
+        total: item?.y || 0
+      }));
+
+      const gananciasPorMes = (data.gananciasPorMes || []).map(item => ({
+        mes: item?.label || 'Mes',
+        total: item?.value || 0
+      }));
+
+      setDashboardData({
+        ventasPorMes,
+        comprasPorMes,
+        gananciasPorMes,
+        ventasEsteMes: data.ventasEsteMes || 0,
+        comprasEsteMes: data.comprasEsteMes || 0,
+        profitEsteMes: data.profitEsteMes || 0,
+        ventasChange: data.ventasChange || 0,
+        comprasChange: data.comprasChange || 0,
+        profitChange: data.profitChange || 0
+      });
+
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      setError('Error al cargar los datos del dashboard');
+      // Establecer datos por defecto en caso de error
+      setDashboardData({
+        ventasPorMes: [],
+        comprasPorMes: [],
+        gananciasPorMes: [],
+        ventasEsteMes: 0,
+        comprasEsteMes: 0,
+        profitEsteMes: 0,
+        ventasChange: 0,
+        comprasChange: 0,
+        profitChange: 0
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
 
   useEffect(() => {
     const onChange = ({ window }) => {
@@ -53,38 +95,27 @@ const DashboardScreen = () => {
   const isMobile = dimensions.width < 768;
   const chartWidth = isMobile ? dimensions.width * 0.85 : dimensions.width * 0.4;
 
-  // Calcular porcentajes de cambio
-  const calcularPorcentaje = (actual, anterior) => {
-    if (anterior === 0) return 100;
-    return ((actual - anterior) / anterior) * 100;
+  // Calcular porcentajes de cambio (ya vienen calculados del backend)
+  const porcentajeVentas = dashboardData.ventasChange;
+  const porcentajeCompras = dashboardData.comprasChange;
+  const porcentajeGanancias = dashboardData.profitChange;
+
+  // Función para formatear números con puntos y signo de pesos
+  const formatMoney = (value) => {
+    return `$${value.toLocaleString('es-CO')}`;
   };
-
-  const porcentajeVentas = calcularPorcentaje(
-    dashboardData.resumen.ventasMesActual,
-    dashboardData.resumen.ventasMesAnterior
-  );
-
-  const porcentajeCompras = calcularPorcentaje(
-    dashboardData.resumen.comprasMesActual,
-    dashboardData.resumen.comprasMesAnterior
-  );
-
-  const porcentajeGanancias = calcularPorcentaje(
-    dashboardData.resumen.gananciasMesActual,
-    dashboardData.resumen.gananciasMesAnterior
-  );
 
   // Datos para gráficos
   const chartData = {
-    labels: dashboardData.ventas.map(item => item.mes),
+    labels: dashboardData.ventasPorMes.map(item => item.mes),
     datasets: [
       {
-        data: dashboardData.ventas.map(item => item.total),
+        data: dashboardData.ventasPorMes.map(item => item.total),
         color: () => '#1a237e',
         strokeWidth: 3,
       },
       {
-        data: dashboardData.compras.map(item => item.total),
+        data: dashboardData.comprasPorMes.map(item => item.total),
         color: () => '#c62828',
         strokeWidth: 3,
       },
@@ -93,10 +124,10 @@ const DashboardScreen = () => {
   };
 
   const gananciasData = {
-    labels: dashboardData.ganancias.map(item => item.mes),
+    labels: dashboardData.gananciasPorMes.map(item => item.mes),
     datasets: [
       {
-        data: dashboardData.ganancias.map(item => item.total),
+        data: dashboardData.gananciasPorMes.map(item => item.total),
         colors: [
           (opacity = 1) => '#c62828',
           (opacity = 1) => '#1a237e',
@@ -127,6 +158,16 @@ const DashboardScreen = () => {
       strokeDasharray: '',
       stroke: '#e0e0e0',
     },
+    formatYLabel: (value) => formatMoney(value),
+    style: {
+      borderRadius: 16,
+    },
+    propsForVerticalLabels: {
+      fontWeight: 'bold',
+    },
+    propsForHorizontalLabels: {
+      fontWeight: 'bold',
+    }
   };
 
   const barChartConfig = {
@@ -146,6 +187,18 @@ const DashboardScreen = () => {
       strokeDasharray: '',
       stroke: '#e0e0e0',
     },
+    formatYLabel: (value) => formatMoney(value),
+    formatTopBarValue: (value) => formatMoney(value), // Esta línea es la que muestra los valores con $ y puntos sobre las barras
+    style: {
+      borderRadius: 16,
+    },
+    propsForVerticalLabels: {
+      fontWeight: 'bold',
+    },
+    propsForHorizontalLabels: {
+      fontWeight: 'bold',
+    },
+    barRadius: 4,
   };
 
   if (loading) {
@@ -174,19 +227,19 @@ const DashboardScreen = () => {
           {[
             { 
               label: 'Ventas', 
-              value: dashboardData.resumen.ventasMesActual,
+              value: dashboardData.ventasEsteMes,
               porcentaje: porcentajeVentas,
               isPositive: porcentajeVentas >= 0
             },
             { 
               label: 'Compras', 
-              value: dashboardData.resumen.comprasMesActual,
+              value: dashboardData.comprasEsteMes,
               porcentaje: porcentajeCompras,
               isPositive: porcentajeCompras <= 0
             },
             { 
               label: 'Ganancias', 
-              value: dashboardData.resumen.gananciasMesActual,
+              value: dashboardData.profitEsteMes,
               porcentaje: porcentajeGanancias,
               isPositive: porcentajeGanancias >= 0
             }
@@ -194,13 +247,12 @@ const DashboardScreen = () => {
             <View key={i} style={[styles.card, isMobile && styles.cardMobile]}>
               <Text style={styles.cardTitle}>{item.label} de este mes</Text>
               <Text style={styles.cardValue}>
-                ${item.value.toLocaleString('es-CO')}
+                {item.value.toLocaleString('es-CO')}
               </Text>
               <View style={[
                 styles.comparisonContainer, 
                 item.isPositive ? styles.comparisonPositive : styles.comparisonNegative,
-                isMobile && styles.comparisonContainerMobile,
-                { alignSelf: 'center' } // Centrar en móviles
+                isMobile && styles.comparisonContainerMobile
               ]}>
                 <Text style={styles.comparisonArrow}>
                   {item.isPositive ? '↑' : '↓'}
@@ -230,12 +282,14 @@ const DashboardScreen = () => {
               withShadow={true}
               withInnerLines={false}
               withOuterLines={false}
+              yAxisLabel="$"
+              yAxisInterval={1}
             />
           </View>
 
           <View style={[styles.chartCard, isMobile && styles.chartCardMobile]}>
             <Text style={styles.chartTitle}>Ganancias por mes</Text>
-            <Text style={styles.subTitle}>Últimos {dashboardData.ganancias.length} meses</Text>
+            <Text style={styles.subTitle}>Últimos {dashboardData.gananciasPorMes.length} meses</Text>
             <BarChart
               data={gananciasData}
               width={chartWidth}
@@ -247,19 +301,14 @@ const DashboardScreen = () => {
               barRadius={4}
               withCustomBarColorFromData={true}
               flatColor={true}
+              yAxisLabel="$"
+              yAxisInterval={1}
             />
           </View>
         </View>
       </ScrollView>
       
-      <View style={[styles.footerContainer, isMobile && styles.footerMobile]}>
-        <View style={styles.footerContent}>
-          <Text style={styles.footerText}>
-            © 2025 Nicoll Andrea Giraldo Franco |
-          </Text>
-          <Text style={styles.footerText}>Luis Miguel Chica Ruiz</Text>
-        </View>
-      </View>
+      <Footer />
     </View>
   );
 };
@@ -331,25 +380,21 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 8,
     elevation: 2,
-    alignItems: 'center', // Centrar contenido en móviles
   },
   cardMobile: {
     width: '100%',
-    padding: 16,
   },
   cardTitle: {
     fontSize: 14,
     color: '#666',
     fontWeight: '500',
     marginBottom: 8,
-    textAlign: 'center', // Centrar texto en móviles
   },
   cardValue: {
     fontSize: 22,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 8,
-    textAlign: 'center', // Centrar texto en móviles
   },
   comparisonContainer: {
     flexDirection: 'row',
@@ -357,7 +402,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 8,
     borderRadius: 6,
-    alignSelf: 'flex-start',
   },
   comparisonContainerMobile: {
     paddingVertical: 8,
@@ -415,7 +459,6 @@ const styles = StyleSheet.create({
   },
   chartCardMobile: {
     width: '100%',
-    padding: 16,
   },
   chartTitle: {
     fontSize: 16,
@@ -430,29 +473,7 @@ const styles = StyleSheet.create({
   },
   chart: {
     borderRadius: 12,
-    marginLeft: -10, // Ajuste para alinear mejor en móviles
-  },
-  footerContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#fafafa',
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-  },
-  footerMobile: {
-    paddingHorizontal: 16,
-  },
-  footerContent: {
-    alignItems: 'flex-start', // Alinear a la izquierda
-    paddingHorizontal: 16,
-  },
-  footerText: {
-    textAlign: 'left', // Alinear texto a la izquierda
-    fontSize: 14,
-    color: '#333',
+    marginLeft: 10,
   },
 });
 

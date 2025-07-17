@@ -9,6 +9,28 @@ const isMobile = width < 768;
 const DetalleCliente = ({ visible, onClose, cliente }) => {
   if (!cliente) return null;
 
+  // Función para formatear la fecha
+  const formatFecha = (fecha) => {
+    if (!fecha) return 'No registrada';
+    
+    try {
+      // Si es un string, convertirlo a Date primero
+      const fechaObj = typeof fecha === 'string' ? new Date(fecha) : fecha;
+      
+      // Verificar si es una fecha válida
+      if (isNaN(fechaObj.getTime())) return 'No registrada';
+      
+      return fechaObj.toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch (e) {
+      console.error('Error formateando fecha:', e);
+      return 'No registrada';
+    }
+  };
+
   // Componente para el estado de verificación
   const EstadoVerificacion = ({ verificado }) => (
     <View style={[
@@ -49,7 +71,7 @@ const DetalleCliente = ({ visible, onClose, cliente }) => {
             <View style={[styles.item, isMobile && styles.itemMobile]}>
               <Text style={[styles.label, isMobile && styles.labelMobile]}>Fecha de nacimiento</Text>
               <Text style={[styles.value, isMobile && styles.valueMobile]}>
-                {cliente.fechaNacimiento || 'No registrada'}
+                {formatFecha(cliente.fechaNacimiento)}
               </Text>
             </View>
 
@@ -62,7 +84,7 @@ const DetalleCliente = ({ visible, onClose, cliente }) => {
 
             <View style={[styles.item, isMobile && styles.itemMobile]}>
               <Text style={[styles.label, isMobile && styles.labelMobile]}>Verificación</Text>
-              <EstadoVerificacion verificado={cliente.emailVerificado} />
+              <EstadoVerificacion verificado={cliente.estaVerificado} />
             </View>
 
             <TouchableOpacity 

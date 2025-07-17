@@ -9,6 +9,17 @@ const isMobile = width < 768;
 const DetalleServicio = ({ visible, onClose, servicio }) => {
   if (!visible || !servicio) return null;
 
+  // Función para obtener el nombre de la categoría
+  const getCategoriaNombre = (insumo) => {
+    if (!insumo) return 'Sin categoría';
+    if (insumo.categoriaProducto?.nombre) return insumo.categoriaProducto.nombre;
+    if (insumo.categorias_insumo?.nombre) return insumo.categorias_insumo.nombre;
+    if (insumo.categoria?.nombre) return insumo.categoria.nombre;
+    if (insumo.categoriaNombre) return insumo.categoriaNombre;
+    if (insumo.categoria) return insumo.categoria;
+    return 'Sin categoría';
+  };
+
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <BlurView intensity={20} tint="light" style={StyleSheet.absoluteFill}>
@@ -33,7 +44,7 @@ const DetalleServicio = ({ visible, onClose, servicio }) => {
               <View style={[styles.item, isMobile && styles.itemMobile]}>
                 <Text style={[styles.label, isMobile && styles.labelMobile]}>Duración</Text>
                 <Text style={[styles.value, isMobile && styles.valueMobile]}>
-                  {servicio.duracion || 'No especificada'}
+                  {servicio.duracionMaximaConvertido || 'No especificada'}
                 </Text>
               </View>
 
@@ -41,7 +52,7 @@ const DetalleServicio = ({ visible, onClose, servicio }) => {
                 <Text style={[styles.label, isMobile && styles.labelMobile]}>Precio</Text>
                 <View style={styles.priceContainer}>
                   <Text style={styles.priceText}>
-                    {servicio.precio || 'No especificado'}
+                    $ {servicio.precio || 'No especificado'}
                   </Text>
                 </View>
               </View>
@@ -50,25 +61,33 @@ const DetalleServicio = ({ visible, onClose, servicio }) => {
               <View style={[styles.item, isMobile && styles.itemMobile]}>
                 <Text style={[styles.label, isMobile && styles.labelMobile]}>Insumos utilizados</Text>
                 
-                {servicio.insumos && servicio.insumos.length > 0 ? (
+                {servicio.serviciosPorInsumo && servicio.serviciosPorInsumo.length > 0 ? (
                   <>
                     <View style={styles.insumosHeader}>
-                      <Text style={styles.insumoHeaderText}>Nombre</Text>
+                      <Text style={[styles.insumoHeaderText, { flex: 2 }]}>Nombre</Text>
                       <Text style={styles.insumoHeaderText}>Cantidad</Text>
+                      <Text style={[styles.insumoHeaderText, { flex: 2 }]}>Categoría</Text>
                     </View>
                     
-                    {servicio.insumos.map((insumo, index) => (
-                      <View key={`insumo-${index}`} style={styles.insumoRow}>
-                        <Text style={styles.insumoName}>
-                          {insumo.nombre || 'Insumo sin nombre'}
-                        </Text>
-                        <View style={styles.quantityContainer}>
-                          <Text style={styles.insumoQuantity}>
-                            {insumo.cantidad || '0'}
+                    {servicio.serviciosPorInsumo.map((item, index) => {
+                      const categoria = getCategoriaNombre(item.insumo);
+                      
+                      return (
+                        <View key={`insumo-${index}`} style={styles.insumoRow}>
+                          <Text style={[styles.insumoName, { flex: 2 }]}>
+                            {item.insumo?.nombre || 'Insumo sin nombre'}
+                          </Text>
+                          <View style={styles.quantityContainer}>
+                            <Text style={styles.insumoQuantity}>
+                              {item.unidades || '0'}
+                            </Text>
+                          </View>
+                          <Text style={[styles.insumoCategory, { flex: 2 }]}>
+                            {categoria}
                           </Text>
                         </View>
-                      </View>
-                    ))}
+                      );
+                    })}
                   </>
                 ) : (
                   <Text style={styles.noInsumosText}>No se registraron insumos</Text>
@@ -202,7 +221,7 @@ const styles = StyleSheet.create({
     fontSize: isMobile ? 13 : 12,
     fontWeight: '600',
     color: 'black',
-    flex: 1,
+    textAlign: 'center',
   },
   insumoRow: {
     flexDirection: 'row',
@@ -217,19 +236,24 @@ const styles = StyleSheet.create({
     fontSize: isMobile ? 14 : 13,
     fontWeight: '500',
     color: '#111827',
-    flex: 1,
+    textAlign: 'left',
   },
   quantityContainer: {
     backgroundColor: '#D9D9D9',
     borderRadius: 15,
     paddingVertical: 4,
     paddingHorizontal: 12,
-    marginRight: 3,
+    marginHorizontal: 5,
   },
   insumoQuantity: {
     fontSize: isMobile ? 14 : 13,
     color: 'black',
     fontWeight: '600',
+    textAlign: 'center',
+  },
+  insumoCategory: {
+    fontSize: isMobile ? 14 : 13,
+    color: '#6b7280',
     textAlign: 'center',
   },
   noInsumosText: {

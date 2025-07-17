@@ -1,30 +1,72 @@
 import React, { useState } from 'react';
-import { View, Text, Modal, StyleSheet, TextInput, TouchableOpacity, Image } from 'react-native';
+import { View, Text, Modal, StyleSheet, TextInput, TouchableOpacity, Image, ActivityIndicator, ScrollView } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import * as ImagePicker from 'expo-image-picker';
 
 const CrearCategoriaInsumos = ({ visible, onClose, onCreate }) => {
   const [nombre, setNombre] = useState('');
   const [descripcion, setDescripcion] = useState('');
-  const [avatar, setAvatar] = useState(null);
+  const [avatar, setAvatar] = useState('https://i.postimg.cc/Tw9dbMG1/Mediamodifier-Design-Template.png');
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [imageError, setImageError] = useState('');
 
-  const handleCreate = () => {
-    if (nombre.trim() === '' || descripcion.trim() === '') {
-      return;
+  const selectImage = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (!permissionResult.granted) {
+        setImageError('Necesitamos acceso a tu galería para seleccionar una imagen');
+        return;
+      }
+
+      const pickerResult = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+      });
+
+      if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
+        setAvatar(pickerResult.assets[0].uri);
+        setImageError('');
+      }
+    } catch (error) {
+      console.error('Error al seleccionar imagen:', error);
+      setImageError('Ocurrió un error al seleccionar la imagen');
     }
-    
-    onCreate({
-      nombre,
-      descripcion,
-      avatar
-    });
-    setNombre('');
-    setDescripcion('');
-    setAvatar(null);
   };
 
-  const selectImage = () => {
-    console.log("Seleccionar imagen");
+  const validateForm = () => {
+    const newErrors = {};
+    if (nombre.trim() === '') newErrors.nombre = 'Nombre es obligatorio';
+    if (descripcion.trim() === '') newErrors.descripcion = 'Descripción es obligatoria';
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleCreate = async () => {
+    if (!validateForm()) return;
+    
+    try {
+      setLoading(true);
+      await onCreate({
+        nombre,
+        descripcion,
+        avatar
+      });
+      setNombre('');
+      setDescripcion('');
+      setAvatar('https://i.postimg.cc/Tw9dbMG1/Mediamodifier-Design-Template.png');
+      setErrors({});
+    } catch (error) {
+      console.error('Error en handleCreate:', error);
+      setErrors({ submit: 'Error al crear la categoría' });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -37,74 +79,96 @@ const CrearCategoriaInsumos = ({ visible, onClose, onCreate }) => {
       <BlurView intensity={20} style={styles.blurContainer}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Crear nueva categoría</Text>
-              <TouchableOpacity onPress={onClose}>
-                <Ionicons name="close" size={24} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
+            <ScrollView contentContainerStyle={styles.scrollContainer}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Crear nueva categoría</Text>
+                <TouchableOpacity onPress={onClose}>
+                  <Ionicons name="close" size={24} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
 
-            <Text style={styles.subtitle}>
-              Proporciona la información de la nueva categoría
-            </Text>
-
-            <View style={styles.formSection}>
-              <Text style={styles.sectionTitle}>Nombre*</Text>
-              <TextInput
-                style={styles.input}
-                value={nombre}
-                onChangeText={setNombre}
-                placeholder="Nombre de la categoría"
-                placeholderTextColor="#D9D9D9"
-              />
-            </View>
-
-            <View style={styles.formSection}>
-              <Text style={styles.sectionTitle}>Descripción*</Text>
-              <TextInput
-                style={styles.multilineInput}
-                value={descripcion}
-                onChangeText={setDescripcion}
-                placeholder="Descripción de la categoría"
-                placeholderTextColor="#D9D9D9"
-                multiline
-                numberOfLines={3}
-              />
-            </View>
-
-            <View style={styles.formSection}>
-              <Text style={styles.sectionTitle}>Avatar</Text>
-              <Text style={styles.avatarSubtitle}>
-                Te recomendamos usar íconos
+              <Text style={styles.subtitle}>
+                Proporciona la información de la nueva categoría
               </Text>
-              
-              <TouchableOpacity style={styles.avatarSelector} onPress={selectImage}>
-                {avatar ? (
-                  <Image source={{ uri: avatar }} style={styles.avatarImage} />
-                ) : (
-                  <View style={styles.avatarPlaceholder}>
-                    <MaterialIcons name="add-photo-alternate" size={40} color="#9CA3AF" />
-                    <Text style={styles.avatarPlaceholderText}>Selecciona una imagen</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            </View>
 
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity 
-                style={styles.createButton} 
-                onPress={handleCreate}
-                disabled={!nombre || !descripcion}
-              >
-                <Text style={styles.createButtonText}>Aceptar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.cancelButton} 
-                onPress={onClose}
-              >
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
-              </TouchableOpacity>
-            </View>
+              {errors.submit && (
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText}>{errors.submit}</Text>
+                </View>
+              )}
+
+              <View style={styles.formSection}>
+                <Text style={styles.sectionTitle}>Nombre*</Text>
+                <TextInput
+                  style={[styles.input, errors.nombre && styles.inputError]}
+                  value={nombre}
+                  onChangeText={(text) => {
+                    setNombre(text);
+                    if (errors.nombre) setErrors({...errors, nombre: ''});
+                  }}
+                  placeholder="Nombre de la categoría"
+                  placeholderTextColor="#D9D9D9"
+                />
+                {errors.nombre && <Text style={styles.errorText}>{errors.nombre}</Text>}
+              </View>
+
+              <View style={styles.formSection}>
+                <Text style={styles.sectionTitle}>Descripción*</Text>
+                <TextInput
+                  style={[styles.multilineInput, errors.descripcion && styles.inputError]}
+                  value={descripcion}
+                  onChangeText={(text) => {
+                    setDescripcion(text);
+                    if (errors.descripcion) setErrors({...errors, descripcion: ''});
+                  }}
+                  placeholder="Descripción de la categoría"
+                  placeholderTextColor="#D9D9D9"
+                  multiline
+                  numberOfLines={3}
+                />
+                {errors.descripcion && <Text style={styles.errorText}>{errors.descripcion}</Text>}
+              </View>
+
+              <View style={styles.formSection}>
+                <Text style={styles.sectionTitle}>Avatar</Text>
+                <Text style={styles.avatarSubtitle}>
+                  Te recomendamos usar íconos
+                </Text>
+                
+                <TouchableOpacity 
+                  style={styles.avatarSelector} 
+                  onPress={selectImage}
+                  disabled={loading}
+                >
+                  <Image source={{ uri: avatar }} style={styles.avatarImage} />
+                  <View style={styles.avatarOverlay}>
+                    <MaterialIcons name="edit" size={24} color="white" />
+                  </View>
+                </TouchableOpacity>
+                {imageError && <Text style={styles.errorText}>{imageError}</Text>}
+              </View>
+
+              <View style={styles.buttonContainer}>
+                <TouchableOpacity 
+                  style={[styles.createButton, (loading || !nombre || !descripcion) && styles.disabledButton]} 
+                  onPress={handleCreate}
+                  disabled={loading || !nombre || !descripcion}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <Text style={styles.createButtonText}>Aceptar</Text>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.cancelButton} 
+                  onPress={onClose}
+                  disabled={loading}
+                >
+                  <Text style={styles.cancelButtonText}>Cancelar</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
           </View>
         </View>
       </BlurView>
@@ -119,16 +183,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalOverlay: {
-    width: '85%',
+    width: '90%',
     maxWidth: 400,
+    maxHeight: '80%',
   },
   modalContainer: {
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 20,
     width: '100%',
+    maxHeight: '100%',
     borderWidth: 1,
     borderColor: 'black',
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    paddingBottom: 20,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -161,16 +231,19 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    borderWidth: 1.5,  // Aumentado el grosor del borde
-    borderColor: '#424242',  // Cambiado a color más oscuro
+    borderWidth: 1.5,
+    borderColor: '#424242',
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
     marginBottom: 8,
   },
+  inputError: {
+    borderColor: '#EF4444',
+  },
   multilineInput: {
-    borderWidth: 1.5,  // Aumentado el grosor del borde
-    borderColor: '#424242',  // Cambiado a color más oscuro
+    borderWidth: 1.5,
+    borderColor: '#424242',
     borderRadius: 8,
     padding: 12,
     height: 80,
@@ -180,26 +253,24 @@ const styles = StyleSheet.create({
   },
   avatarSelector: {
     height: 100,
-    borderWidth: 1.5,  // Aumentado el grosor del borde
-    borderColor: '#424242',  // Cambiado a color más oscuro
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#F9FAFB',
-  },
-  avatarPlaceholder: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarPlaceholderText: {
-    color: '#9CA3AF',
-    marginTop: 6,
-    fontSize: 12,
+    overflow: 'hidden',
+    position: 'relative',
   },
   avatarImage: {
     width: '100%',
     height: '100%',
-    borderRadius: 8,
+  },
+  avatarOverlay: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -236,6 +307,17 @@ const styles = StyleSheet.create({
     color: 'black',
     fontWeight: '600',
     fontSize: 14,
+  },
+  errorContainer: {
+    backgroundColor: '#FEE2E2',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  errorText: {
+    color: '#EF4444',
+    fontSize: 12,
+    marginTop: 4,
   },
 });
 

@@ -1,99 +1,168 @@
-import React from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
-import { AntDesign, FontAwesome, MaterialIcons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
+/* ───────────────────────────────────────────────────────────
+   screens/ventas/DetalleVenta.js
+   Modal con la información de una venta
+   ─────────────────────────────────────────────────────────── */
+import React from "react";
+import {
+  Modal,
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Dimensions,
+} from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
 
-const { width, height } = Dimensions.get('window');
+const { width, height } = Dimensions.get("window");
 const isMobile = width < 768;
 
 const DetalleVenta = ({ visible, onClose, venta }) => {
   if (!visible || !venta) return null;
+
+  /* helpers */
+  const formatFecha = (yymmdd) => {
+    if (!yymmdd) return "Fecha no disponible";
+    const fecha = new Date(yymmdd);
+    return fecha.toLocaleDateString("es-ES", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
+  const formatoHora = (hhmmss) => (hhmmss ? hhmmss.slice(0, 5) : "--:--");
+
+  /* datos provenientes del backend */
+  const cliente     = venta.cliente?.nombre     || "No especificado";
+  const profesional = venta.barbero?.nombre     || "No especificado";
+  const servicioNom = venta.servicio?.nombre    || "Servicio no especificado";
+  const precio      = venta.servicio?.precio ?? venta.total ?? 0;
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <BlurView intensity={20} tint="light" style={StyleSheet.absoluteFill}>
         <View style={styles.overlay}>
           <View style={[styles.modal, isMobile && styles.modalMobile]}>
-            <Text style={[styles.titulo, isMobile && styles.tituloMobile]}>Detalle de la Venta</Text>
-            
-            <ScrollView 
-              style={styles.scrollContainer} 
-              contentContainerStyle={[styles.scrollContent, isMobile && styles.scrollContentMobile]}
+            <Text style={[styles.titulo, isMobile && styles.tituloMobile]}>
+              Detalle de la Venta
+            </Text>
+
+            <ScrollView
+              style={styles.scrollContainer}
+              contentContainerStyle={[
+                styles.scrollContent,
+                isMobile && styles.scrollContentMobile,
+              ]}
               showsVerticalScrollIndicator={false}
             >
-              {/* Encabezado del servicio */}
+              {/* información general */}
               <View style={[styles.item, isMobile && styles.itemMobile]}>
-                <Text style={[styles.label, isMobile && styles.labelMobile]}>Servicio</Text>
-                <Text style={[styles.value, styles.textoNegrita, isMobile && styles.valueMobile]}>
-                  {venta.servicio}
+                <Text style={[styles.label, isMobile && styles.labelMobile]}>
+                  Información General
                 </Text>
-                <Text style={[styles.value, styles.textoDescripcion, isMobile && styles.valueMobile]}>
-                  {venta.descripcion}
+
+                <View style={styles.detailRow}>
+                  <MaterialIcons
+                    name="date-range"
+                    size={isMobile ? 20 : 18}
+                    color="#555"
+                    style={styles.icono}
+                  />
+                  <Text
+                    style={[styles.value, isMobile && styles.valueMobile]}
+                  >{`${formatFecha(venta.fecha)} – ${formatoHora(
+                    venta.hora
+                  )}`}</Text>
+                </View>
+
+                <View style={styles.detailRow}>
+                  <MaterialIcons
+                    name="attach-money"
+                    size={isMobile ? 20 : 18}
+                    color="#555"
+                    style={styles.icono}
+                  />
+                  <Text
+                    style={[styles.value, isMobile && styles.valueMobile]}
+                  >{`Total: $${precio.toLocaleString("es-CO")}`}</Text>
+                </View>
+
+                {venta.descuento && (
+                  <View style={styles.detailRow}>
+                    <MaterialIcons
+                      name="money-off"
+                      size={isMobile ? 20 : 18}
+                      color="#555"
+                      style={styles.icono}
+                    />
+                    <Text
+                      style={[styles.value, isMobile && styles.valueMobile]}
+                    >{`Descuento: ${venta.descuento}`}</Text>
+                  </View>
+                )}
+              </View>
+
+              {/* servicio */}
+              <View style={[styles.item, isMobile && styles.itemMobile]}>
+                <Text style={[styles.label, isMobile && styles.labelMobile]}>
+                  Servicio
+                </Text>
+                <Text
+                  style={[
+                    styles.value,
+                    styles.textoNegrita,
+                    isMobile && styles.valueMobile,
+                  ]}
+                >
+                  {servicioNom}
+                </Text>
+                <Text
+                  style={[
+                    styles.value,
+                    styles.textoDescripcion,
+                    isMobile && styles.valueMobile,
+                  ]}
+                >
+                  {venta.comentarios || "Sin comentarios adicionales"}
                 </Text>
               </View>
 
-              {/* Detalles de fecha y hora */}
+              {/* participantes */}
               <View style={[styles.item, isMobile && styles.itemMobile]}>
-                <Text style={[styles.label, isMobile && styles.labelMobile]}>Fecha y Hora</Text>
-                <View style={styles.detailRow}>
-                  <MaterialIcons 
-                    name="date-range" 
-                    size={isMobile ? 18 : 16} 
-                    color="#555" 
-                    style={styles.icono} 
-                  />
-                  <Text style={[styles.value, isMobile && styles.valueMobile]}>
-                    {venta.fecha}
-                  </Text>
-                </View>
-                <View style={styles.detailRow}>
-                  <FontAwesome 
-                    name="clock-o" 
-                    size={isMobile ? 18 : 16} 
-                    color="#555" 
-                    style={styles.icono} 
-                  />
-                  <Text style={[styles.value, isMobile && styles.valueMobile]}>
-                    {venta.hora} ({venta.duracion})
-                  </Text>
-                </View>
-              </View>
+                <Text style={[styles.label, isMobile && styles.labelMobile]}>
+                  Participantes
+                </Text>
 
-              {/* Precio */}
-              <View style={[styles.item, isMobile && styles.itemMobile]}>
-                <Text style={[styles.label, isMobile && styles.labelMobile]}>Precio</Text>
-                <View style={styles.precioContainer}>
-                  <Text style={styles.precio}>{venta.precio}</Text>
-                </View>
-              </View>
-
-              {/* Información del profesional y cliente */}
-              <View style={[styles.item, isMobile && styles.itemMobile]}>
-                <Text style={[styles.label, isMobile && styles.labelMobile]}>Participantes</Text>
                 <View style={styles.participantesContainer}>
                   <View style={styles.participante}>
                     <View style={[styles.avatar, styles.avatarCliente]}>
                       <Text style={styles.avatarText}>
-                        {venta.cliente ? venta.cliente.charAt(0) : 'C'}
+                        {cliente.charAt(0).toUpperCase()}
                       </Text>
                     </View>
-                    <Text style={styles.participanteNombre}>Cliente: {venta.cliente}</Text>
+                    <Text style={styles.participanteNombre}>
+                      Cliente: {cliente}
+                    </Text>
                   </View>
-                  
+
                   <View style={styles.participante}>
-                    <Text style={styles.participanteNombre}>Profesional: {venta.profesional}</Text>
                     <View style={[styles.avatar, styles.avatarProfesional]}>
                       <Text style={styles.avatarText}>
-                        {venta.profesional ? venta.profesional.charAt(0) : 'P'}
+                        {profesional.charAt(0).toUpperCase()}
                       </Text>
                     </View>
+                    <Text style={styles.participanteNombre}>
+                      Barbero: {profesional}
+                    </Text>
                   </View>
                 </View>
               </View>
             </ScrollView>
 
-            <TouchableOpacity 
-              style={[styles.cerrar, isMobile && styles.cerrarMobile]} 
+            <TouchableOpacity
+              style={[styles.cerrar, isMobile && styles.cerrarMobile]}
               onPress={onClose}
             >
               <Text style={styles.textoCerrar}>Cerrar</Text>

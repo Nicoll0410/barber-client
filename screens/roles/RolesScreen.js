@@ -1,6 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Dimensions, ScrollView } from 'react-native';
-import { FontAwesome, Feather, Ionicons } from '@expo/vector-icons';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  FlatList,
+  Dimensions,
+  ScrollView,
+  ActivityIndicator,
+  Alert,
+  Image,
+} from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import {
+  FontAwesome,
+  Feather,
+  Ionicons,
+} from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+
 import Paginacion from '../../components/Paginacion';
 import Buscador from '../../components/Buscador';
 import CrearRol from './CrearRol';
@@ -11,34 +30,35 @@ import Footer from '../../components/Footer';
 const { width } = Dimensions.get('window');
 const isMobile = width < 768;
 
-// Mobile Role Card
+/*──────────────────────────  Card Mobile ──────────────────────────*/
 const RolCard = ({ item, onVer, onEditar, onEliminar }) => (
   <View style={styles.card}>
     <View style={styles.cardHeader}>
+      {item.avatar && (
+        <Image source={{ uri: item.avatar }} style={styles.avatar} />
+      )}
       <View style={styles.cardHeaderText}>
         <Text style={styles.cardNombre}>{item.nombre}</Text>
         <Text style={styles.cardDescripcion}>{item.descripcion}</Text>
       </View>
     </View>
-    
+
     <View style={styles.cardDetails}>
       <View style={styles.detailRow}>
         <Text style={styles.detailLabel}>Asociados:</Text>
         <View style={styles.asociadosBadge}>
-          <Text style={styles.asociadosText}>{item.asociados}</Text>
+          <Text style={styles.asociadosText}>{item.usuariosAsociados}</Text>
         </View>
       </View>
     </View>
-    
+
     <View style={styles.cardActions}>
       <TouchableOpacity style={styles.actionButton} onPress={() => onVer(item.id)}>
         <FontAwesome name="eye" size={18} color="#424242" />
       </TouchableOpacity>
-      
       <TouchableOpacity style={styles.actionButton} onPress={() => onEditar(item.id)}>
         <Feather name="edit" size={18} color="#424242" />
       </TouchableOpacity>
-      
       <TouchableOpacity style={styles.actionButton} onPress={() => onEliminar(item.id)}>
         <Feather name="trash-2" size={18} color="#d32f2f" />
       </TouchableOpacity>
@@ -46,92 +66,149 @@ const RolCard = ({ item, onVer, onEditar, onEliminar }) => (
   </View>
 );
 
+/*────────────────────────────  Screen ─────────────────────────────*/
 const RolesScreen = () => {
   const [roles, setRoles] = useState([]);
   const [rolesFiltrados, setRolesFiltrados] = useState([]);
   const [paginaActual, setPaginaActual] = useState(1);
   const [rolesPorPagina] = useState(4);
   const [busqueda, setBusqueda] = useState('');
+
+  const [loading, setLoading] = useState(false);
   const [modalCrearVisible, setModalCrearVisible] = useState(false);
   const [modalDetalleVisible, setModalDetalleVisible] = useState(false);
   const [modalEditarVisible, setModalEditarVisible] = useState(false);
   const [rolSeleccionado, setRolSeleccionado] = useState(null);
 
-  useEffect(() => {
-    const datosEjemplo = [
-      { id: 1, nombre: 'Administrador', descripcion: 'Acceso total al sistema', asociados: 5 },
-      { id: 2, nombre: 'Recepcionista', descripcion: 'Gestiona reservas y clientes', asociados: 3 },
-      { id: 3, nombre: 'Barbero', descripcion: 'Realiza servicios', asociados: 7 },
-    ];
-    setRoles(datosEjemplo);
-    setRolesFiltrados(datosEjemplo);
-  }, []);
+  /*───────── Helpers ─────────*/
+  const fetchRoles = async () => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem('token');
+      const { data } = await axios.get('http://localhost:8080/roles/all', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const list = data.roles.map(r => ({
+        ...r,
+        usuariosAsociados: r.usuariosAsociados ?? 0,
+        permisos: r.permisos ?? [],
+        avatar: r.avatar || 'https://via.placeholder.com/40', // Avatar por defecto si no tiene
+      }));
+      setRoles(list);
+      setRolesFiltrados(list);
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Error', 'No se pudieron cargar los roles');
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  /* cargar al abrir pantalla  + refresh cada vez que vuelve a foco */
+  useFocusEffect(useCallback(() => { fetchRoles(); }, []));
+
+  /* búsqueda */
   useEffect(() => {
-    if (busqueda.trim() === '') {
+    const termino = busqueda.trim().toLowerCase();
+    if (!termino) {
       setRolesFiltrados(roles);
     } else {
-      const termino = busqueda.toLowerCase();
-      const filtrados = roles.filter(r =>
-        r.nombre.toLowerCase().includes(termino) ||
-        r.descripcion.toLowerCase().includes(termino)
+      const filtros = roles.filter(
+        r =>
+          r.nombre.toLowerCase().includes(termino) ||
+          (r.descripcion ?? '').toLowerCase().includes(termino),
       );
-      setRolesFiltrados(filtrados);
+      setRolesFiltrados(filtros);
     }
     setPaginaActual(1);
   }, [busqueda, roles]);
 
-  const indiceInicial = (paginaActual - 1) * rolesPorPagina;
-  const rolesMostrar = isMobile ? rolesFiltrados : rolesFiltrados.slice(indiceInicial, indiceInicial + rolesPorPagina);
-  const totalPaginas = Math.ceil(rolesFiltrados.length / rolesPorPagina);
-
-  const cambiarPagina = (nuevaPagina) => {
-    if (nuevaPagina > 0 && nuevaPagina <= totalPaginas) {
-      setPaginaActual(nuevaPagina);
+  /*──────── Crear ────────*/
+  const handleCreateRol = async nuevoRol => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const { data } = await axios.post(
+        'http://localhost:8080/roles',
+        {
+          nombre: nuevoRol.nombre,
+          descripcion: nuevoRol.descripcion,
+          avatar: nuevoRol.avatar,
+          permisos: nuevoRol.permisosSeleccionados,
+        },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      setRoles(prev => [...prev, { ...data.rol, usuariosAsociados: 0 }]);
+      setModalCrearVisible(false);
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Error', e.response?.data?.mensaje || 'No se pudo crear');
     }
   };
 
-  const crearRol = () => setModalCrearVisible(true);
-  const handleSearchChange = (texto) => setBusqueda(texto);
-
-  const handleCreateRol = (nuevoRol) => {
-    const newId = roles.length > 0 ? Math.max(...roles.map(r => r.id)) + 1 : 1;
-    const rol = { id: newId, ...nuevoRol };
-    const nuevosRoles = [...roles, rol];
-    setRoles(nuevosRoles);
-    setRolesFiltrados(nuevosRoles);
-    setModalCrearVisible(false);
+  /*──────── Update ────────*/
+  const handleUpdateRol = async rolActualizado => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const { data } = await axios.put(
+        `http://localhost:8080/roles/${rolActualizado.id}`,
+        {
+          nombre: rolActualizado.nombre,
+          descripcion: rolActualizado.descripcion,
+          avatar: rolActualizado.avatar,
+          permisos: rolActualizado.permisosSeleccionados,
+        },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      setRoles(prev =>
+        prev.map(r => (r.id === rolActualizado.id ? { ...data.rolActualizado } : r)),
+      );
+      setModalEditarVisible(false);
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Error', e.response?.data?.mensaje || 'No se pudo actualizar');
+    }
   };
 
-  const verRol = (id) => {
+  /*──────── Delete ────────*/
+  const eliminarRol = async id => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      await axios.delete(`http://localhost:8080/roles/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setRoles(prev => prev.filter(r => r.id !== id));
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Error', e.response?.data?.mensaje || 'No se pudo eliminar');
+    }
+  };
+
+  /*──────── Detalle / Editar ────────*/
+  const verRol = id => {
     const rol = roles.find(r => r.id === id);
     setRolSeleccionado(rol);
     setModalDetalleVisible(true);
   };
-
-  const editarRol = (id) => {
+  const editarRol = id => {
     const rol = roles.find(r => r.id === id);
     setRolSeleccionado(rol);
     setModalEditarVisible(true);
   };
 
-  const handleUpdateRol = (rolActualizado) => {
-    const nuevosRoles = roles.map(r =>
-      r.id === rolActualizado.id ? rolActualizado : r
-    );
-    setRoles(nuevosRoles);
-    setRolesFiltrados(nuevosRoles);
-    setModalEditarVisible(false);
+  /*──────── Paginación ────────*/
+  const indiceInicial = (paginaActual - 1) * rolesPorPagina;
+  const rolesMostrar = isMobile
+    ? rolesFiltrados
+    : rolesFiltrados.slice(indiceInicial, indiceInicial + rolesPorPagina);
+  const totalPaginas = Math.ceil(rolesFiltrados.length / rolesPorPagina);
+  const cambiarPagina = nueva => {
+    if (nueva >= 1 && nueva <= totalPaginas) setPaginaActual(nueva);
   };
 
-  const eliminarRol = (id) => {
-    const nuevosRoles = roles.filter(r => r.id !== id);
-    setRoles(nuevosRoles);
-    setRolesFiltrados(nuevosRoles);
-  };
-
+  /*──────── UI ────────*/
   return (
     <View style={styles.container}>
+      {/* header list + botón crear */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Text style={styles.title}>Roles</Text>
@@ -139,7 +216,7 @@ const RolesScreen = () => {
             <Text style={styles.counterText}>{rolesFiltrados.length}</Text>
           </View>
         </View>
-        <TouchableOpacity style={styles.addButton} onPress={crearRol}>
+        <TouchableOpacity style={styles.addButton} onPress={() => setModalCrearVisible(true)}>
           <Ionicons name="add-circle" size={20} color="white" />
           <Text style={styles.addButtonText}>Crear</Text>
         </TouchableOpacity>
@@ -148,23 +225,40 @@ const RolesScreen = () => {
       <Buscador
         placeholder="Buscar roles por nombre o descripción"
         value={busqueda}
-        onChangeText={handleSearchChange}
+        onChangeText={setBusqueda}
       />
 
-      {!isMobile ? (
+      {loading ? (
+        <ActivityIndicator size="large" style={{ marginTop: 40 }} />
+      ) : !isMobile ? (
+        /*────────── TABLE DESKTOP ─────────*/
         <View style={styles.table}>
           <View style={styles.tableHeader}>
-            <View style={[styles.headerCell, styles.nameColumn]}><Text style={styles.headerText}>Nombre</Text></View>
-            <View style={[styles.headerCell, styles.descColumn]}><Text style={styles.headerText}>Descripción</Text></View>
-            <View style={[styles.headerCell, styles.asociadosColumn]}><Text style={styles.headerText}>Asociados</Text></View>
-            <View style={[styles.headerCell, styles.actionsColumn]}><Text style={styles.headerText}>Acciones</Text></View>
+            <View style={[styles.headerCell, styles.avatarColumn]}>
+              <Text style={styles.headerText}>Avatar</Text>
+            </View>
+            <View style={[styles.headerCell, styles.nameColumn]}>
+              <Text style={styles.headerText}>Nombre</Text>
+            </View>
+            <View style={[styles.headerCell, styles.descColumn]}>
+              <Text style={styles.headerText}>Descripción</Text>
+            </View>
+            <View style={[styles.headerCell, styles.asociadosColumn]}>
+              <Text style={styles.headerText}>Asociados</Text>
+            </View>
+            <View style={[styles.headerCell, styles.actionsColumn]}>
+              <Text style={styles.headerText}>Acciones</Text>
+            </View>
           </View>
 
           <FlatList
             data={rolesMostrar}
-            keyExtractor={(item) => item.id.toString()}
+            keyExtractor={item => item.id}
             renderItem={({ item }) => (
               <View style={styles.tableRow}>
+                <View style={[styles.cell, styles.avatarColumn]}>
+                  <Image source={{ uri: item.avatar }} style={styles.avatar} />
+                </View>
                 <View style={[styles.cell, styles.nameColumn]}>
                   <Text style={styles.nameText}>{item.nombre}</Text>
                 </View>
@@ -173,7 +267,7 @@ const RolesScreen = () => {
                 </View>
                 <View style={[styles.cell, styles.asociadosColumn]}>
                   <View style={styles.asociadosBadge}>
-                    <Text style={styles.asociadosText}>{item.asociados}</Text>
+                    <Text style={styles.asociadosText}>{item.usuariosAsociados}</Text>
                   </View>
                 </View>
                 <View style={[styles.cell, styles.actionsColumn]}>
@@ -185,7 +279,7 @@ const RolesScreen = () => {
                       <Feather name="edit" size={20} color="black" />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => eliminarRol(item.id)} style={styles.actionIcon}>
-                      <Feather name="trash-2" size={20} color="black" />
+                      <Feather name="trash-2" size={20} color="#d32f2f" />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -194,11 +288,12 @@ const RolesScreen = () => {
           />
         </View>
       ) : (
-        <ScrollView style={styles.scrollContainer}>
+        /*────────── MOBILE CARDS ─────────*/
+        <ScrollView style={{ flex: 1 }}>
           <View style={styles.cardsContainer}>
             {rolesFiltrados.map(item => (
-              <RolCard 
-                key={item.id.toString()}
+              <RolCard
+                key={item.id}
                 item={item}
                 onVer={verRol}
                 onEditar={editarRol}
@@ -209,7 +304,7 @@ const RolesScreen = () => {
         </ScrollView>
       )}
 
-      {!isMobile && (
+      {!isMobile && totalPaginas > 1 && (
         <Paginacion
           paginaActual={paginaActual}
           totalPaginas={totalPaginas}
@@ -217,24 +312,24 @@ const RolesScreen = () => {
         />
       )}
 
+      {/*──────── Modales ────────*/}
       <CrearRol
         visible={modalCrearVisible}
         onClose={() => setModalCrearVisible(false)}
         onCreate={handleCreateRol}
       />
-
       <DetalleRol
         visible={modalDetalleVisible}
         onClose={() => setModalDetalleVisible(false)}
         rol={rolSeleccionado}
       />
-
       <EditarRol
         visible={modalEditarVisible}
         onClose={() => setModalEditarVisible(false)}
         rol={rolSeleccionado}
         onUpdate={handleUpdateRol}
       />
+
       <Footer />
     </View>
   );
@@ -318,10 +413,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
     backgroundColor: 'white',
+    alignItems: 'center',
   },
   cell: {
     justifyContent: 'center',
     paddingHorizontal: 8,
+  },
+  avatarColumn: {
+    flex: 1,
+    alignItems: 'center',
   },
   nameColumn: {
     flex: 2,
@@ -338,6 +438,12 @@ const styles = StyleSheet.create({
   actionsColumn: {
     flex: 2,
     alignItems: 'flex-end',
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
   },
   nameText: {
     fontWeight: '500',

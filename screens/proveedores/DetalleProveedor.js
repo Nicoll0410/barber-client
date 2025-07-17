@@ -22,7 +22,9 @@ const DetalleProveedor = ({ visible, onClose, proveedor }) => {
             >
               <View style={[styles.item, isMobile && styles.itemMobile]}>
                 <Text style={[styles.label, isMobile && styles.labelMobile]}>Tipo de Proveedor</Text>
-                <Text style={[styles.value, isMobile && styles.valueMobile]}>{proveedor.tipo || 'Persona'}</Text>
+                <Text style={[styles.value, isMobile && styles.valueMobile]}>
+                  {proveedor.tipo === 'Persona' ? 'Persona natural' : 'Empresa'}
+                </Text>
               </View>
 
               <View style={[styles.item, isMobile && styles.itemMobile]}>
@@ -54,21 +56,23 @@ const DetalleProveedor = ({ visible, onClose, proveedor }) => {
                 <Text style={[styles.value, isMobile && styles.valueMobile]}>{proveedor.email || 'No registrado'}</Text>
               </View>
 
-              {proveedor.tipo === 'Empresa' && (
-                <View style={[styles.item, isMobile && styles.itemMobile]}>
-                  <Text style={[styles.label, isMobile && styles.labelMobile]}>Persona de Contacto</Text>
-                  <Text style={[styles.value, isMobile && styles.valueMobile]}>{proveedor.personaContacto || 'No registrada'}</Text>
-                </View>
-              )}
-
               <View style={[styles.item, isMobile && styles.itemMobile]}>
-                <Text style={[styles.label, isMobile && styles.labelMobile]}>Fecha de Creación</Text>
-                <Text style={[styles.value, isMobile && styles.valueMobile]}>{proveedor.fechaCreacion || 'No registrada'}</Text>
+                <Text style={[styles.label, isMobile && styles.labelMobile]}>Persona de Contacto</Text>
+                <Text style={[styles.value, isMobile && styles.valueMobile]}>{proveedor.nombreContacto || 'No registrada'}</Text>
               </View>
 
               <View style={[styles.item, isMobile && styles.itemMobile]}>
-                <Text style={[styles.label, isMobile && styles.labelMobile]}>Fecha de Actualización</Text>
-                <Text style={[styles.value, isMobile && styles.valueMobile]}>{proveedor.fechaActualizacion || 'No registrada'}</Text>
+                <Text style={[styles.label, isMobile && styles.labelMobile]}>Fecha de Creación</Text>
+                <Text style={[styles.value, isMobile && styles.valueMobile]}>
+                  {proveedor.createdAt ? new Date(proveedor.createdAt).toLocaleDateString() : 'No registrada'}
+                </Text>
+              </View>
+
+              <View style={[styles.item, isMobile && styles.itemMobile]}>
+                <Text style={[styles.label, isMobile && styles.labelMobile]}>Última Actualización</Text>
+                <Text style={[styles.value, isMobile && styles.valueMobile]}>
+                  {proveedor.updatedAt ? new Date(proveedor.updatedAt).toLocaleDateString() : 'No registrada'}
+                </Text>
               </View>
             </ScrollView>
 

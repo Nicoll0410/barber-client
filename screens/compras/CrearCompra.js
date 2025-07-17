@@ -8,15 +8,17 @@ import {
   StyleSheet, 
   ScrollView, 
   FlatList,
-  Alert,
-  Dimensions 
+  Dimensions,
+  ActivityIndicator
 } from 'react-native';
-import { MaterialIcons, FontAwesome, Feather } from '@expo/vector-icons';
+import { MaterialIcons, Feather } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { Picker } from '@react-native-picker/picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import InfoModal from '../../components/InfoModal';
 
-// Configuración de localización en español
 LocaleConfig.locales['es'] = {
   monthNames: [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -34,69 +36,126 @@ LocaleConfig.locales['es'] = {
 };
 LocaleConfig.defaultLocale = 'es';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 const CrearCompra = ({ visible, onClose, onCreate }) => {
-  // Datos de ejemplo para proveedores e insumos
-  const proveedores = [
-    { label: 'Distribuidora SurtiTodo', value: '1' },
-    { label: 'Belleza Total SAS', value: '2' },
-    { label: 'Importaciones Estética', value: '3' },
-    { label: 'Suministros Peluquería', value: '4' },
-  ];
-
-  const insumosDisponibles = [
-    { label: 'Tijeras profesionales', value: '1' },
-    { label: 'Máquina cortapelo', value: '2' },
-    { label: 'Gel fijador', value: '3' },
-    { label: 'Shampoo profesional', value: '4' },
-    { label: 'Acondicionador', value: '5' },
-    { label: 'Crema para peinar', value: '6' },
-    { label: 'Tinte profesional', value: '7' },
-    { label: 'Guantes desechables', value: '8' },
-    { label: 'Toallas desechables', value: '9' },
-  ];
-
-  // Estados del formulario
   const [formData, setFormData] = useState({
-    metodoPago: 'efectivo',
+    metodoPago: 'Efectivo',
     proveedor: '',
     fecha: null,
     insumos: []
   });
-
+  const [proveedores, setProveedores] = useState([]);
+  const [insumos, setInsumos] = useState([]);
   const [pasoActual, setPasoActual] = useState(1);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({
+    proveedor: '',
+    fecha: '',
+    insumos: []
+  });
+  const [modalInfo, setModalInfo] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info'
+  });
 
-  const meses = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-  ];
+  const showAlert = (title, message, type = 'info') => {
+    setModalInfo({
+      visible: true,
+      title,
+      message,
+      type
+    });
+  };
+  const closeModal = () => {
+    setModalInfo(prev => ({...prev, visible: false}));
+  };
 
-  const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth();
-  const currentDay = new Date().getDate();
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const token = await AsyncStorage.getItem('token');
+        const [provRes, insRes] = await Promise.all([
+          axios.get('http://localhost:8080/proveedores/all', {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          axios.get('http://localhost:8080/insumos/all', {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+        ]);
+
+        setProveedores(provRes.data.proveedores || []);
+        setInsumos(insRes.data.insumos || []);
+      } catch (error) {
+        console.error('Error al cargar datos:', error);
+        showAlert('¡Error! 😟', 'No se pudieron cargar los datos necesarios', 'error');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (visible) {
+      fetchData();
+      resetForm();
+    }
+  }, [visible]);
 
   const resetForm = () => {
     setFormData({
-      metodoPago: 'efectivo',
+      metodoPago: 'Efectivo',
       proveedor: '',
       fecha: null,
       insumos: []
     });
+    setErrors({
+      proveedor: '',
+      fecha: '',
+      insumos: []
+    });
     setPasoActual(1);
-    // Resetear también el calendario a la fecha actual
-    setSelectedMonth(currentMonth);
-    setSelectedYear(currentYear);
+    setSelectedMonth(new Date().getMonth());
+    setSelectedYear(new Date().getFullYear());
   };
 
   const handleChange = (name, value) => {
-    setFormData({
-      ...formData,
-      [name]: value
-    });
+    setFormData(prev => ({...prev, [name]: value}));
+    if (errors[name]) {
+      setErrors(prev => ({...prev, [name]: ''}));
+    }
+  };
+
+  const validateStep1 = () => {
+    const newErrors = {
+      proveedor: !formData.proveedor ? 'Seleccione un proveedor' : '',
+      fecha: !formData.fecha ? 'Seleccione una fecha válida' : ''
+    };
+    setErrors(prev => ({...prev, ...newErrors}));
+    return !newErrors.proveedor && !newErrors.fecha;
+  };
+
+  const validateInsumo = (insumo) => {
+    const insumoErrors = {};
+    if (!insumo.insumo) insumoErrors.insumo = 'Seleccione un insumo';
+    if (!insumo.cantidad || isNaN(insumo.cantidad) || insumo.cantidad <= 0) insumoErrors.cantidad = 'Cantidad inválida';
+    if (!insumo.precioUnitario || isNaN(insumo.precioUnitario) || insumo.precioUnitario <= 0) insumoErrors.precioUnitario = 'Precio inválido';
+    return insumoErrors;
+  };
+
+  const validateStep2 = () => {
+    if (formData.insumos.length === 0) {
+      setErrors(prev => ({...prev, insumos: [{ general: 'Debe agregar al menos un insumo' }]}));
+      return false;
+    }
+    const insumosErrors = formData.insumos.map(validateInsumo);
+    const hasErrors = insumosErrors.some(e => Object.keys(e).length > 0);
+    if (hasErrors) setErrors(prev => ({...prev, insumos: insumosErrors}));
+    return !hasErrors;
   };
 
   const handleDayPress = (day) => {
@@ -105,10 +164,17 @@ const CrearCompra = ({ visible, onClose, onCreate }) => {
     setShowDatePicker(false);
   };
 
+  const formatDateString = (date) => {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const changeMonth = (increment) => {
     let newMonth = selectedMonth + increment;
     let newYear = selectedYear;
-    
+
     if (newMonth > 11) {
       newMonth = 0;
       newYear++;
@@ -116,15 +182,15 @@ const CrearCompra = ({ visible, onClose, onCreate }) => {
       newMonth = 11;
       newYear--;
     }
-    
-    // Validar que el mes no esté fuera del rango permitido (8 días atrás)
+
     const fechaLimite = new Date();
     fechaLimite.setDate(fechaLimite.getDate() - 8);
-    
+
     const nuevoMesLimite = new Date(newYear, newMonth, 1);
-    
-    if (nuevoMesLimite >= new Date(fechaLimite.getFullYear(), fechaLimite.getMonth(), 1) || 
-        nuevoMesLimite <= new Date(currentYear, currentMonth, 1)) {
+    if (
+      nuevoMesLimite >= new Date(fechaLimite.getFullYear(), fechaLimite.getMonth(), 1) &&
+      nuevoMesLimite <= new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+    ) {
       setSelectedMonth(newMonth);
       setSelectedYear(newYear);
     }
@@ -136,102 +202,22 @@ const CrearCompra = ({ visible, onClose, onCreate }) => {
     today.setHours(0, 0, 0, 0);
     const fechaMinima = new Date(today);
     fechaMinima.setDate(today.getDate() - 8);
-    
-    // Calcular fechas a deshabilitar
+
     const startDate = new Date(selectedYear, selectedMonth, 1);
     const endDate = new Date(selectedYear, selectedMonth + 1, 0);
     const tempDate = new Date(startDate);
-    
+
     while (tempDate <= endDate) {
-      // Deshabilitar fechas fuera del rango (8 días atrás hasta hoy)
       if (tempDate > today || tempDate < fechaMinima) {
-        disabledDates[formatDateString(tempDate)] = { 
-          disabled: true, 
-          disableTouchEvent: true 
+        disabledDates[formatDateString(tempDate)] = {
+          disabled: true,
+          disableTouchEvent: true
         };
       }
       tempDate.setDate(tempDate.getDate() + 1);
     }
-    
+
     return disabledDates;
-  };
-
-  const formatDateString = (date) => {
-    const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  const agregarInsumo = () => {
-    const nuevoInsumo = {
-      id: Date.now().toString(),
-      insumo: '',
-      cantidad: '',
-      precioUnitario: ''
-    };
-    setFormData({
-      ...formData,
-      insumos: [...formData.insumos, nuevoInsumo]
-    });
-  };
-
-  const eliminarInsumo = (id) => {
-    setFormData({
-      ...formData,
-      insumos: formData.insumos.filter(insumo => insumo.id !== id)
-    });
-  };
-
-  const actualizarInsumo = (id, campo, valor) => {
-    setFormData({
-      ...formData,
-      insumos: formData.insumos.map(insumo => 
-        insumo.id === id ? { ...insumo, [campo]: valor } : insumo
-      )
-    });
-  };
-
-  const calcularTotal = () => {
-    return formData.insumos.reduce((total, insumo) => {
-      const cantidad = parseFloat(insumo.cantidad) || 0;
-      const precio = parseFloat(insumo.precioUnitario) || 0;
-      return total + (cantidad * precio);
-    }, 0);
-  };
-
-  const handleSubmit = () => {
-    if (pasoActual === 1) {
-      if (!formData.proveedor || !formData.fecha) {
-        Alert.alert('Campos requeridos', 'Por favor complete todos los campos obligatorios');
-        return;
-      }
-      setPasoActual(2);
-    } else {
-      if (formData.insumos.length === 0) {
-        Alert.alert('Insumos requeridos', 'Debe agregar al menos un insumo');
-        return;
-      }
-      
-      const insumosIncompletos = formData.insumos.some(insumo => 
-        !insumo.insumo || !insumo.cantidad || !insumo.precioUnitario
-      );
-      
-      if (insumosIncompletos) {
-        Alert.alert('Insumos incompletos', 'Todos los insumos deben estar completamente diligenciados');
-        return;
-      }
-      
-      const compra = {
-        ...formData,
-        costoTotal: calcularTotal(),
-        estado: 'confirmado'
-      };
-      
-      onCreate(compra);
-      onClose();
-      resetForm();
-    }
   };
 
   const formatDate = (date) => {
@@ -243,345 +229,448 @@ const CrearCompra = ({ visible, onClose, onCreate }) => {
     });
   };
 
-  const formatearMoneda = (valor) => {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      minimumFractionDigits: 0
-    }).format(valor || 0);
+  const agregarInsumo = () => {
+    const nuevoInsumo = {
+      id: Date.now().toString(),
+      insumo: '',
+      cantidad: '',
+      precioUnitario: ''
+    };
+    setFormData(prev => ({...prev, insumos: [...prev.insumos, nuevoInsumo]}));
+    setErrors(prev => ({...prev, insumos: [...prev.insumos, {}]}));
+  };
+
+  const eliminarInsumo = (id) => {
+    const index = formData.insumos.findIndex(i => i.id === id);
+    setFormData(prev => ({...prev, insumos: prev.insumos.filter(insumo => insumo.id !== id)}));
+    const newErrors = [...errors.insumos];
+    newErrors.splice(index, 1);
+    setErrors(prev => ({...prev, insumos: newErrors}));
+  };
+
+  const actualizarInsumo = (id, campo, valor) => {
+    const nuevosInsumos = formData.insumos.map(insumo =>
+      insumo.id === id ? {...insumo, [campo]: valor} : insumo
+    );
+    setFormData(prev => ({...prev, insumos: nuevosInsumos}));
+
+    if (campo === 'cantidad' || campo === 'precioUnitario') {
+      const index = formData.insumos.findIndex(i => i.id === id);
+      if (index >= 0 && index < errors.insumos.length) {
+        const newErrors = [...errors.insumos];
+        newErrors[index] = validateInsumo(nuevosInsumos[index]);
+        setErrors(prev => ({...prev, insumos: newErrors}));
+      }
+    }
+  };
+
+  const calcularTotal = () => {
+    return formData.insumos.reduce((total, insumo) => {
+      const cantidad = parseFloat(insumo.cantidad) || 0;
+      const precio = parseFloat(insumo.precioUnitario) || 0;
+      return total + cantidad * precio;
+    }, 0);
+  };
+
+  const handleSubmit = () => {
+    if (pasoActual === 1) {
+      if (validateStep1()) {
+        setPasoActual(2);
+      }
+    } else {
+      if (validateStep2()) {
+        handleCreateCompra();
+      }
+    }
+  };
+
+  const handleCreateCompra = async () => {  // 1️⃣ Código completo corregido
+    try {
+      setLoading(true);
+      if (!formData.fecha || !(formData.fecha instanceof Date)) {
+        throw new Error('Seleccione una fecha válida');
+      }
+      if (!formData.proveedor) {
+        throw new Error('Seleccione un proveedor');
+      }
+      if (formData.insumos.length === 0) {
+        throw new Error('Debes agregar al menos un insumo');
+      }
+      const insumosErrors = formData.insumos.map(validateInsumo);
+      const hasErrors = insumosErrors.some(e => Object.keys(e).length > 0);
+      if (hasErrors) {
+        setErrors(prev => ({...prev, insumos: insumosErrors}));
+        throw new Error('Corrige los errores en los insumos');
+      }
+
+      const token = await AsyncStorage.getItem('token');
+const compraData = {
+  fecha: formData.fecha.toISOString().split('T')[0],
+  metodo_pago: formData.metodoPago,        // ✅ sin typo
+  proveedorID: formData.proveedor,
+  insumos: formData.insumos.map(i => ({
+    id: i.insumo,
+    cantidad: Number(i.cantidad),
+    precio_unitario: Number(i.precioUnitario)
+  }))
+};
+
+
+      const response = await axios.post('http://localhost:8080/compras', compraData, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (onCreate && typeof onCreate === 'function') {
+        onCreate(response.data.compra);
+      }
+
+      showAlert(
+        '¡Compra registrada! 🎉',
+        `La compra y el stock de insumos se actualizaron correctamente\n\n💰 Total: ${new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(calcularTotal())}`,
+        'success'
+      );
+
+      resetForm();
+      onClose();
+
+    } catch (error) {
+      console.error('Error al crear compra:', error);
+      showAlert(
+        '¡Error! 😟',
+        error.response?.data?.mensaje || error.message || 'Error al crear compra. Verifica los datos e intenta nuevamente.',
+        'error'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <Modal
-      animationType="fade"
-      transparent={true}
-      visible={visible}
-      onRequestClose={() => {
-        onClose();
-        resetForm();
-      }}
-    >
-      <BlurView
-        intensity={15}
-        tint="light"
-        style={StyleSheet.absoluteFill}
-      />
-      
-      <View style={styles.modalContainer}>
-        <View style={styles.modalContent}>
-          <ScrollView 
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-          >
-            <View style={styles.header}>
-              <Text style={styles.title}>
-                {pasoActual === 1 ? 'Crear nueva compra' : 'Añadir insumos a la compra'}
-              </Text>
-              <Text style={styles.subtitle}>
-                {pasoActual === 1 
-                  ? 'Por favor, proporciona la información de la nueva compra' 
-                  : 'Por favor, adjunta los insumos que fueron adquiridos en la compra'}
-              </Text>
-            </View>
-
-            {pasoActual === 1 ? (
-              <>
-                <View style={styles.formGroup}>
-                  <Text style={styles.label}>Método de pago</Text>
-                  <View style={styles.pickerContainer}>
-                    <Picker
-                      selectedValue={formData.metodoPago}
-                      onValueChange={(value) => handleChange('metodoPago', value)}
-                      style={styles.picker}
-                    >
-                      <Picker.Item label="Efectivo" value="efectivo" />
-                      <Picker.Item label="Transferencia" value="transferencia" />
-                    </Picker>
-                  </View>
+    <>
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={visible}
+        onRequestClose={() => {
+          onClose();
+          resetForm();
+        }}
+      >
+        <BlurView intensity={15} tint="light" style={StyleSheet.absoluteFill} />
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+              {loading && (
+                <View style={styles.loadingOverlay}>
+                  <ActivityIndicator size="large" color="#424242" />
                 </View>
+              )}
 
-                <View style={styles.separador} />
+              <View style={styles.header}>
+                <Text style={styles.title}>
+                  {pasoActual === 1 ? 'Crear nueva compra ✏️' : 'Añadir insumos a la compra 🛒'}
+                </Text>
+                <Text style={styles.subtitle}>
+                  {pasoActual === 1 
+                    ? 'Por favor, proporciona la información de la nueva compra' 
+                    : 'Por favor, adjunta los insumos que fueron adquiridos en la compra'}
+                </Text>
+              </View>
 
-                <View style={styles.formGroup}>
-                  <Text style={styles.label}>Proveedor <Text style={styles.required}>*</Text></Text>
-                  <View style={styles.pickerContainer}>
-                    <Picker
-                      selectedValue={formData.proveedor}
-                      onValueChange={(value) => handleChange('proveedor', value)}
-                      style={styles.picker}
-                    >
-                      <Picker.Item label="Seleccione un proveedor" value="" />
-                      {proveedores.map(prov => (
-                        <Picker.Item key={prov.value} label={prov.label} value={prov.value} />
-                      ))}
-                    </Picker>
-                  </View>
-                </View>
-
-                <View style={styles.formGroup}>
-                  <Text style={styles.label}>Fecha <Text style={styles.required}>*</Text></Text>
-                  <TouchableOpacity 
-                    style={styles.dateInput}
-                    onPress={() => {
-                      setShowDatePicker(true);
-                      // Resetear a fecha actual al abrir
-                      const today = new Date();
-                      setSelectedMonth(today.getMonth());
-                      setSelectedYear(today.getFullYear());
-                    }}
-                  >
-                    <Text style={[
-                      styles.dateText, 
-                      formData.fecha && styles.dateTextSelected
-                    ]}>
-                      {formatDate(formData.fecha)}
-                    </Text>
-                    <MaterialIcons name="calendar-today" size={20} color="#666" />
-                  </TouchableOpacity>
-                </View>
-
-                {showDatePicker && (
-                  <View style={styles.customDatePickerContainer}>
-                    <View style={styles.customDatePicker}>
-                      <View style={styles.datePickerHeader}>
-                        <TouchableOpacity 
-                          onPress={() => changeMonth(-1)}
-                          disabled={
-                            new Date(selectedYear, selectedMonth, 1) <= 
-                            new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate() - 8)
-                          }
-                        >
-                          <MaterialIcons 
-                            name="chevron-left" 
-                            size={24} 
-                            color={
-                              new Date(selectedYear, selectedMonth, 1) <= 
-                              new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate() - 8)
-                                ? '#ccc' 
-                                : '#333'
-                            } 
-                          />
-                        </TouchableOpacity>
-                        
-                        <View style={styles.monthYearSelector}>
-                          <Text style={styles.monthYearText}>
-                            {meses[selectedMonth]} de {selectedYear}
-                          </Text>
-                        </View>
-                        
-                        <TouchableOpacity 
-                          onPress={() => changeMonth(1)}
-                          disabled={
-                            new Date(selectedYear, selectedMonth, 1) >= 
-                            new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())
-                          }
-                        >
-                          <MaterialIcons 
-                            name="chevron-right" 
-                            size={24} 
-                            color={
-                              new Date(selectedYear, selectedMonth, 1) >= 
-                              new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())
-                                ? '#ccc' 
-                                : '#333'
-                            } 
-                          />
-                        </TouchableOpacity>
-                      </View>
-                      
-                      <View style={styles.calendarContainer}>
-                        <Calendar
-                          key={`${selectedYear}-${selectedMonth}`}
-                          current={`${selectedYear}-${(selectedMonth + 1).toString().padStart(2, '0')}-01`}
-                          onDayPress={handleDayPress}
-                          monthFormat={'MMMM yyyy'}
-                          hideArrows={true}
-                          hideExtraDays={true}
-                          disableMonthChange={true}
-                          markedDates={{
-                            ...getDisabledDates(),
-                            [formData.fecha ? formatDateString(formData.fecha) : '']: {
-                              selected: true,
-                              selectedColor: '#424242',
-                              selectedTextColor: '#fff'
-                            },
-                            [new Date().toISOString().split('T')[0]]: {
-                              marked: true,
-                              dotColor: '#424242'
-                            }
-                          }}
-                          theme={{
-                            calendarBackground: 'transparent',
-                            textSectionTitleColor: '#666',
-                            dayTextColor: '#333',
-                            todayTextColor: '#424242',
-                            selectedDayTextColor: '#fff',
-                            selectedDayBackgroundColor: '#424242',
-                            arrowColor: '#424242',
-                            monthTextColor: '#333',
-                            textDayFontWeight: '400',
-                            textMonthFontWeight: 'bold',
-                            textDayHeaderFontWeight: '500',
-                            textDayFontSize: 12,
-                            textMonthFontSize: 14,
-                            textDayHeaderFontSize: 12,
-                            'stylesheet.calendar.header': {
-                              week: {
-                                marginTop: 5,
-                                flexDirection: 'row',
-                                justifyContent: 'space-between'
-                              }
-                            },
-                            disabledDayTextColor: '#d9d9d9'
-                          }}
-                          style={styles.calendar}
-                          disableAllTouchEventsForDisabledDays={true}
-                        />
-                      </View>
-                      
-                      <View style={styles.datePickerActions}>
-                        <TouchableOpacity 
-                          style={styles.datePickerButton}
-                          onPress={() => {
-                            handleChange('fecha', new Date());
-                            setShowDatePicker(false);
-                          }}
-                        >
-                          <Text style={styles.datePickerButtonText}>Hoy</Text>
-                        </TouchableOpacity>
-                        
-                        <TouchableOpacity 
-                          style={styles.closeButton} 
-                          onPress={() => setShowDatePicker(false)}
-                        >
-                          <Text style={styles.closeButtonText}>Cerrar</Text>
-                        </TouchableOpacity>
-                      </View>
+              {pasoActual === 1 ? (
+                <>
+                  <View style={styles.formGroup}>
+                    <Text style={styles.label}>Método de pago</Text>
+                    <View style={styles.pickerContainer}>
+                      <Picker
+                        selectedValue={formData.metodoPago}
+                        onValueChange={(value) => handleChange('metodoPago', value)}
+                        style={styles.picker}
+                        dropdownIconColor="#424242"
+                      >
+                        <Picker.Item label="Efectivo" value="Efectivo" />
+                        <Picker.Item label="Transferencia" value="Transferencia" />
+                      </Picker>
                     </View>
                   </View>
-                )}
-              </>
-            ) : (
-              <>
-                <TouchableOpacity 
-                  style={styles.botonAgregarInsumo}
-                  onPress={agregarInsumo}
-                >
-                  <MaterialIcons name="add" size={24} color="#424242" />
-                  <Text style={styles.textoBotonAgregar}>Agregar insumo</Text>
-                </TouchableOpacity>
 
-                <FlatList
-                  data={formData.insumos}
-                  keyExtractor={(item) => item.id}
-                  renderItem={({ item }) => (
-                    <View style={styles.insumoContainer}>
-                      <Text style={styles.subtituloInsumo}>Insumo {formData.insumos.indexOf(item) + 1}</Text>
-                      
-                      <View style={styles.formGroup}>
-                        <Text style={styles.label}>Insumo <Text style={styles.required}>*</Text></Text>
-                        <View style={styles.pickerContainer}>
-                          <Picker
-                            selectedValue={item.insumo}
-                            onValueChange={(value) => actualizarInsumo(item.id, 'insumo', value)}
-                            style={styles.picker}
+                  <View style={styles.separador} />
+
+                  <View style={styles.formGroup}>
+                    <Text style={styles.label}>Proveedor <Text style={styles.required}>*</Text></Text>
+                    <View style={[styles.pickerContainer, errors.proveedor ? styles.inputError : null]}>
+                      <Picker
+                        selectedValue={formData.proveedor}
+                        onValueChange={(value) => handleChange('proveedor', value)}
+                        style={styles.picker}
+                        dropdownIconColor="#424242"
+                      >
+                        <Picker.Item label="Seleccione un proveedor" value="" />
+                        {proveedores.map(prov => (
+                          <Picker.Item key={prov.id} label={prov.nombre} value={prov.id} />
+                        ))}
+                      </Picker>
+                    </View>
+                    {errors.proveedor ? (
+                      <Text style={styles.errorText}>{errors.proveedor}</Text>
+                    ) : null}
+                  </View>
+
+                  <View style={styles.formGroup}>
+                    <Text style={styles.label}>Fecha <Text style={styles.required}>*</Text></Text>
+                    <TouchableOpacity
+                      style={[styles.dateInput, errors.fecha ? styles.inputError : null]}
+                      onPress={() => { setShowDatePicker(true); const today = new Date(); setSelectedMonth(today.getMonth()); setSelectedYear(today.getFullYear()); }}
+                    >
+                      <Text style={[styles.dateText, formData.fecha && styles.dateTextSelected]}>
+                        {formatDate(formData.fecha)}
+                      </Text>
+                      <MaterialIcons name="calendar-today" size={20} color="#666" />
+                    </TouchableOpacity>
+                    {errors.fecha ? (
+                      <Text style={styles.errorText}>{errors.fecha}</Text>
+                    ) : null}
+                  </View>
+
+                  {showDatePicker && (
+                    <View style={styles.customDatePickerContainer}>
+                      <View style={styles.customDatePicker}>
+                        <View style={styles.datePickerHeader}>
+                          <TouchableOpacity
+                            onPress={() => changeMonth(-1)}
+                            disabled={
+                              new Date(selectedYear, selectedMonth, 1) <=
+                              new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate() - 8)
+                            }
                           >
-                            <Picker.Item label="Seleccione un insumo" value="" />
-                            {insumosDisponibles.map(insumo => (
-                              <Picker.Item key={insumo.value} label={insumo.label} value={insumo.value} />
-                            ))}
-                          </Picker>
-                        </View>
-                      </View>
+                            <MaterialIcons
+                              name="chevron-left"
+                              size={24}
+                              color={
+                                new Date(selectedYear, selectedMonth, 1) <=
+                                new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate() - 8)
+                                  ? '#ccc'
+                                  : '#333'
+                              }
+                            />
+                          </TouchableOpacity>
 
-                      <View style={styles.doubleRow}>
-                        <View style={[styles.formGroup, {flex: 1, marginRight: 10}]}>
-                          <Text style={styles.label}>Cantidad <Text style={styles.required}>*</Text></Text>
-                          <TextInput
-                            style={styles.input}
-                            placeholder="Ej: 5"
-                            placeholderTextColor="#929292"
-                            keyboardType="numeric"
-                            value={item.cantidad}
-                            onChangeText={(text) => actualizarInsumo(item.id, 'cantidad', text)}
+                          <View style={styles.monthYearSelector}>
+                            <Text style={styles.monthYearText}>
+                              {LocaleConfig.locales['es'].monthNames[selectedMonth]} de {selectedYear}
+                            </Text>
+                          </View>
+
+                          <TouchableOpacity
+                            onPress={() => changeMonth(1)}
+                            disabled={
+                              new Date(selectedYear, selectedMonth, 1) >=
+                              new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())
+                            }
+                          >
+                            <MaterialIcons
+                              name="chevron-right"
+                              size={24}
+                              color={
+                                new Date(selectedYear, selectedMonth, 1) >=
+                                new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())
+                                  ? '#ccc'
+                                  : '#333'
+                              }
+                            />
+                          </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.calendarContainer}>
+                          <Calendar
+                            key={`${selectedYear}-${selectedMonth}`}
+                            current={`${selectedYear}-${(selectedMonth + 1).toString().padStart(2, '0')}-01`}
+                            onDayPress={handleDayPress}
+                            monthFormat={'MMMM yyyy'}
+                            hideArrows
+                            hideExtraDays
+                            disableMonthChange
+                            markedDates={{
+                              ...getDisabledDates(),
+                              [formData.fecha ? formatDateString(formData.fecha) : '']: {
+                                selected: true,
+                                selectedColor: '#424242',
+                                selectedTextColor: '#fff'
+                              },
+                              [new Date().toISOString().split('T')[0]]: {
+                                marked: true,
+                                dotColor: '#424242'
+                              }
+                            }}
+                            theme={{
+                              calendarBackground: 'transparent',
+                              textSectionTitleColor: '#666',
+                              dayTextColor: '#333',
+                              todayTextColor: '#424242',
+                              selectedDayTextColor: '#fff',
+                              selectedDayBackgroundColor: '#424242',
+                              arrowColor: '#424242',
+                              monthTextColor: '#333',
+                              textDayFontWeight: '400',
+                              textMonthFontWeight: 'bold',
+                              textDayHeaderFontWeight: '500',
+                              textDayFontSize: 12,
+                              textMonthFontSize: 14,
+                              textDayHeaderFontSize: 12,
+                              'stylesheet.calendar.header': {
+                                week: {
+                                  marginTop: 5,
+                                  flexDirection: 'row',
+                                  justifyContent: 'space-between'
+                                }
+                              },
+                              disabledDayTextColor: '#d9d9d9'
+                            }}
+                            style={styles.calendar}
+                            disableAllTouchEventsForDisabledDays
                           />
                         </View>
-                        
-                        <View style={[styles.formGroup, {flex: 1}]}>
-                          <Text style={styles.label}>Precio unitario (COP) <Text style={styles.required}>*</Text></Text>
-                          <TextInput
-                            style={styles.input}
-                            placeholder="Ej: 25000"
-                            placeholderTextColor="#929292"
-                            keyboardType="numeric"
-                            value={item.precioUnitario}
-                            onChangeText={(text) => actualizarInsumo(item.id, 'precioUnitario', text)}
-                          />
-                        </View>
-                      </View>
 
-                      <View style={styles.doubleRow}>
-                        <View style={[styles.formGroup, {flex: 1}]}>
-                          <Text style={styles.label}>Subtotal</Text>
-                          <Text style={styles.subtotal}>
-                            {formatearMoneda(
-                              (parseFloat(item.cantidad) || 0) * 
-                              (parseFloat(item.precioUnitario) || 0)
-                            )}
-                          </Text>
+                        <View style={styles.datePickerActions}>
+                          <TouchableOpacity
+                            style={styles.datePickerButton}
+                            onPress={() => { handleChange('fecha', new Date()); setShowDatePicker(false); }}
+                          >
+                            <Text style={styles.datePickerButtonText}>Hoy</Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            style={styles.closeButton}
+                            onPress={() => setShowDatePicker(false)}
+                          >
+                            <Text style={styles.closeButtonText}>Cerrar</Text>
+                          </TouchableOpacity>
                         </View>
-                        
-                        <TouchableOpacity 
-                          style={styles.botonEliminarInsumo}
-                          onPress={() => eliminarInsumo(item.id)}
-                        >
-                          <Feather name="trash-2" size={20} color="#424242" />
-                        </TouchableOpacity>
                       </View>
                     </View>
                   )}
-                />
+                </>
+              ) : (
+                <>
+                  {errors.insumos.some(e => e.general) && (
+                    <Text style={[styles.errorText, {marginBottom:15}]}>
+                      {errors.insumos.find(e => e.general)?.general}
+                    </Text>
+                  )}
 
-                <View style={styles.totalContainer}>
-                  <Text style={styles.labelTotal}>Total de la compra:</Text>
-                  <Text style={styles.valorTotal}>{formatearMoneda(calcularTotal())}</Text>
-                </View>
-              </>
-            )}
+                  <TouchableOpacity
+                    style={styles.botonAgregarInsumo}
+                    onPress={agregarInsumo}
+                  >
+                    <MaterialIcons name="add" size={24} color="#424242" />
+                    <Text style={styles.textoBotonAgregar}>Agregar insumo</Text>
+                  </TouchableOpacity>
 
-            <View style={styles.buttonContainer}>
-              {pasoActual === 2 && (
-                <TouchableOpacity 
-                  style={[styles.button, styles.secondaryButton]}
-                  onPress={() => setPasoActual(1)}
-                >
-                  <Text style={styles.secondaryButtonText}>← Volver</Text>
-                </TouchableOpacity>
+                  <FlatList
+                    data={formData.insumos}
+                    keyExtractor={item => item.id}
+                    renderItem={({ item, index }) => (
+                      <View style={styles.insumoContainer}>
+                        <Text style={styles.subtituloInsumo}>Insumo {index + 1}</Text>
+
+                        <View style={styles.formGroup}>
+                          <Text style={styles.label}>Insumo <Text style={styles.required}>*</Text></Text>
+                          <View style={[styles.pickerContainer, errors.insumos[index]?.insumo ? styles.inputError : null]}>
+                            <Picker
+                              selectedValue={item.insumo}
+                              onValueChange={value => actualizarInsumo(item.id, 'insumo', value)}
+                              style={styles.picker}
+                              dropdownIconColor="#424242"
+                            >
+                              <Picker.Item label="Seleccione un insumo" value="" />
+                              {insumos.map(ins => (
+                                <Picker.Item key={ins.id} label={ins.nombre} value={ins.id} />
+                              ))}
+                            </Picker>
+                          </View>
+                          {errors.insumos[index]?.insumo && <Text style={styles.errorText}>{errors.insumos[index].insumo}</Text>}
+                        </View>
+
+                        <View style={styles.doubleRow}>
+                          <View style={[styles.formGroup, {flex:1, marginRight:10}]}>
+                            <Text style={styles.label}>Cantidad <Text style={styles.required}>*</Text></Text>
+                            <TextInput
+                              style={[styles.input, errors.insumos[index]?.cantidad ? styles.inputError : null]}
+                              placeholder="Ej: 5"
+                              placeholderTextColor="#929292"
+                              keyboardType="numeric"
+                              value={item.cantidad}
+                              onChangeText={text => actualizarInsumo(item.id, 'cantidad', text.replace(/[^0-9]/g, ''))}
+                            />
+                            {errors.insumos[index]?.cantidad && <Text style={styles.errorText}>{errors.insumos[index].cantidad}</Text>}
+                          </View>
+
+                          <View style={[styles.formGroup, {flex:1}]}>
+                            <Text style={styles.label}>Precio unitario (COP) <Text style={styles.required}>*</Text></Text>
+                            <TextInput
+                              style={[styles.input, errors.insumos[index]?.precioUnitario ? styles.inputError : null]}
+                              placeholder="Ej: 25000"
+                              placeholderTextColor="#929292"
+                              keyboardType="numeric"
+                              value={item.precioUnitario}
+                              onChangeText={text => actualizarInsumo(item.id, 'precioUnitario', text.replace(/[^0-9]/g, ''))}
+                            />
+                            {errors.insumos[index]?.precioUnitario && <Text style={styles.errorText}>{errors.insumos[index].precioUnitario}</Text>}
+                          </View>
+                        </View>
+
+                        <View style={styles.doubleRow}>
+                          <View style={[styles.formGroup, {flex:1}]}>
+                            <Text style={styles.label}>Subtotal</Text>
+                            <Text style={styles.subtotal}>
+                              {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(
+                                (parseFloat(item.cantidad) || 0) * (parseFloat(item.precioUnitario) || 0)
+                              )}
+                            </Text>
+                          </View>
+                          <TouchableOpacity style={styles.botonEliminarInsumo} onPress={() => eliminarInsumo(item.id)}>
+                            <Feather name="trash-2" size={20} color="#424242" />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    )}
+                  />
+
+                  <View style={styles.totalContainer}>
+                    <Text style={styles.labelTotal}>Total de la compra:</Text>
+                    <Text style={styles.valorTotal}>
+                      {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(calcularTotal())}
+                    </Text>
+                  </View>
+                </>
               )}
-              
-              <TouchableOpacity 
-                style={[styles.button, styles.primaryButton]}
-                onPress={handleSubmit}
-              >
-                <Text style={styles.buttonText}>
-                  {pasoActual === 1 ? 'Siguiente →' : 'Enviar'}
-                </Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.button, styles.cancelButton]}
-                onPress={() => {
-                  onClose();
-                  resetForm();
-                }}
-              >
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
+
+              <View style={styles.buttonContainer}>
+                {pasoActual === 2 && (
+                  <TouchableOpacity style={[styles.button, styles.secondaryButton]} onPress={() => setPasoActual(1)}>
+                    <Text style={styles.secondaryButtonText}>← Volver</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity style={[styles.button, styles.primaryButton]} onPress={handleSubmit} disabled={loading}>
+                  <Text style={styles.buttonText}>{pasoActual === 1 ? 'Siguiente →' : 'Enviar'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={() => { resetForm(); onClose(); }} disabled={loading}>
+                  <Text style={styles.cancelButtonText}>Cancelar</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
         </View>
-      </View>
-    </Modal>
+      </Modal>
+
+      <InfoModal
+        visible={modalInfo.visible}
+        onClose={closeModal}
+        title={modalInfo.title}
+        message={modalInfo.message}
+        type={modalInfo.type}
+      />
+    </>
   );
 };
 
@@ -612,6 +701,24 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
   },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  inputError: {
+    borderColor: '#d32f2f',
+  },
+  errorText: {
+    color: '#d32f2f',
+    fontSize: 12,
+    marginTop: 4,
+  },
+  required: {
+    color: '#d32f2f',
+  },
   header: {
     marginBottom: 15,
     alignItems: 'flex-start',
@@ -638,9 +745,6 @@ const styles = StyleSheet.create({
     color: '#444',
     marginBottom: 8,
     fontWeight: '500',
-  },
-  required: {
-    color: 'red',
   },
   input: {
     borderWidth: 2,
@@ -812,7 +916,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
-    maxHeight: '80%',
   },
   datePickerHeader: {
     flexDirection: 'row',
@@ -830,7 +933,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   calendarContainer: {
-    height: 250,
+    height: 300,
     overflow: 'hidden',
   },
   calendar: {
@@ -839,6 +942,7 @@ const styles = StyleSheet.create({
   datePickerActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginTop: 10,
   },
   datePickerButton: {
     padding: 10,

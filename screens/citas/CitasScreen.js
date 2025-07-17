@@ -1,457 +1,362 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  FlatList, 
-  Modal, 
-  Dimensions,
-  ScrollView,
-  TextInput
+/* ───────────────────────────────────────────────────────────
+   CitasScreen.js – Listado, creación y acciones
+   (versión FINAL sin límite de 5, usa all=true)
+   ─────────────────────────────────────────────────────────── */
+import React, {
+  useState, useEffect, useContext, useCallback,
+} from 'react';
+import {
+  View, Text, StyleSheet, TouchableOpacity, FlatList, ScrollView,
+  Alert, ActivityIndicator, Dimensions, Modal, Pressable,
 } from 'react-native';
-import { MaterialIcons, FontAwesome, Feather, Ionicons, AntDesign } from '@expo/vector-icons';
-import Paginacion from '../../components/Paginacion';
-import Buscador from '../../components/Buscador';
-import CrearCita from './CrearCita';
+import {
+  MaterialIcons, FontAwesome, AntDesign,
+} from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
+
+import Paginacion  from '../../components/Paginacion';
+import Buscador    from '../../components/Buscador';
+import Footer      from '../../components/Footer';
+import CrearCita   from './CrearCita';
 import DetalleCita from './DetalleCita';
-import Footer from '../../components/Footer';
+import { AuthContext } from '../../contexts/AuthContext';
 
+/* ------------------------ Constantes ------------------------ */
+const API = 'http://localhost:8080';
 const { width } = Dimensions.get('window');
-const isMobile = width <= 768;
+const isMobile  = width <= 768;
 
-// Componente para el avatar del barbero
+/* ------------------ Componentes auxiliares ----------------- */
 const Avatar = ({ nombre }) => {
-  const colors = ['#FF5733', '#33FF57', '#3357FF', '#F333FF', '#33FFF5'];
-  const color = colors[nombre.length % colors.length];
-
+  const colores = ['#FF5733', '#33FF57', '#3357FF', '#F333FF', '#33FFF5'];
+  const bg = colores[nombre?.length % colores.length] || '#FF5733';
   return (
-    <View style={[styles.avatarContainer, { backgroundColor: color }]}>
+    <View style={[styles.avatarContainer, { backgroundColor: bg }]}>
       <Text style={styles.avatarText}>
-        {nombre.split(' ').map(part => part[0]).join('').toUpperCase()}
+        {nombre?.split(' ').map((p) => p[0]).join('').toUpperCase()}
       </Text>
     </View>
   );
 };
 
-// Componente para el estado de la cita
-const EstadoCita = ({ estado }) => {
-  let estiloContenedor, estiloTexto;
-  
-  switch(estado.toLowerCase()) {
-    case 'pendiente':
-      estiloContenedor = { backgroundColor: 'rgba(206, 209, 0, 0.2)' };
-      estiloTexto = { color: '#CED100' };
-      break;
-    case 'expirada':
-      estiloContenedor = { backgroundColor: 'rgba(130, 23, 23, 0.2)' };
-      estiloTexto = { color: '#821717' };
-      break;
-    case 'cancelada':
-      estiloContenedor = { backgroundColor: 'rgba(255, 0, 0, 0.2)' };
-      estiloTexto = { color: 'red' };
-      break;
-    case 'completada':
-      estiloContenedor = { backgroundColor: 'rgba(0, 255, 0, 0.2)' };
-      estiloTexto = { color: 'green' };
-      break;
-    default:
-      estiloContenedor = { backgroundColor: 'rgba(206, 209, 0, 0.2)' };
-      estiloTexto = { color: '#CED100' };
-  }
-
+const EtiquetaEstado = ({ estado = '' }) => {
+  const map = {
+    pendiente : ['rgba(206,209,0,0.2)', '#CED100'],
+    expirada  : ['rgba(130,23,23,0.2)', '#821717'],
+    cancelada : ['rgba(255,0,0,0.2)',   'red'],
+    completa  : ['rgba(0,255,0,0.2)',   'green'],
+    completada: ['rgba(0,255,0,0.2)',   'green'],
+  };
+  const [bg, color] = map[estado.toLowerCase()] || map.pendiente;
   return (
-    <View style={[styles.estadoContainer, estiloContenedor]}>
-      <Text style={[styles.estadoTexto, estiloTexto]}>{estado}</Text>
+    <View style={[styles.estadoContainer, { backgroundColor: bg }]}>
+      <Text style={[styles.estadoTexto, { color }]}>{estado}</Text>
     </View>
   );
 };
 
-// Componente para fecha/hora
-const FechaHora = ({ valor }) => (
-  <View style={styles.fechaHoraContainer}>
-    <Text style={styles.fechaHoraTexto}>{valor}</Text>
-  </View>
-);
-
-// Modal de confirmación
-const ModalConfirmacion = ({ visible, onClose, onConfirm, tipo }) => (
-  <Modal visible={visible} transparent animationType="fade">
-    <View style={styles.modalOverlay}>
-      <View style={styles.modalContent}>
-        <Text style={styles.modalTitle}>
-          {tipo === 'confirmar' 
-            ? '¿Estás seguro que desea confirmar la cita?' 
-            : '¿Seguro que deseas expirar esta cita?'}
-        </Text>
-        <Text style={styles.modalText}>
-          {tipo === 'confirmar' 
-            ? 'Para confirmar una cita, asegúrese de que el servicio se haya completado en su totalidad y que el cliente haya realizado el pago correspondiente.' 
-            : 'Para expirar una cita debes estar seguro de que la cita no se realizó en su hora establecida. Si la expiras no podrás confirmarla. Después de 3 días, si la cita no se ha confirmado, se expirará automáticamente'}
-        </Text>
-        <View style={styles.modalButtons}>
-          <TouchableOpacity 
-            style={[
-              styles.modalButton, 
-              tipo === 'confirmar' ? styles.confirmButton : styles.expireButton
-            ]} 
-            onPress={onConfirm}
-          >
-            <Text style={styles.modalButtonText}>
-              {tipo === 'confirmar' ? 'Confirmar Cita' : 'Expirar Cita'}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.cancelButton} 
-            onPress={onClose}
-          >
-            <Text style={styles.cancelButtonText}>Cancelar</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
-  </Modal>
-);
-
-// Componente de tarjeta para móvil
-const CitaCard = ({ item, onConfirm, onExpire, onViewDetail }) => (
+/* --------------------- CARD (móvil) ------------------------ */
+const CitaCard = ({ item, rol, onConfirm, onExpire, onView }) => (
   <View style={styles.cardContainer}>
     <View style={styles.cardHeader}>
       <View style={styles.cardBarberContainer}>
-        <Avatar nombre={item.barbero} />
-        <Text style={styles.cardBarberName}>{item.barbero}</Text>
+        <Avatar nombre={item.barbero?.nombre} />
+        <Text style={styles.cardBarberName}>{item.barbero?.nombre}</Text>
       </View>
-      <EstadoCita estado={item.estado} />
+      <EtiquetaEstado estado={item.estado} />
     </View>
-    
+
     <View style={styles.cardBody}>
       <View style={styles.cardRow}>
         <Text style={styles.cardLabel}>Servicio:</Text>
-        <Text style={styles.cardValue}>{item.servicio}</Text>
+        <Text style={styles.cardValue}>{item.servicio?.nombre}</Text>
       </View>
-      
       <View style={styles.cardRow}>
         <Text style={styles.cardLabel}>Fecha:</Text>
-        <Text style={styles.cardValue}>{item.fecha}</Text>
+        <Text style={styles.cardValue}>{item.fechaFormateada}</Text>
       </View>
-      
       <View style={styles.cardRow}>
         <Text style={styles.cardLabel}>Hora:</Text>
         <Text style={styles.cardValue}>{item.hora}</Text>
       </View>
     </View>
-    
+
     <View style={styles.cardActions}>
-      {item.estado === 'Pendiente' && (
+      {rol !== 'Cliente' && item.estado === 'Pendiente' && (
         <>
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.confirmButton]} 
+          <TouchableOpacity
+            style={[styles.actionButton, styles.confirmButton]}
             onPress={() => onConfirm(item.id)}
           >
-            <AntDesign name="checkcircle" size={20} color="white" />
+            <AntDesign name="checkcircle" size={20} color="#fff" />
             <Text style={styles.actionButtonText}>Confirmar</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.expireButton]} 
+          <TouchableOpacity
+            style={[styles.actionButton, styles.expireButton]}
             onPress={() => onExpire(item.id)}
           >
-            <AntDesign name="closecircle" size={20} color="white" />
+            <AntDesign name="closecircle" size={20} color="#fff" />
             <Text style={styles.actionButtonText}>Expirar</Text>
           </TouchableOpacity>
         </>
       )}
-      <TouchableOpacity 
-        style={[styles.viewButton]} 
-        onPress={() => onViewDetail(item.id)}
-      >
-        <FontAwesome name="eye" size={20} color="black" />
+      <TouchableOpacity style={styles.viewButton} onPress={() => onView(item)}>
+        <FontAwesome name="eye" size={20} color="#000" />
       </TouchableOpacity>
     </View>
   </View>
 );
 
+/* ===================== COMPONENTE ========================== */
 const CitasScreen = () => {
-  const [citas, setCitas] = useState([]);
-  const [citasFiltradas, setCitasFiltradas] = useState([]);
-  const [paginaActual, setPaginaActual] = useState(1);
-  const [citasPorPagina] = useState(isMobile ? 6 : 4);
-  const [busqueda, setBusqueda] = useState('');
-  const [modalConfirmarVisible, setModalConfirmarVisible] = useState(false);
-  const [modalExpirarVisible, setModalExpirarVisible] = useState(false);
-  const [modalCrearVisible, setModalCrearVisible] = useState(false);
-  const [modalDetalleVisible, setModalDetalleVisible] = useState(false);
-  const [citaSeleccionada, setCitaSeleccionada] = useState(null);
+  const { userRole } = useContext(AuthContext);
 
-  useEffect(() => {
-    const datosEjemplo = [
-      { 
-        id: 1, 
-        barbero: 'Carlos', 
-        estado: 'Pendiente', 
-        servicio: 'Masaje con crema', 
-        fecha: '29 de mayo de 2025', 
-        hora: '08:00 AM',
-        cliente: 'María Pérez',
-        telefono: '3101234567',
-        email: 'maria@example.com',
-        notas: 'Cliente prefiere productos naturales'
-      },
-      { 
-        id: 2, 
-        barbero: 'Carlos', 
-        estado: 'Pendiente', 
-        servicio: 'Masaje con crema', 
-        fecha: '28 de mayo de 2025', 
-        hora: '08:00 AM',
-        cliente: 'Juan Gómez',
-        telefono: '3202345678',
-        email: 'juan@example.com',
-        notas: 'Cliente regular, sin alergias conocidas'
-      },
-      { 
-        id: 3, 
-        barbero: 'Juan', 
-        estado: 'Expirada', 
-        servicio: 'Masaje con crema', 
-        fecha: '21 de mayo de 2025', 
-        hora: '08:30 AM',
-        cliente: 'Ana Rodríguez',
-        telefono: '3003456789',
-        email: 'ana@example.com',
-        notas: 'Canceló sin aviso previo'
-      },
-      { 
-        id: 4, 
-        barbero: 'Pedro', 
-        estado: 'Expirada', 
-        servicio: 'Corte de pelo', 
-        fecha: '16 de mayo de 2025', 
-        hora: '01:00 PM',
-        cliente: 'Luis Martínez',
-        telefono: '3154567890',
-        email: 'luis@example.com',
-        notas: 'No se presentó a la cita'
-      },
-      { 
-        id: 5, 
-        barbero: 'Luis', 
-        estado: 'Expirada', 
-        servicio: 'Masaje con crema', 
-        fecha: '31 de octubre de 2024', 
-        hora: '10:00 AM',
-        cliente: 'Carlos Sánchez',
-        telefono: '3175678901',
-        email: 'carlos@example.com',
-        notas: 'Cita reprogramada 3 veces'
-      },
-    ];
-    setCitas(datosEjemplo);
-    setCitasFiltradas(datosEjemplo);
-  }, []);
+  const [citas,          setCitas]          = useState([]);
+  const [filtradas,      setFiltradas]      = useState([]);
+  const [pagina,         setPagina]         = useState(1);
+  const porPagina                         = isMobile ? 6 : 4;
+  const [search,         setSearch]         = useState('');
 
+  /* Modales */
+  const [showCrear,      setShowCrear]      = useState(false);
+  const [showDetalle,    setShowDetalle]    = useState(false);
+  const [showConfirm,    setShowConfirm]    = useState(false);
+  const [showExpire,     setShowExpire]     = useState(false);
+  const [pendingId,      setPendingId]      = useState(null);
+  const [detalle,        setDetalle]        = useState(null);
+  const [infoCreacion,   setInfoCreacion]   = useState(null);
+
+  const [loading,        setLoading]        = useState(false);
+
+  /* ---------------- Helpers endpoint -------------------- */
+  const listEndpoint = () => {
+    if (userRole === 'Cliente') return '/citas/patient-dates';
+    if (userRole === 'Barbero') return '/citas/by-barber?all=true';
+    return '/citas?all=true';
+  };
+  const createEndpoint = () =>
+    (userRole === 'Cliente' ? '/citas/by-patient' : '/citas');
+
+  /* ----------------- Fetch citas ------------------------ */
+  const fetchCitas = async () => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem('token');
+      const { data } = await axios.get(`${API}${listEndpoint()}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const lista = data.citas || data;
+      setCitas(lista);
+      setFiltradas(lista);
+    } catch {
+      Alert.alert('Error', 'No se pudieron cargar las citas');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* ----- info creación (servicios/barberos/clientes) ----- */
+  const fetchInfo = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const { data } = await axios.get(`${API}/citas/get-information-to-create`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setInfoCreacion(data);
+    } catch { /* noop */ }
+  };
+
+  useFocusEffect(useCallback(() => { fetchCitas(); fetchInfo(); }, [userRole]));
+
+  /* ------------------ Búsqueda -------------------------- */
   useEffect(() => {
-    if (busqueda.trim() === '') {
-      setCitasFiltradas(citas);
+    if (!search.trim()) {
+      setFiltradas(citas);
     } else {
-      const termino = busqueda.toLowerCase();
-      const filtradas = citas.filter(c =>
-        c.barbero.toLowerCase().includes(termino) || 
-        c.servicio.toLowerCase().includes(termino) ||
-        c.estado.toLowerCase().includes(termino) ||
-        c.cliente.toLowerCase().includes(termino)
+      const t = search.toLowerCase();
+      setFiltradas(
+        citas.filter((c) =>
+          (c.barbero?.nombre  || '').toLowerCase().includes(t)
+          || (c.cliente?.nombre  || '').toLowerCase().includes(t)
+          || (c.servicio?.nombre || '').toLowerCase().includes(t)
+          || (c.estado           || '').toLowerCase().includes(t)),
       );
-      setCitasFiltradas(filtradas);
     }
-    setPaginaActual(1);
-  }, [busqueda, citas]);
+    setPagina(1);
+  }, [search, citas]);
 
-  const indiceInicial = (paginaActual - 1) * citasPorPagina;
-  const citasMostrar = isMobile ? citasFiltradas : citasFiltradas.slice(indiceInicial, indiceInicial + citasPorPagina);
-  const totalPaginas = Math.ceil(citasFiltradas.length / citasPorPagina);
+  const idxStart   = (pagina - 1) * porPagina;
+  const show       = isMobile ? filtradas : filtradas.slice(idxStart, idxStart + porPagina);
+  const totalPags  = Math.max(1, Math.ceil(filtradas.length / porPagina));
 
-  const cambiarPagina = (nuevaPagina) => {
-    if (nuevaPagina > 0 && nuevaPagina <= totalPaginas) {
-      setPaginaActual(nuevaPagina);
+  /* ---------------- Acciones ---------------------------- */
+  const confirmarCita = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      await axios.put(`${API}/citas/confirm-date/${pendingId}`, {}, { 
+        headers: { Authorization: `Bearer ${token}` } 
+      });
+      fetchCitas();
+      Alert.alert('Éxito', 'Cita confirmada correctamente');
+    } catch (e) {
+      Alert.alert('Error', e.response?.data?.mensaje || 'Error al confirmar la cita');
+    } finally {
+      setShowConfirm(false);
+      setPendingId(null);
     }
   };
 
-  const handleSearchChange = (texto) => setBusqueda(texto);
-
-  const confirmarCita = (id) => {
-    setCitaSeleccionada(id);
-    setModalConfirmarVisible(true);
+  const expirarCita = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      await axios.put(`${API}/citas/expire-date/${pendingId}`, {}, { 
+        headers: { Authorization: `Bearer ${token}` } 
+      });
+      fetchCitas();
+      Alert.alert('Éxito', 'Cita marcada como expirada');
+    } catch (e) {
+      Alert.alert('Error', e.response?.data?.mensaje || 'Error al expirar la cita');
+    } finally {
+      setShowExpire(false);
+      setPendingId(null);
+    }
   };
 
-  const expirarCita = (id) => {
-    setCitaSeleccionada(id);
-    setModalExpirarVisible(true);
-  };
+const crearCita = async (payload) => {
+  console.log('Enviando payload:', payload); // 👈🏼 Agrega esto
+  try {
+    const token = await AsyncStorage.getItem('token');
+    await axios.post(`${API}${createEndpoint()}`, payload, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    fetchCitas();
+    setShowCrear(false);
+    Alert.alert('Éxito', 'Cita creada correctamente');
+  } catch (e) {
+    console.error(e.response?.data); // 👈🏼 Agrega esto para ver el error exacto
+    Alert.alert('Error', e.response?.data?.mensaje || 'Error al crear la cita');
+  }
+};
 
-  const handleConfirmar = () => {
-    const nuevasCitas = citas.map(c => 
-      c.id === citaSeleccionada ? { ...c, estado: 'Completada' } : c
+
+  /* -------------------- UI ------------------------------ */
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#424242" />
+        <Text style={styles.loadingText}>Cargando citas…</Text>
+      </View>
     );
-    setCitas(nuevasCitas);
-    setCitasFiltradas(nuevasCitas);
-    setModalConfirmarVisible(false);
-  };
-
-  const handleExpirar = () => {
-    const nuevasCitas = citas.map(c => 
-      c.id === citaSeleccionada ? { ...c, estado: 'Expirada' } : c
-    );
-    setCitas(nuevasCitas);
-    setCitasFiltradas(nuevasCitas);
-    setModalExpirarVisible(false);
-  };
-
-  const verDetalleCita = (id) => {
-    const cita = citas.find(c => c.id === id);
-    
-    const citaAdaptada = {
-      ...cita,
-      servicio: {
-        nombre: cita.servicio,
-        descripcion: `Descripción del servicio ${cita.servicio}`
-      },
-      barbero: {
-        nombre: cita.barbero,
-        avatar: null
-      },
-      cliente: {
-        nombre: cita.cliente,
-        avatar: null
-      },
-      fecha: parseFecha(cita.fecha)
-    };
-    
-    setCitaSeleccionada(citaAdaptada);
-    setModalDetalleVisible(true);
-  };
-
-  const parseFecha = (fechaStr) => {
-    const meses = {
-      'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 
-      'junio': 5, 'julio': 6, 'agosto': 7, 'septiembre': 8, 
-      'octubre': 9, 'noviembre': 10, 'diciembre': 11
-    };
-    
-    const partes = fechaStr.split(' de ');
-    if (partes.length === 3) {
-      const dia = parseInt(partes[0]);
-      const mes = meses[partes[1].toLowerCase()];
-      const año = parseInt(partes[2]);
-      return new Date(año, mes, dia);
-    }
-    return new Date();
-  };
-
-  const crearCita = () => {
-    setModalCrearVisible(true);
-  };
-
-  const handleCreateCita = (nuevaCita) => {
-    const newId = citas.length > 0 ? Math.max(...citas.map(c => c.id)) + 1 : 1;
-    const citaCompleta = { 
-      id: newId, 
-      ...nuevaCita, 
-      estado: 'Pendiente' 
-    };
-    const nuevasCitas = [...citas, citaCompleta];
-    setCitas(nuevasCitas);
-    setCitasFiltradas(nuevasCitas);
-    setModalCrearVisible(false);
-  };
+  }
 
   return (
     <View style={styles.container}>
+      {/* -------- Header -------- */}
       <View style={styles.header}>
         <View style={styles.tituloContainer}>
           <Text style={styles.titulo}>Citas</Text>
           <View style={styles.contadorContainer}>
-            <Text style={styles.contadorTexto}>{citasFiltradas.length}</Text>
+            <Text style={styles.contadorTexto}>{filtradas.length}</Text>
           </View>
         </View>
-        <TouchableOpacity style={styles.addButton} onPress={crearCita}>
-          <Ionicons name="add-circle" size={20} color="white" />
+        <TouchableOpacity style={styles.addButton} onPress={() => setShowCrear(true)}>
+          <MaterialIcons name="add-circle" size={20} color="#fff" />
           <Text style={styles.addButtonText}>Crear</Text>
         </TouchableOpacity>
       </View>
 
       <Buscador
-        placeholder="Buscar citas por barbero, servicio o estado"
-        value={busqueda}
-        onChangeText={handleSearchChange}
+        placeholder="Buscar cita por barbero, servicio, estado…"
+        value={search}
+        onChangeText={setSearch}
       />
 
+      {/* ----------- Lista ----------- */}
       {isMobile ? (
-        // Vista móvil - Tarjetas con scroll
         <ScrollView style={styles.scrollContainer}>
           <View style={styles.cardsContainer}>
-            {citasFiltradas.map(item => (
-              <CitaCard 
-                key={item.id.toString()}
-                item={item}
-                onConfirm={confirmarCita}
-                onExpire={expirarCita}
-                onViewDetail={verDetalleCita}
+            {filtradas.map((c) => (
+              <CitaCard
+                key={c.id}
+                item={c}
+                rol={userRole}
+                onConfirm={(id) => { setPendingId(id); setShowConfirm(true); }}
+                onExpire={(id) => { setPendingId(id); setShowExpire(true); }}
+                onView={(item) => { setDetalle(item); setShowDetalle(true); }}
               />
             ))}
           </View>
         </ScrollView>
       ) : (
-        // Vista desktop - Tabla con paginación
         <>
+          {/* ---- Tabla Desktop ---- */}
           <View style={styles.tabla}>
             <View style={styles.filaEncabezado}>
-              <View style={[styles.celdaEncabezado, styles.columnaBarbero]}><Text style={styles.encabezado}>Barbero</Text></View>
-              <View style={[styles.celdaEncabezado, styles.columnaEstado]}><Text style={styles.encabezado}>Estado</Text></View>
-              <View style={[styles.celdaEncabezado, styles.columnaServicio]}><Text style={styles.encabezado}>Servicio</Text></View>
-              <View style={[styles.celdaEncabezado, styles.columnaFecha]}><Text style={styles.encabezado}>Fecha</Text></View>
-              <View style={[styles.celdaEncabezado, styles.columnaHora]}><Text style={styles.encabezado}>Hora</Text></View>
-              <View style={[styles.celdaEncabezado, styles.columnaAcciones]}><Text style={styles.encabezado}>Acciones</Text></View>
+              {[
+                ['Barbero', 2], ['Estado', 1.5], ['Servicio', 2],
+                ['Fecha', 1.5], ['Hora', 1], ['Acciones', 1.5],
+              ].map(([txt, flex], i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.celdaEncabezado,
+                    { flex, alignItems: i === 0 ? 'flex-start' : 'center' },
+                  ]}
+                >
+                  <Text style={styles.encabezado}>{txt}</Text>
+                </View>
+              ))}
             </View>
 
             <FlatList
-              data={citasMostrar}
-              keyExtractor={(item) => item.id.toString()}
+              data={show}
+              keyExtractor={(i) => i.id}
               renderItem={({ item }) => (
                 <View style={styles.fila}>
                   <View style={[styles.celda, styles.columnaBarbero]}>
                     <View style={styles.contenedorBarbero}>
-                      <Avatar nombre={item.barbero} />
-                      <Text style={styles.textoBarbero}>{item.barbero}</Text>
+                      <Avatar nombre={item.barbero?.nombre} />
+                      <Text style={styles.textoBarbero}>{item.barbero?.nombre}</Text>
                     </View>
                   </View>
                   <View style={[styles.celda, styles.columnaEstado]}>
-                    <EstadoCita estado={item.estado} />
+                    <EtiquetaEstado estado={item.estado} />
                   </View>
                   <View style={[styles.celda, styles.columnaServicio]}>
-                    <Text style={styles.textoServicio}>{item.servicio}</Text>
+                    <Text style={styles.textoServicio}>{item.servicio?.nombre}</Text>
                   </View>
                   <View style={[styles.celda, styles.columnaFecha]}>
-                    <FechaHora valor={item.fecha} />
+                    <Text style={styles.fechaTexto}>{item.fechaFormateada}</Text>
                   </View>
                   <View style={[styles.celda, styles.columnaHora]}>
-                    <FechaHora valor={item.hora} />
+                    <Text style={styles.horaTexto}>{item.hora}</Text>
                   </View>
                   <View style={[styles.celda, styles.columnaAcciones]}>
                     <View style={styles.contenedorAcciones}>
-                      {item.estado === 'Pendiente' && (
+                      {userRole !== 'Cliente' && item.estado === 'Pendiente' && (
                         <>
-                          <TouchableOpacity onPress={() => confirmarCita(item.id)} style={styles.botonAccion}>
-                            <AntDesign name="checkcircle" size={20} color="black" />
+                          <TouchableOpacity 
+                            onPress={() => { setPendingId(item.id); setShowConfirm(true); }} 
+                            style={styles.botonAccion}
+                          >
+                            <AntDesign name="checkcircle" size={20} color="#000" />
                           </TouchableOpacity>
-                          <TouchableOpacity onPress={() => expirarCita(item.id)} style={styles.botonAccion}>
-                            <AntDesign name="closecircle" size={20} color="black" />
+                          <TouchableOpacity 
+                            onPress={() => { setPendingId(item.id); setShowExpire(true); }} 
+                            style={styles.botonAccion}
+                          >
+                            <AntDesign name="closecircle" size={20} color="#000" />
                           </TouchableOpacity>
                         </>
                       )}
                       <TouchableOpacity 
-                        onPress={() => verDetalleCita(item.id)} 
+                        onPress={() => { setDetalle(item); setShowDetalle(true); }} 
                         style={styles.viewButtonDesktop}
                       >
-                        <FontAwesome name="eye" size={20} color="black" />
+                        <FontAwesome name="eye" size={20} color="#000" />
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -460,57 +365,120 @@ const CitasScreen = () => {
             />
           </View>
 
-          <Paginacion
-            paginaActual={paginaActual}
-            totalPaginas={totalPaginas}
-            cambiarPagina={cambiarPagina}
-          />
+          <View style={styles.paginacionContainer}>
+            <Paginacion
+              paginaActual={pagina}
+              totalPaginas={totalPags}
+              cambiarPagina={setPagina}
+            />
+          </View>
         </>
       )}
 
-      <ModalConfirmacion
-        visible={modalConfirmarVisible}
-        onClose={() => setModalConfirmarVisible(false)}
-        onConfirm={handleConfirmar}
-        tipo="confirmar"
-      />
-
-      <ModalConfirmacion
-        visible={modalExpirarVisible}
-        onClose={() => setModalExpirarVisible(false)}
-        onConfirm={handleExpirar}
-        tipo="expirar"
-      />
-
+      {/* -------- Modales -------- */}
       <CrearCita
-        visible={modalCrearVisible}
-        onClose={() => setModalCrearVisible(false)}
-        onCreate={handleCreateCita}
+        visible={showCrear}
+        onClose={() => setShowCrear(false)}
+        onCreate={crearCita}
+        infoCreacion={infoCreacion}
       />
 
-      {modalDetalleVisible && citaSeleccionada && (
-        <DetalleCita
-          visible={modalDetalleVisible}
-          onClose={() => setModalDetalleVisible(false)}
-          cita={citaSeleccionada}
-        />
-      )}
+      <DetalleCita
+        visible={showDetalle}
+        onClose={() => setShowDetalle(false)}
+        cita={detalle}
+      />
+
+      {/* Modal Confirmar Cita */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={showConfirm}
+        onRequestClose={() => setShowConfirm(false)}
+      >
+        <BlurView intensity={20} style={styles.modalBlurContainer}>
+          <View style={styles.modalCompactContent}>
+            <Text style={styles.modalCompactTitle}>¿Seguro que deseas confirmar la cita?</Text>
+            <Text style={styles.modalCompactText}>
+              Confirma solo si el servicio se completó y el pago se realizó.
+            </Text>
+            <View style={styles.modalCompactButtons}>
+              <TouchableOpacity
+                style={[styles.modalCompactButton, styles.modalCompactConfirmButton]}
+                onPress={confirmarCita}
+              >
+                <Text style={styles.modalCompactButtonText}>Confirmar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalCompactButton, styles.modalCompactCancelButton]}
+                onPress={() => setShowConfirm(false)}
+              >
+                <Text style={styles.modalCompactCancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </BlurView>
+      </Modal>
+
+      {/* Modal Expirar Cita */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={showExpire}
+        onRequestClose={() => setShowExpire(false)}
+      >
+        <BlurView intensity={20} style={styles.modalBlurContainer}>
+          <View style={styles.modalCompactContent}>
+            <Text style={styles.modalCompactTitle}>¿Seguro que deseas expirar esta cita?</Text>
+            <Text style={styles.modalCompactText}>
+              Una cita expirada no podrá confirmarse luego.  
+              Después de 3 días sin confirmación, se expira automáticamente.
+            </Text>
+            <View style={styles.modalCompactButtons}>
+              <TouchableOpacity
+                style={[styles.modalCompactButton, styles.modalCompactDangerButton]}
+                onPress={expirarCita}
+              >
+                <Text style={styles.modalCompactButtonText}>Expirar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalCompactButton, styles.modalCompactCancelButton]}
+                onPress={() => setShowExpire(false)}
+              >
+                <Text style={styles.modalCompactCancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </BlurView>
+      </Modal>
+
       <Footer />
     </View>
   );
 };
 
+/* ─────────────────── ESTILOS ─────────────────── */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: isMobile ? 10 : 16,
     backgroundColor: '#fff',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#424242',
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
   },
   tituloContainer: {
     flexDirection: 'row',
@@ -547,8 +515,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     fontSize: 14,
   },
-  
-  // Estilos para la vista de tarjetas (móvil)
   scrollContainer: {
     flex: 1,
   },
@@ -622,14 +588,18 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginLeft: 10,
   },
-  
-  // Estilos para la vista de tabla (desktop)
+  actionButtonText: {
+    marginLeft: 5,
+    color: 'white',
+    fontSize: 14,
+  },
   tabla: {
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 4,
-    marginBottom: 16,
     overflow: 'hidden',
+    flex: 1,
+    marginBottom: 10,
   },
   filaEncabezado: {
     flexDirection: 'row',
@@ -647,7 +617,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'black',
+    borderBottomColor: '#eee',
     alignItems: 'center',
     backgroundColor: 'white',
   },
@@ -691,6 +661,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: 'bold',
   },
+  fechaTexto: {
+    fontSize: 14,
+    color: '#424242',
+  },
+  horaTexto: {
+    fontSize: 14,
+    color: '#424242',
+  },
   encabezado: {
     fontWeight: 'bold',
     textAlign: 'center',
@@ -710,8 +688,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginLeft: 6,
   },
-  
-  // Estilos compartidos
   estadoContainer: {
     paddingVertical: 4,
     paddingHorizontal: 8,
@@ -720,16 +696,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   estadoTexto: {
-    fontWeight: 'bold',
-  },
-  fechaHoraContainer: {
-    backgroundColor: '#D9D9D9',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-  },
-  fechaHoraTexto: {
-    color: '#424242',
     fontWeight: 'bold',
   },
   avatarContainer: {
@@ -744,67 +710,74 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 14,
   },
-  
-  // Estilos para los modales
-  modalOverlay: {
+  paginacionContainer: {
+    marginBottom: 35,
+  },
+  /* Nuevos estilos para los modales compactos con blur */
+  modalBlurContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    width: '100%',
   },
-  modalContent: {
+  modalCompactContent: {
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 20,
-    width: isMobile ? '90%' : '80%',
+    borderRadius: 16,
+    padding: 24,
+    width: '85%',
     maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,
   },
-  modalTitle: {
+  modalCompactTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: 12,
     textAlign: 'center',
+    color: '#424242',
   },
-  modalText: {
-    fontSize: 14,
-    marginBottom: 20,
+  modalCompactText: {
+    fontSize: 15,
+    marginBottom: 24,
     textAlign: 'center',
     color: '#666',
+    lineHeight: 22,
   },
-  modalButtons: {
+  modalCompactButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginTop: 8,
   },
-  modalButton: {
+  modalCompactButton: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
-    marginHorizontal: 5,
+    marginHorizontal: 4,
   },
-  confirmButton: {
-    backgroundColor: '#424242',
+  modalCompactConfirmButton: {
+    backgroundColor: '#4CAF50',
   },
-  expireButton: {
-    backgroundColor: 'red',
+  modalCompactDangerButton: {
+    backgroundColor: '#F44336',
   },
-  modalButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginHorizontal: 5,
-    backgroundColor: 'white',
+  modalCompactCancelButton: {
+    backgroundColor: 'transparent',
     borderWidth: 1,
     borderColor: '#D9D9D9',
   },
-  cancelButtonText: {
-    color: 'black',
-    fontWeight: 'bold',
+  modalCompactButtonText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  modalCompactCancelButtonText: {
+    color: '#424242',
+    fontWeight: '600',
+    fontSize: 15,
   },
 });
 

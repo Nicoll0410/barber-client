@@ -1,125 +1,154 @@
-// components/CustomDrawerContent.js
-import React, { useState, useContext } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
-import { DrawerContentScrollView } from '@react-navigation/drawer';
-import { FontAwesome5, MaterialIcons, Feather, Ionicons,AntDesign, MaterialCommunityIcons, FontAwesome } from '@expo/vector-icons';
-import { AuthContext } from '../contexts/AuthContext';
+import React, { useState, useContext } from "react";
+import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
+import { DrawerContentScrollView } from "@react-navigation/drawer";
+import {
+  FontAwesome5,
+  MaterialIcons,
+  Feather,
+  Ionicons,
+  AntDesign,
+  MaterialCommunityIcons,
+} from "@expo/vector-icons";
+import { AuthContext } from "../contexts/AuthContext";
 
+/* ─────────────────── MENÚ SEGÚN ROL ─────────────────────────── */
+const ROLE_MENU = {
+  Cliente: {
+    topItems: [
+      { label: "Agenda", screen: "Agenda", icon: MaterialIcons, name: "event" },
+      { label: "Citas", screen: "Citas", icon: Ionicons, name: "calendar-outline" },
+    ],
+    sections: {},
+  },
+  Barbero: {
+    topItems: [],
+    sections: {
+      Usuarios: [
+        { label: "Clientes", screen: "Clientes", icon: Feather, name: "user" },
+      ],
+      Compras: [
+        { label: "Insumos", screen: "Insumos", icon: MaterialCommunityIcons, name: "spray" },
+        { label: "Movimientos", screen: "Movimientos", icon: FontAwesome5, name: "exchange-alt" },
+      ],
+      Ventas: [
+        { label: "Agenda", screen: "Agenda", icon: MaterialIcons, name: "event" },
+        { label: "Citas", screen: "Citas", icon: Ionicons, name: "calendar-outline" },
+      ],
+    },
+  },
+  Administrador: {
+    topItems: [
+      { label: "Dashboard", screen: "Dashboard", icon: MaterialCommunityIcons, name: "view-dashboard-outline" },
+    ],
+    sections: {
+      Usuarios: [
+        { label: "Clientes", screen: "Clientes", icon: Feather, name: "user" },
+        { label: "Barberos", screen: "Barberos", icon: Ionicons, name: "cut-outline" },
+        { label: "Roles", screen: "Roles", icon: Ionicons, name: "key-outline" },
+      ],
+      Compras: [
+        { label: "Categoría de Insumos", screen: "CategoriaInsumos", icon: MaterialCommunityIcons, name: "database-arrow-left-outline" },
+        { label: "Insumos", screen: "Insumos", icon: MaterialCommunityIcons, name: "spray" },
+        { label: "Proveedores", screen: "Proveedores", icon: MaterialCommunityIcons, name: "toolbox-outline" },
+        { label: "Compras", screen: "Compras", icon: AntDesign, name: "shoppingcart" },
+      ],
+      Ventas: [
+        { label: "Movimientos", screen: "Movimientos", icon: FontAwesome5, name: "exchange-alt" },
+        { label: "Servicios", screen: "Servicios", icon: MaterialCommunityIcons, name: "toolbox-outline" },
+        { label: "Agenda", screen: "Agenda", icon: MaterialIcons, name: "event" },
+        { label: "Citas", screen: "Citas", icon: Ionicons, name: "calendar-outline" },
+        { label: "Ventas", screen: "Ventas", icon: Ionicons, name: "cash-outline" },
+      ],
+    },
+  },
+};
+
+/* ─────────────────── COMPONENTE DRAWER ──────────────────────── */
 const CustomDrawer = (props) => {
-  const [usersExpanded, setUsersExpanded] = useState(false);
-  const [purchasesExpanded, setPurchasesExpanded] = useState(false);
-  const [salesExpanded, setSalesExpanded] = useState(false);
-  const { logout } = useContext(AuthContext);
+  const { userRole, user, logout } = useContext(AuthContext);
 
-  const renderSubItem = (label, screen, IconComponent, iconName) => (
+  const roleKey = userRole || "Administrador";
+  const config  = ROLE_MENU[roleKey];
+
+  /* Estado para secciones colapsables */
+  const [expanded, setExpanded] = useState({
+    Usuarios: false,
+    Compras: false,
+    Ventas:  false,
+  });
+  const toggle = (sec) => setExpanded((p) => ({ ...p, [sec]: !p[sec] }));
+
+  /* Renderiza un ítem normal */
+  const Item = ({ label, screen, icon: IconComp, name, indent = 0 }) => (
     <TouchableOpacity
-      style={styles.subItem}
+      style={[styles.menuItem, indent && { paddingLeft: 20 + indent }]}
       onPress={() => props.navigation.navigate(screen)}
     >
-      <IconComponent name={iconName} size={16} color="#fff" />
-      <Text style={styles.subItemText}>{label}</Text>
+      <IconComp name={name} size={indent ? 16 : 22} color="#fff" />
+      <Text style={[styles.menuText, indent && { fontSize: 14, marginLeft: 10 }]}>{label}</Text>
     </TouchableOpacity>
   );
 
   return (
     <View style={styles.container}>
-      {/* LOGO */}
+      {/* ----------- Logo superior ------------ */}
       <View style={styles.logoContainer}>
-        <Image source={require('../assets/images/newYorkBarber.jpeg')} style={styles.logo} />
+        <Image source={require("../assets/images/newYorkBarber.jpeg")} style={styles.logo} />
       </View>
 
       <DrawerContentScrollView
         {...props}
+        showsVerticalScrollIndicator
         contentContainerStyle={styles.scrollContainer}
-        showsVerticalScrollIndicator={true}
       >
         <Text style={styles.sectionTitle}>Menú</Text>
 
-        {/* DASHBOARD */}
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={() => props.navigation.navigate('Dashboard')}
-        >
-          <MaterialCommunityIcons name="view-dashboard-outline" size={24} color="white" />
-          <Text style={styles.menuText}>Dashboard</Text>
-        </TouchableOpacity>
+        {config.topItems.map((item) => <Item key={item.label} {...item} />)}
 
-        {/* USUARIOS */}
-        <TouchableOpacity
-          style={styles.expandableItem}
-          onPress={() => setUsersExpanded(!usersExpanded)}
-        >
-          <View style={styles.menuRow}>
-            <Feather name="users" size={24} color="white" />
-            <Text style={styles.menuText}>Usuarios</Text>
-          </View>
-          <Feather name={usersExpanded ? 'chevron-up' : 'chevron-down'} size={20} color="white" />
-        </TouchableOpacity>
-        {usersExpanded && (
-          <>
-            {renderSubItem('Clientes', 'Clientes', Feather, 'user')}
-            {renderSubItem('Barberos', 'Barberos', Ionicons, 'cut-outline')}
-            {renderSubItem('Roles', 'Roles', Ionicons, 'key-outline')}
-          </>
-        )}
+        {Object.entries(config.sections).map(([section, items]) => (
+          <View key={section}>
+            <TouchableOpacity style={styles.expandableItem} onPress={() => toggle(section)}>
+              <View style={styles.menuRow}>
+                {section === "Usuarios" && <Feather name="users" size={24} color="#fff" />}
+                {section === "Compras" && <AntDesign name="shoppingcart" size={24} color="#fff" />}
+                {section === "Ventas"   && <MaterialCommunityIcons name="account-cash-outline" size={24} color="#fff" />}
+                <Text style={styles.menuText}>{section}</Text>
+              </View>
+              <Feather name={expanded[section] ? "chevron-up" : "chevron-down"} size={20} color="#fff" />
+            </TouchableOpacity>
 
-        {/* COMPRAS */}
-        <TouchableOpacity
-          style={styles.expandableItem}
-          onPress={() => setPurchasesExpanded(!purchasesExpanded)}
-        >
-          <View style={styles.menuRow}>
-            <AntDesign name="shoppingcart" size={24} color="white" />
-            <Text style={styles.menuText}>Compras</Text>
+            {expanded[section] && items.map((sub) => <Item key={sub.label} {...sub} indent={20} />)}
           </View>
-          <Feather name={purchasesExpanded ? 'chevron-up' : 'chevron-down'} size={20} color="white" />
-        </TouchableOpacity>
-        {purchasesExpanded && (
-          <>
-            {renderSubItem('Compras', 'Compras', AntDesign, 'shoppingcart')}
-            {renderSubItem('Proveedores', 'Proveedores', MaterialCommunityIcons, 'toolbox-outline')}
-            {renderSubItem('Insumos', 'Insumos', MaterialCommunityIcons, 'spray')}
-            {renderSubItem('Categoría de Insumos', 'CategoriaInsumos', MaterialCommunityIcons, 'database-arrow-left-outline')}
-          </>
-        )}
-
-        {/* VENTAS */}
-        <TouchableOpacity
-          style={styles.expandableItem}
-          onPress={() => setSalesExpanded(!salesExpanded)}
-        >
-          <View style={styles.menuRow}>
-            <MaterialCommunityIcons name="account-cash-outline" size={24} color="white" />
-            <Text style={styles.menuText}>Ventas</Text>
-          </View>
-          <Feather name={salesExpanded ? 'chevron-up' : 'chevron-down'} size={20} color="white" />
-        </TouchableOpacity>
-        {salesExpanded && (
-          <>
-            {renderSubItem('Agenda', 'Agenda', MaterialIcons, 'event')}
-            {renderSubItem('Citas', 'Citas', Ionicons, 'calendar-outline')}
-            {renderSubItem('Servicios', 'Servicios', MaterialCommunityIcons, 'toolbox-outline')}
-            {renderSubItem('Movimientos', 'Movimientos', FontAwesome5, 'exchange-alt')}
-            {renderSubItem('Ventas', 'Ventas', Ionicons, 'cash-outline')}
-          </>
-        )}
+        ))}
       </DrawerContentScrollView>
 
-      {/* PERFIL */}
-      <View style={styles.profileContainer}>
+      {/* ------------- Perfil abajo ------------- */}
+      <View style={styles.profileSection}>
         <Text style={styles.profileTitle}>Perfil</Text>
-        <View style={styles.profileInfo}>
-          <Image source={require('../assets/avatar.png')} style={styles.avatar} />
-          <View style={styles.profileDetails}>
-            <Text style={styles.role}>Administrador</Text>
-            <Text style={styles.email}>admin@barberia.com</Text>
+        <View style={styles.userContainer}>
+          {user?.imagen ? (
+            <Image source={{ uri: user.imagen }} style={styles.avatar} />
+          ) : (
+            <View style={styles.avatarPlaceholder}>
+              <Feather name="user" size={24} color="#fff" />
+            </View>
+          )}
+
+          <View style={styles.userInfoContainer}>
+            <Text style={styles.userName}>
+              {user?.nombre || user?.email?.split("@")[0] || "Usuario"}
+            </Text>
+            <Text style={styles.userEmail}>
+              {user?.email || "ejemplo@dominio.com"}
+            </Text>
+            <Text style={styles.userRole}>{roleKey}</Text>
           </View>
         </View>
+      </View>
 
-        <TouchableOpacity
-          style={styles.logoutButton}
-          onPress={logout}
-        >
+      {/* ------------- Logout ------------- */}
+      <View style={styles.profileContainer}>
+        <TouchableOpacity style={styles.logoutButton} onPress={logout}>
           <Feather name="log-out" size={18} color="black" />
           <Text style={styles.logoutText}>Cerrar sesión</Text>
         </TouchableOpacity>
@@ -128,118 +157,29 @@ const CustomDrawer = (props) => {
   );
 };
 
+/* ─────────────────── Estilos ────────────────────── */
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  scrollContainer: {
-    flexGrow: 1,
-  },
-  logoContainer: {
-    alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderColor: '#222',
-    backgroundColor: '#000',
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#fff',
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 5,
-  },
-  logo: {
-    width: 120,
-    height: 120,
-    resizeMode: 'contain',
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 14,
-    paddingLeft: 20,
-  },
-  menuText: {
-    marginLeft: 15,
-    fontSize: 16,
-    color: '#fff',
-  },
-  subItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingLeft: 40,
-    paddingVertical: 8,
-  },
-  subItemText: {
-    marginLeft: 10,
-    fontSize: 14,
-    color: '#fff',
-  },
-  profileContainer: {
-    padding: 16,
-    borderTopWidth: 1,
-    borderColor: '#222',
-    backgroundColor: '#000',
-  },
-  profileTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 10,
-  },
-  profileInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 12,
-  },
-  profileDetails: {
-    flex: 1,
-  },
-  role: {
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  email: {
-    color: '#fff',
-    fontSize: 13,
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    backgroundColor: '#D9D9D9',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 15,
-    alignSelf: 'flex-start',
-    width: '100%',
-    justifyContent: 'center',
-  },
-  logoutText: {
-    color: 'black',
-    marginLeft: 8,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  expandableItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-  },
-  menuRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+  container:          { flex: 1, backgroundColor: "#000" },
+  scrollContainer:    { flexGrow: 1 },
+  logoContainer:      { alignItems: "center", paddingVertical: 16, borderBottomWidth: 1, borderColor: "#222" },
+  logo:               { width: 120, height: 120, resizeMode: "contain" },
+  sectionTitle:       { fontSize: 14, fontWeight: "bold", color: "#fff", paddingHorizontal: 20, paddingTop: 10, paddingBottom: 5 },
+  menuItem:           { flexDirection: "row", alignItems: "center", paddingVertical: 14, paddingLeft: 20 },
+  menuText:           { marginLeft: 15, fontSize: 16, color: "#fff" },
+  expandableItem:     { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 14, paddingHorizontal: 20 },
+  menuRow:            { flexDirection: "row", alignItems: "center" },
+  profileSection:     { padding: 20, borderTopWidth: 1, borderBottomWidth: 1, borderColor: "#222" },
+  profileTitle:       { fontSize: 14, fontWeight: "bold", color: "#fff", marginBottom: 10 },
+  userContainer:      { flexDirection: "row", alignItems: "center" },
+  avatar:             { width: 50, height: 50, borderRadius: 25, marginRight: 10 },
+  avatarPlaceholder:  { width: 50, height: 50, borderRadius: 25, backgroundColor: "#333", justifyContent: "center", alignItems: "center", marginRight: 10 },
+  userInfoContainer:  { flex: 1 },
+  userName:           { color: "#fff", fontSize: 16, fontWeight: "600", marginBottom: 4 },
+  userEmail:          { color: "#aaa", fontSize: 14, marginBottom: 4 },
+  userRole:           { color: "#aaa", fontSize: 12, fontStyle: "italic" },
+  profileContainer:   { padding: 16, borderTopWidth: 1, borderColor: "#222" },
+  logoutButton:       { flexDirection: "row", backgroundColor: "#D9D9D9", paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  logoutText:         { color: "black", marginLeft: 8, fontSize: 16, fontWeight: "700" },
 });
 
 export default CustomDrawer;

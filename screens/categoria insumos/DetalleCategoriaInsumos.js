@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Modal, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, Modal, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 
@@ -22,6 +22,13 @@ const DetalleCategoriaInsumos = ({ visible, onClose, categoria }) => {
             </TouchableOpacity>
           </View>
 
+          <View style={styles.avatarContainer}>
+            <Image 
+              source={{ uri: categoria.avatar || 'https://i.postimg.cc/Tw9dbMG1/Mediamodifier-Design-Template.png' }} 
+              style={styles.avatarLarge}
+            />
+          </View>
+
           <View style={styles.contentContainer}>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Nombre</Text>
@@ -35,17 +42,7 @@ const DetalleCategoriaInsumos = ({ visible, onClose, categoria }) => {
 
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Insumos Asociados</Text>
-              <Text style={styles.detailValue}>{categoria.insumosAsociados}</Text>
-            </View>
-
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Fecha de Creación</Text>
-              <Text style={styles.detailValue}>{categoria.fechaCreacion}</Text>
-            </View>
-
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Última Actualización</Text>
-              <Text style={styles.detailValue}>{categoria.fechaActualizacion || categoria.fechaCreacion}</Text>
+              <Text style={styles.detailValue}>{categoria.insumosAsociados || 0}</Text>
             </View>
           </View>
 
@@ -73,8 +70,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 20,
-    borderWidth: 1,  // Borde negro agregado
-    borderColor: 'black',  // Color del borde
+    borderWidth: 1,
+    borderColor: 'black',
   },
   header: {
     flexDirection: 'row',
@@ -89,6 +86,15 @@ const styles = StyleSheet.create({
   },
   closeIcon: {
     padding: 4,
+  },
+  avatarContainer: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  avatarLarge: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
   },
   contentContainer: {
     marginBottom: 16,
@@ -110,15 +116,15 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   closeButton: {
-    backgroundColor: '#424242',  // Color de fondo cambiado
+    backgroundColor: '#424242',
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
-    width: '30%',  // Ancho reducido
-    alignSelf: 'center',  // Centrado
+    width: '30%',
+    alignSelf: 'center',
   },
   closeButtonText: {
-    color: 'white',  // Texto en blanco
+    color: 'white',
     fontSize: 14,
     fontWeight: '600',
   },

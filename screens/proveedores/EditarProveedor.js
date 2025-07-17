@@ -7,15 +7,16 @@ import {
   TouchableOpacity, 
   TextInput, 
   ScrollView,
-  Dimensions
+  Dimensions,
+  Alert
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 
 const EditarProveedor = ({ visible, onClose, proveedor, onUpdate }) => {
-  const [tipoProveedor, setTipoProveedor] = useState('Persona natural');
-  const [tipoDocumento, setTipoDocumento] = useState('Cédula de ciudadanía');
+  const [tipoProveedor, setTipoProveedor] = useState('Persona');
+  const [tipoDocumento, setTipoDocumento] = useState('CC');
   const [numeroDocumento, setNumeroDocumento] = useState('');
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
@@ -24,6 +25,7 @@ const EditarProveedor = ({ visible, onClose, proveedor, onUpdate }) => {
   const [nombreEmpresa, setNombreEmpresa] = useState('');
   const [personaContacto, setPersonaContacto] = useState('');
   const [isMobile, setIsMobile] = useState(false);
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -41,16 +43,16 @@ const EditarProveedor = ({ visible, onClose, proveedor, onUpdate }) => {
 
   useEffect(() => {
     if (proveedor) {
-      setTipoProveedor(proveedor.tipo || 'Persona natural');
+      setTipoProveedor(proveedor.tipo || 'Persona');
+      setTipoDocumento(proveedor.tipoDocumento || 'CC');
       
-      if (proveedor.tipo === 'Persona natural') {
-        setTipoDocumento(proveedor.tipoDocumento || 'Cédula de ciudadanía');
+      if (proveedor.tipo === 'Persona') {
         setNumeroDocumento(proveedor.identificacion || '');
         setNombre(proveedor.nombre || '');
       } else {
         setNit(proveedor.identificacion || '');
         setNombreEmpresa(proveedor.nombre || '');
-        setPersonaContacto(proveedor.personaContacto || '');
+        setPersonaContacto(proveedor.nombreContacto || '');
       }
       
       setEmail(proveedor.email || '');
@@ -58,35 +60,80 @@ const EditarProveedor = ({ visible, onClose, proveedor, onUpdate }) => {
     }
   }, [proveedor]);
 
+  const validateFields = () => {
+    const newErrors = {};
+    let isValid = true;
+
+    if (tipoProveedor === 'Persona') {
+      if (!numeroDocumento) {
+        newErrors.numeroDocumento = 'El número de documento es obligatorio';
+        isValid = false;
+      } else if (!/^\d+$/.test(numeroDocumento)) {
+        newErrors.numeroDocumento = 'Solo se permiten números';
+        isValid = false;
+      }
+
+      if (!nombre) {
+        newErrors.nombre = 'El nombre es obligatorio';
+        isValid = false;
+      }
+    } else {
+      if (!nit) {
+        newErrors.nit = 'El NIT es obligatorio';
+        isValid = false;
+      } else if (!/^\d+$/.test(nit)) {
+        newErrors.nit = 'Solo se permiten números';
+        isValid = false;
+      }
+
+      if (!nombreEmpresa) {
+        newErrors.nombreEmpresa = 'El nombre de la empresa es obligatorio';
+        isValid = false;
+      }
+
+      if (!personaContacto) {
+        newErrors.personaContacto = 'La persona de contacto es obligatoria';
+        isValid = false;
+      }
+    }
+
+    if (!email) {
+      newErrors.email = 'El email es obligatorio';
+      isValid = false;
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = 'El email no es válido';
+      isValid = false;
+    }
+
+    if (!telefono) {
+      newErrors.telefono = 'El teléfono es obligatorio';
+      isValid = false;
+    } else if (!/^\d+$/.test(telefono)) {
+      newErrors.telefono = 'Solo se permiten números';
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
+
   const handleUpdate = () => {
+    if (!validateFields()) return;
+
     const updatedProveedor = {
       ...proveedor,
       tipo: tipoProveedor,
-      ...(tipoProveedor === 'Persona natural' ? {
-        tipoDocumento,
-        identificacion: numeroDocumento,
-        nombre,
-        email,
-        telefono,
-        nit: undefined,
-        nombreEmpresa: undefined,
-        personaContacto: undefined
-      } : {
-        identificacion: nit,
-        nombre: nombreEmpresa,
-        personaContacto,
-        email,
-        telefono,
-        tipoDocumento: undefined,
-        numeroDocumento: undefined,
-        nombre: undefined
-      })
+      tipoDocumento: tipoProveedor === 'Persona' ? tipoDocumento : 'NIT',
+      identificacion: tipoProveedor === 'Persona' ? numeroDocumento : nit,
+      nombre: tipoProveedor === 'Persona' ? nombre : nombreEmpresa,
+      nombreContacto: tipoProveedor === 'Persona' ? nombre : personaContacto,
+      email: email,
+      telefono: telefono
     };
+
     onUpdate(updatedProveedor);
-    onClose();
   };
 
-  // Render for desktop/laptop
   const renderDesktopLayout = () => (
     <View style={styles.modalContent}>
       <View style={styles.modalHeader}>
@@ -109,13 +156,13 @@ const EditarProveedor = ({ visible, onClose, proveedor, onUpdate }) => {
             <TouchableOpacity 
               style={[
                 styles.radioButton, 
-                tipoProveedor === 'Persona natural' && styles.radioButtonSelected
+                tipoProveedor === 'Persona' && styles.radioButtonSelected
               ]}
-              onPress={() => setTipoProveedor('Persona natural')}
+              onPress={() => setTipoProveedor('Persona')}
             >
               <Text style={[
                 styles.radioButtonText,
-                tipoProveedor === 'Persona natural' && styles.radioButtonTextSelected
+                tipoProveedor === 'Persona' && styles.radioButtonTextSelected
               ]}>
                 Persona
               </Text>
@@ -137,105 +184,157 @@ const EditarProveedor = ({ visible, onClose, proveedor, onUpdate }) => {
           </View>
         </View>
 
-        {tipoProveedor === 'Persona natural' ? (
+        {tipoProveedor === 'Persona' ? (
           <>
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Tipo de documento*</Text>
+              <View style={styles.labelContainer}>
+                <Text style={styles.label}>Tipo de documento</Text>
+                <Text style={styles.requiredStar}>*</Text>
+              </View>
               <View style={styles.pickerContainer}>
                 <Picker
                   selectedValue={tipoDocumento}
                   onValueChange={(itemValue) => setTipoDocumento(itemValue)}
                   style={styles.picker}
                 >
-                  <Picker.Item label="Cédula de ciudadanía" value="Cédula de ciudadanía" />
-                  <Picker.Item label="Cédula de extranjería" value="Cédula de extranjería" />
+                  <Picker.Item label="Cédula de ciudadanía" value="CC" />
+                  <Picker.Item label="Cédula de extranjería" value="CE" />
                 </Picker>
               </View>
             </View>
 
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Número de documento*</Text>
+              <View style={styles.labelContainer}>
+                <Text style={styles.label}>Número de documento</Text>
+                <Text style={styles.requiredStar}>*</Text>
+              </View>
               <TextInput
-                style={styles.input}
+                style={[styles.input, errors.numeroDocumento && styles.inputError]}
                 value={numeroDocumento}
-                onChangeText={setNumeroDocumento}
+                onChangeText={(text) => {
+                  setNumeroDocumento(text);
+                  if (errors.numeroDocumento) setErrors({...errors, numeroDocumento: null});
+                }}
                 keyboardType="numeric"
                 placeholder="Ej: 123456789"
                 placeholderTextColor="#929292"
               />
+              {errors.numeroDocumento && <Text style={styles.errorText}>{errors.numeroDocumento}</Text>}
             </View>
 
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Nombre*</Text>
+              <View style={styles.labelContainer}>
+                <Text style={styles.label}>Nombre</Text>
+                <Text style={styles.requiredStar}>*</Text>
+              </View>
               <TextInput
-                style={styles.input}
+                style={[styles.input, errors.nombre && styles.inputError]}
                 value={nombre}
-                onChangeText={setNombre}
+                onChangeText={(text) => {
+                  setNombre(text);
+                  if (errors.nombre) setErrors({...errors, nombre: null});
+                }}
                 placeholder="Nombre completo"
                 placeholderTextColor="#929292"
               />
+              {errors.nombre && <Text style={styles.errorText}>{errors.nombre}</Text>}
             </View>
           </>
         ) : (
           <>
             <View style={styles.formGroup}>
-              <Text style={styles.label}>NIT*</Text>
+              <View style={styles.labelContainer}>
+                <Text style={styles.label}>NIT</Text>
+                <Text style={styles.requiredStar}>*</Text>
+              </View>
               <TextInput
-                style={styles.input}
+                style={[styles.input, errors.nit && styles.inputError]}
                 value={nit}
-                onChangeText={setNit}
+                onChangeText={(text) => {
+                  setNit(text);
+                  if (errors.nit) setErrors({...errors, nit: null});
+                }}
                 keyboardType="numeric"
                 placeholder="Número de NIT"
                 placeholderTextColor="#929292"
               />
+              {errors.nit && <Text style={styles.errorText}>{errors.nit}</Text>}
             </View>
 
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Nombre de la empresa*</Text>
+              <View style={styles.labelContainer}>
+                <Text style={styles.label}>Nombre de la empresa</Text>
+                <Text style={styles.requiredStar}>*</Text>
+              </View>
               <TextInput
-                style={styles.input}
+                style={[styles.input, errors.nombreEmpresa && styles.inputError]}
                 value={nombreEmpresa}
-                onChangeText={setNombreEmpresa}
+                onChangeText={(text) => {
+                  setNombreEmpresa(text);
+                  if (errors.nombreEmpresa) setErrors({...errors, nombreEmpresa: null});
+                }}
                 placeholder="Razón social"
                 placeholderTextColor="#929292"
               />
+              {errors.nombreEmpresa && <Text style={styles.errorText}>{errors.nombreEmpresa}</Text>}
             </View>
 
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Persona de contacto*</Text>
+              <View style={styles.labelContainer}>
+                <Text style={styles.label}>Persona de contacto</Text>
+                <Text style={styles.requiredStar}>*</Text>
+              </View>
               <TextInput
-                style={styles.input}
+                style={[styles.input, errors.personaContacto && styles.inputError]}
                 value={personaContacto}
-                onChangeText={setPersonaContacto}
+                onChangeText={(text) => {
+                  setPersonaContacto(text);
+                  if (errors.personaContacto) setErrors({...errors, personaContacto: null});
+                }}
                 placeholder="Nombre del contacto"
                 placeholderTextColor="#929292"
               />
+              {errors.personaContacto && <Text style={styles.errorText}>{errors.personaContacto}</Text>}
             </View>
           </>
         )}
 
         <View style={styles.formGroup}>
-          <Text style={styles.label}>Email*</Text>
+          <View style={styles.labelContainer}>
+            <Text style={styles.label}>Email</Text>
+            <Text style={styles.requiredStar}>*</Text>
+          </View>
           <TextInput
-            style={styles.input}
+            style={[styles.input, errors.email && styles.inputError]}
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(text) => {
+              setEmail(text);
+              if (errors.email) setErrors({...errors, email: null});
+            }}
             keyboardType="email-address"
             placeholder="Ej: nombre@dominio.com"
             placeholderTextColor="#929292"
           />
+          {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={styles.label}>Teléfono*</Text>
+          <View style={styles.labelContainer}>
+            <Text style={styles.label}>Teléfono</Text>
+            <Text style={styles.requiredStar}>*</Text>
+          </View>
           <TextInput
-            style={styles.input}
+            style={[styles.input, errors.telefono && styles.inputError]}
             value={telefono}
-            onChangeText={setTelefono}
+            onChangeText={(text) => {
+              setTelefono(text);
+              if (errors.telefono) setErrors({...errors, telefono: null});
+            }}
             keyboardType="phone-pad"
             placeholder="Ej: 1234567890"
             placeholderTextColor="#929292"
           />
+          {errors.telefono && <Text style={styles.errorText}>{errors.telefono}</Text>}
         </View>
       </ScrollView>
 
@@ -250,7 +349,6 @@ const EditarProveedor = ({ visible, onClose, proveedor, onUpdate }) => {
     </View>
   );
 
-  // Render for mobile/tablet
   const renderMobileLayout = () => (
     <View style={styles.mobileModalContent}>
       <View style={styles.modalHeader}>
@@ -273,13 +371,13 @@ const EditarProveedor = ({ visible, onClose, proveedor, onUpdate }) => {
             <TouchableOpacity 
               style={[
                 styles.radioButton, 
-                tipoProveedor === 'Persona natural' && styles.radioButtonSelected
+                tipoProveedor === 'Persona' && styles.radioButtonSelected
               ]}
-              onPress={() => setTipoProveedor('Persona natural')}
+              onPress={() => setTipoProveedor('Persona')}
             >
               <Text style={[
                 styles.radioButtonText,
-                tipoProveedor === 'Persona natural' && styles.radioButtonTextSelected
+                tipoProveedor === 'Persona' && styles.radioButtonTextSelected
               ]}>
                 Persona
               </Text>
@@ -301,105 +399,157 @@ const EditarProveedor = ({ visible, onClose, proveedor, onUpdate }) => {
           </View>
         </View>
 
-        {tipoProveedor === 'Persona natural' ? (
+        {tipoProveedor === 'Persona' ? (
           <>
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Tipo de documento*</Text>
+              <View style={styles.labelContainer}>
+                <Text style={styles.label}>Tipo de documento</Text>
+                <Text style={styles.requiredStar}>*</Text>
+              </View>
               <View style={styles.pickerContainer}>
                 <Picker
                   selectedValue={tipoDocumento}
                   onValueChange={(itemValue) => setTipoDocumento(itemValue)}
                   style={styles.picker}
                 >
-                  <Picker.Item label="Cédula de ciudadanía" value="Cédula de ciudadanía" />
-                  <Picker.Item label="Cédula de extranjería" value="Cédula de extranjería" />
+                  <Picker.Item label="Cédula de ciudadanía" value="CC" />
+                  <Picker.Item label="Cédula de extranjería" value="CE" />
                 </Picker>
               </View>
             </View>
 
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Número de documento*</Text>
+              <View style={styles.labelContainer}>
+                <Text style={styles.label}>Número de documento</Text>
+                <Text style={styles.requiredStar}>*</Text>
+              </View>
               <TextInput
-                style={styles.input}
+                style={[styles.input, errors.numeroDocumento && styles.inputError]}
                 value={numeroDocumento}
-                onChangeText={setNumeroDocumento}
+                onChangeText={(text) => {
+                  setNumeroDocumento(text);
+                  if (errors.numeroDocumento) setErrors({...errors, numeroDocumento: null});
+                }}
                 keyboardType="numeric"
                 placeholder="Ej: 123456789"
                 placeholderTextColor="#929292"
               />
+              {errors.numeroDocumento && <Text style={styles.errorText}>{errors.numeroDocumento}</Text>}
             </View>
 
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Nombre*</Text>
+              <View style={styles.labelContainer}>
+                <Text style={styles.label}>Nombre</Text>
+                <Text style={styles.requiredStar}>*</Text>
+              </View>
               <TextInput
-                style={styles.input}
+                style={[styles.input, errors.nombre && styles.inputError]}
                 value={nombre}
-                onChangeText={setNombre}
+                onChangeText={(text) => {
+                  setNombre(text);
+                  if (errors.nombre) setErrors({...errors, nombre: null});
+                }}
                 placeholder="Nombre completo"
                 placeholderTextColor="#929292"
               />
+              {errors.nombre && <Text style={styles.errorText}>{errors.nombre}</Text>}
             </View>
           </>
         ) : (
           <>
             <View style={styles.formGroup}>
-              <Text style={styles.label}>NIT*</Text>
+              <View style={styles.labelContainer}>
+                <Text style={styles.label}>NIT</Text>
+                <Text style={styles.requiredStar}>*</Text>
+              </View>
               <TextInput
-                style={styles.input}
+                style={[styles.input, errors.nit && styles.inputError]}
                 value={nit}
-                onChangeText={setNit}
+                onChangeText={(text) => {
+                  setNit(text);
+                  if (errors.nit) setErrors({...errors, nit: null});
+                }}
                 keyboardType="numeric"
                 placeholder="Número de NIT"
                 placeholderTextColor="#929292"
               />
+              {errors.nit && <Text style={styles.errorText}>{errors.nit}</Text>}
             </View>
 
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Nombre de la empresa*</Text>
+              <View style={styles.labelContainer}>
+                <Text style={styles.label}>Nombre de la empresa</Text>
+                <Text style={styles.requiredStar}>*</Text>
+              </View>
               <TextInput
-                style={styles.input}
+                style={[styles.input, errors.nombreEmpresa && styles.inputError]}
                 value={nombreEmpresa}
-                onChangeText={setNombreEmpresa}
+                onChangeText={(text) => {
+                  setNombreEmpresa(text);
+                  if (errors.nombreEmpresa) setErrors({...errors, nombreEmpresa: null});
+                }}
                 placeholder="Razón social"
                 placeholderTextColor="#929292"
               />
+              {errors.nombreEmpresa && <Text style={styles.errorText}>{errors.nombreEmpresa}</Text>}
             </View>
 
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Persona de contacto*</Text>
+              <View style={styles.labelContainer}>
+                <Text style={styles.label}>Persona de contacto</Text>
+                <Text style={styles.requiredStar}>*</Text>
+              </View>
               <TextInput
-                style={styles.input}
+                style={[styles.input, errors.personaContacto && styles.inputError]}
                 value={personaContacto}
-                onChangeText={setPersonaContacto}
+                onChangeText={(text) => {
+                  setPersonaContacto(text);
+                  if (errors.personaContacto) setErrors({...errors, personaContacto: null});
+                }}
                 placeholder="Nombre del contacto"
                 placeholderTextColor="#929292"
               />
+              {errors.personaContacto && <Text style={styles.errorText}>{errors.personaContacto}</Text>}
             </View>
           </>
         )}
 
         <View style={styles.formGroup}>
-          <Text style={styles.label}>Email*</Text>
+          <View style={styles.labelContainer}>
+            <Text style={styles.label}>Email</Text>
+            <Text style={styles.requiredStar}>*</Text>
+          </View>
           <TextInput
-            style={styles.input}
+            style={[styles.input, errors.email && styles.inputError]}
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(text) => {
+              setEmail(text);
+              if (errors.email) setErrors({...errors, email: null});
+            }}
             keyboardType="email-address"
             placeholder="Ej: nombre@dominio.com"
             placeholderTextColor="#929292"
           />
+          {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={styles.label}>Teléfono*</Text>
+          <View style={styles.labelContainer}>
+            <Text style={styles.label}>Teléfono</Text>
+            <Text style={styles.requiredStar}>*</Text>
+          </View>
           <TextInput
-            style={styles.input}
+            style={[styles.input, errors.telefono && styles.inputError]}
             value={telefono}
-            onChangeText={setTelefono}
+            onChangeText={(text) => {
+              setTelefono(text);
+              if (errors.telefono) setErrors({...errors, telefono: null});
+            }}
             keyboardType="phone-pad"
             placeholder="Ej: 1234567890"
             placeholderTextColor="#929292"
           />
+          {errors.telefono && <Text style={styles.errorText}>{errors.telefono}</Text>}
         </View>
       </ScrollView>
 
@@ -431,7 +581,6 @@ const EditarProveedor = ({ visible, onClose, proveedor, onUpdate }) => {
 };
 
 const styles = StyleSheet.create({
-  // Common styles
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -487,11 +636,20 @@ const styles = StyleSheet.create({
   formGroup: {
     marginBottom: 12,
   },
+  labelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   label: {
     fontSize: 12,
-    marginBottom: 4,
     color: '#555',
     fontWeight: '500',
+  },
+  requiredStar: {
+    color: 'red',
+    marginLeft: 2,
+    fontSize: 12,
   },
   input: {
     borderWidth: 1,
@@ -500,6 +658,14 @@ const styles = StyleSheet.create({
     padding: 8,
     fontSize: 13,
     backgroundColor: '#fafafa',
+  },
+  inputError: {
+    borderColor: '#d32f2f',
+  },
+  errorText: {
+    color: '#d32f2f',
+    fontSize: 12,
+    marginTop: 4,
   },
   pickerContainer: {
     borderWidth: 1,
@@ -537,8 +703,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: '500',
   },
-
-  // Desktop styles
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -570,8 +734,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     marginTop: 12,
   },
-
-  // Mobile styles
   mobileModalContainer: {
     flex: 1,
     justifyContent: 'center',

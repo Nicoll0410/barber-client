@@ -1,19 +1,21 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, Image } from 'react-native';
-import { MaterialIcons, FontAwesome, Feather } from '@expo/vector-icons';
+import { View, Text, Modal, TouchableOpacity, StyleSheet } from 'react-native';
+import { MaterialIcons, Feather } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 
 const DetalleCita = ({ visible, onClose, cita }) => {
   // Función para obtener los estilos según el estado
   const getStatusStyles = (status) => {
-    switch (status?.toLowerCase()) {
+    if (!status) return { backgroundColor: 'rgba(0, 0, 0, 0.1)', color: '#000' };
+    
+    switch (status.toLowerCase()) {
       case 'pendiente':
         return { backgroundColor: 'rgba(206, 209, 0, 0.2)', color: '#ced100' };
       case 'expirada':
         return { backgroundColor: 'rgba(130, 23, 23, 0.2)', color: '#821717' };
       case 'cancelada':
         return { backgroundColor: 'rgba(234, 22, 1, 0.2)', color: '#EA1601' };
-      case 'completada':
+      case 'completa':
         return { backgroundColor: 'rgba(3, 155, 23, 0.2)', color: '#039B17' };
       default:
         return { backgroundColor: 'rgba(0, 0, 0, 0.1)', color: '#000' };
@@ -21,6 +23,8 @@ const DetalleCita = ({ visible, onClose, cita }) => {
   };
 
   const statusStyles = getStatusStyles(cita?.estado);
+
+  if (!cita) return null;
 
   return (
     <Modal
@@ -40,47 +44,39 @@ const DetalleCita = ({ visible, onClose, cita }) => {
           {/* Sección de Servicio */}
           <View style={styles.sectionContainer}>
             <Text style={styles.sectionTitle}>Servicio</Text>
-            <Text style={styles.serviceName}>{cita?.servicio?.nombre || 'No especificado'}</Text>
-            <Text style={styles.serviceDescription}>{cita?.servicio?.descripcion || 'Sin descripción'}</Text>
+            <Text style={styles.serviceName}>{cita.servicio?.nombre || 'No especificado'}</Text>
+          </View>
+
+          {/* Estado de la cita */}
+          <View style={[styles.statusContainer, { backgroundColor: statusStyles.backgroundColor }]}>
+            <Text style={[styles.statusText, { color: statusStyles.color }]}>
+              {cita.estado || 'Sin estado'}
+            </Text>
           </View>
 
           {/* Sección de Fecha y Hora */}
           <View style={styles.timeDateContainer}>
             <View style={styles.timeDateRow}>
               <Feather name="calendar" size={20} color="#555" />
-              <Text style={styles.timeDateText}>
-                {cita?.fecha?.toLocaleDateString('es-ES', { 
-                  weekday: 'long', 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
-                })}
-              </Text>
+              <Text style={styles.timeDateText}>{cita.fechaFormateada}</Text>
             </View>
             <View style={styles.timeDateRow}>
               <Feather name="clock" size={20} color="#555" />
-              <Text style={styles.timeDateText}>{cita?.hora}</Text>
+              <Text style={styles.timeDateText}>{cita.hora}</Text>
             </View>
-          </View>
-
-          {/* Estado de la cita */}
-          <View style={[styles.statusContainer, { backgroundColor: statusStyles.backgroundColor }]}>
-            <Text style={[styles.statusText, { color: statusStyles.color }]}>
-              {cita?.estado || 'Sin estado'}
-            </Text>
+            <View style={styles.timeDateRow}>
+              <Feather name="watch" size={20} color="#555" />
+              <Text style={styles.timeDateText}>
+                {cita.servicio?.duracionMaxima || 'Duración no especificada'}
+              </Text>
+            </View>
           </View>
 
           {/* Sección de Barbero y Cliente */}
           <View style={styles.peopleContainer}>
             {/* Barbero */}
             <View style={styles.personCard}>
-              <View style={styles.avatarContainer}>
-                <Image 
-                  source={{ uri: cita?.barbero?.avatar || 'https://via.placeholder.com/50' }} 
-                  style={styles.avatar} 
-                />
-              </View>
-              <Text style={styles.personName}>{cita?.barbero?.nombre || 'Barbero no asignado'}</Text>
+              <Text style={styles.personName}>{cita.barbero?.nombre || 'Barbero no asignado'}</Text>
               <View style={styles.roleBadge}>
                 <Text style={styles.roleText}>Barbero</Text>
               </View>
@@ -88,24 +84,17 @@ const DetalleCita = ({ visible, onClose, cita }) => {
 
             {/* Cliente */}
             <View style={styles.personCard}>
-              <View style={styles.avatarContainer}>
-                <Image 
-                  source={{ uri: cita?.cliente?.avatar || 'https://via.placeholder.com/50' }} 
-                  style={styles.avatar} 
-                />
-              </View>
-              <Text style={styles.personName}>{cita?.cliente?.nombre || 'Cliente no especificado'}</Text>
+              <Text style={styles.personName}>{cita.cliente?.nombre || 'Cliente no especificado'}</Text>
               <View style={styles.roleBadge}>
                 <Text style={styles.roleText}>Cliente</Text>
               </View>
             </View>
           </View>
 
-          {/* Notas adicionales */}
-          {cita?.notas && (
-            <View style={styles.notesContainer}>
-              <Text style={styles.notesTitle}>Notas adicionales:</Text>
-              <Text style={styles.notesText}>{cita.notas}</Text>
+          {cita.estado === 'Cancelada' && cita.razonCancelacion && (
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionTitle}>Razón de cancelación</Text>
+              <Text style={styles.serviceDescription}>{cita.razonCancelacion}</Text>
             </View>
           )}
 
@@ -140,8 +129,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.25,
     shadowRadius: 7,
-    borderWidth: 1,  // Borde negro agregado
-    borderColor: '#000',  // Color del borde
+    borderWidth: 1,
+    borderColor: '#000',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -210,17 +199,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: '#f8f8f8',
   },
-  avatarContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    overflow: 'hidden',
-    marginBottom: 8,
-  },
-  avatar: {
-    width: '100%',
-    height: '100%',
-  },
   personName: {
     fontSize: 14,
     fontWeight: '600',
@@ -238,30 +216,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#555',
   },
-  notesContainer: {
-    marginBottom: 15,
-  },
-  notesTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#555',
-    marginBottom: 5,
-  },
-  notesText: {
-    fontSize: 14,
-    color: '#333',
-    lineHeight: 20,
-  },
   buttonContainer: {
-    alignItems: 'center',  // Centra el botón horizontalmente
+    alignItems: 'center',
   },
   closeButton: {
-    backgroundColor: '#424242',  // Color de fondo cambiado
+    backgroundColor: '#424242',
     padding: 12,
     borderRadius: 5,
     alignItems: 'center',
     marginTop: 10,
-    width: '50%',  // Ancho reducido a 50%
+    width: '50%',
   },
   closeButtonText: {
     color: '#fff',

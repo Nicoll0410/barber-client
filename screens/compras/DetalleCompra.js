@@ -1,142 +1,128 @@
-import React from 'react';
-import { 
-  View, 
-  Text, 
-  Modal, 
-  StyleSheet, 
-  ScrollView, 
+// DetalleCompra.js
+import React, { useEffect } from "react";
+import {
+  View,
+  Text,
+  Modal,
+  StyleSheet,
+  ScrollView,
   FlatList,
   TouchableOpacity,
-  Dimensions 
-} from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
+} from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
 
-const { width } = Dimensions.get('window');
+const fFecha = (d) =>
+  d
+    ? new Date(d).toLocaleDateString("es-ES", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : "No especificada";
 
-const DetalleCompra = ({ visible, onClose, compra }) => {
+const fMoneda = (v) =>
+  new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    minimumFractionDigits: 0,
+  }).format(v ?? 0);
+
+export default function DetalleCompra({ visible, onClose, compra }) {
   if (!compra) return null;
+  const detalles = compra.productos ?? [];
 
-  const formatearFecha = (fecha) => {
-    if (!fecha) return 'No especificada';
-    const opciones = { day: 'numeric', month: 'long', year: 'numeric' };
-    return new Date(fecha).toLocaleDateString('es-ES', opciones);
+  useEffect(() => {
+    if (visible) {
+      console.log("🧾 Compra recibida:", compra);
+      console.log("📦 Detalles detectados:", detalles);
+    }
+  }, [visible]);
+
+  const nombre = (i) =>
+    i?.nombre ?? i?.insumo?.nombre ?? i?.insumo_nombre ?? "—";
+  const pu = (i) =>
+    i?.precio_unitario ?? i?.precioUnitario ?? i?.insumo?.precio_unitario ?? 0;
+
+  const renderItem = ({ item, index }) => {
+    console.log(`🧩 Item #${index + 1}:`, item);
+    return (
+      <View style={st.detItem}>
+        <View style={st.row}>
+          <MaterialIcons name="bookmark" size={20} color="#4CAF50" />
+          <Text style={st.lab}>Insumo:</Text>
+          <Text style={st.val}>{nombre(item)}</Text>
+        </View>
+        <View style={st.row}>
+          <MaterialIcons name="format-list-numbered" size={20} color="#2196F3" />
+          <Text style={st.lab}>Cantidad:</Text>
+          <Text style={st.val}>{item.cantidad}</Text>
+        </View>
+        <View style={st.row}>
+          <MaterialIcons name="attach-money" size={20} color="#FF9800" />
+          <Text style={st.lab}>Precio Unitario:</Text>
+          <Text style={st.val}>{fMoneda(pu(item))}</Text>
+        </View>
+        <View style={st.row}>
+          <MaterialIcons name="calculate" size={20} color="#9C27B0" />
+          <Text style={st.lab}>Subtotal:</Text>
+          <Text style={[st.val, st.subtotal]}>
+            {fMoneda(item.subtotal ?? pu(item) * item.cantidad)}
+          </Text>
+        </View>
+        <View style={st.sep} />
+      </View>
+    );
   };
-
-  const formatearMoneda = (valor) => {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      minimumFractionDigits: 0
-    }).format(valor || 0);
-  };
-
-  const renderItem = ({ item }) => (
-    <View style={styles.detalleItem}>
-      <View style={styles.detalleRow}>
-        <MaterialIcons name="bookmark" size={20} color="#4CAF50" />
-        <Text style={styles.detalleLabel}>Insumo</Text>
-        <Text style={styles.detalleValue}>{item.nombre}</Text>
-      </View>
-      
-      <View style={styles.detalleRow}>
-        <MaterialIcons name="format-list-numbered" size={20} color="#2196F3" />
-        <Text style={styles.detalleLabel}>Cantidad</Text>
-        <Text style={styles.detalleValue}>{item.cantidad}</Text>
-      </View>
-      
-      <View style={styles.detalleRow}>
-        <MaterialIcons name="attach-money" size={20} color="#FF9800" />
-        <Text style={styles.detalleLabel}>Precio Unitario</Text>
-        <Text style={styles.detalleValue}>{formatearMoneda(item.precioUnitario)}</Text>
-      </View>
-      
-      <View style={styles.separador} />
-    </View>
-  );
 
   return (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={visible}
-      onRequestClose={onClose}
-    >
+    <Modal animationType="slide" transparent visible={visible} onRequestClose={onClose}>
       <View style={StyleSheet.absoluteFill}>
-        <BlurView
-          intensity={20}
-          tint="default"
-          style={StyleSheet.absoluteFill}
-        />
-        
-        <View style={styles.overlay}>
-          <View style={styles.modal}>
-            <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
-              <Text style={styles.titulo}>Detalles de la compra</Text>
-              
-              <View style={styles.infoContainer}>
-                <View style={styles.item}>
-                  <Text style={styles.label}>Fecha de Compra</Text>
-                  <Text style={styles.value}>{formatearFecha(compra.fecha)}</Text>
+        <BlurView style={StyleSheet.absoluteFill} intensity={20} tint="default" />
+        <View style={st.overlay}>
+          <View style={st.modal}>
+            <ScrollView contentContainerStyle={st.scroll}>
+              <Text style={st.titulo}>Detalles de la compra</Text>
+
+              <View style={st.info}>
+                <View style={st.item}>
+                  <Text style={st.label}>Fecha:</Text>
+                  <Text style={st.value}>{fFecha(compra.fecha)}</Text>
                 </View>
-                
-                <View style={styles.item}>
-                  <Text style={styles.label}>Costo Total</Text>
-                  <Text style={styles.value}>{formatearMoneda(compra.costoTotal)}</Text>
+                <View style={st.item}>
+                  <Text style={st.label}>Código:</Text>
+                  <Text style={st.value}>{compra.id}</Text>
                 </View>
-                
-                <View style={styles.item}>
-                  <Text style={styles.label}>Método de Pago</Text>
-                  <Text style={styles.value}>
-                    {compra.metodoPago === 'efectivo' ? 'Efectivo' : 
-                     compra.metodoPago === 'transferencia' ? 'Transferencia' : 
-                     compra.metodoPago === 'tarjeta credito' ? 'Tarjeta Crédito' : 
-                     compra.metodoPago}
-                  </Text>
+                <View style={st.item}>
+                  <Text style={st.label}>Total:</Text>
+                  <Text style={[st.value, st.total]}>{fMoneda(compra.costo)}</Text>
                 </View>
-                
-                <View style={styles.item}>
-                  <Text style={styles.label}>Proveedor</Text>
-                  <Text style={styles.value}>{compra.proveedor}</Text>
+                <View style={st.item}>
+                  <Text style={st.label}>Método:</Text>
+                  <Text style={st.value}>{compra.metodo_pago}</Text>
                 </View>
-                
-                <View style={styles.item}>
-                  <Text style={styles.label}>Estado</Text>
-                  <View style={[
-                    styles.estadoContainerCompact,
-                    compra.estado === 'confirmado' ? styles.verificado : styles.noVerificado
-                  ]}>
-                    {compra.estado === 'confirmado' ? (
-                      <>
-                        <MaterialIcons name="check-circle" size={16} color="#2e7d32" />
-                        <Text style={[styles.estadoTexto, styles.textoVerificado]}>Confirmada</Text>
-                      </>
-                    ) : (
-                      <>
-                        <MaterialIcons name="cancel" size={16} color="#d32f2f" />
-                        <Text style={[styles.estadoTexto, styles.textoNoVerificado]}>Anulada</Text>
-                      </>
-                    )}
-                  </View>
+                <View style={st.item}>
+                  <Text style={st.label}>Proveedor:</Text>
+                  <Text style={st.value}>{compra.proveedor?.nombre}</Text>
                 </View>
               </View>
-              
-              <View style={styles.separadorGrande} />
-              
-              <Text style={styles.subtitulo}>Detalles de los productos</Text>
-              
-              <FlatList
-                data={compra.productos || []}
-                renderItem={renderItem}
-                keyExtractor={(item, index) => index.toString()}
-                scrollEnabled={false}
-              />
-              
-              <TouchableOpacity 
-                style={styles.cerrar}
-                onPress={onClose}
-              >
-                <Text style={styles.textoCerrar}>Cerrar</Text>
+
+              <View style={st.sepG} />
+              <Text style={st.sub}>Insumos</Text>
+
+              {detalles.length ? (
+                <FlatList
+                  data={detalles}
+                  renderItem={renderItem}
+                  keyExtractor={(_, i) => i.toString()}
+                  scrollEnabled={false}
+                />
+              ) : (
+                <Text style={st.sin}>No hay insumos para esta compra</Text>
+              )}
+
+              <TouchableOpacity style={st.btn} onPress={onClose}>
+                <Text style={st.txtBtn}>Cerrar</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -144,132 +130,37 @@ const DetalleCompra = ({ visible, onClose, compra }) => {
       </View>
     </Modal>
   );
-};
+}
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
+const st = StyleSheet.create({
+  overlay: { flex: 1, justifyContent: "center", alignItems: "center", padding: 20 },
   modal: {
-    width: '90%',
+    width: "90%",
     maxWidth: 500,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 12,
     padding: 20,
     elevation: 10,
     borderWidth: 1,
-    borderColor: 'black',
-    maxHeight: '90%',
+    borderColor: "black",
+    maxHeight: "90%",
   },
-  scrollContainer: {
-    flexGrow: 1,
-  },
-  scrollContent: {
-    paddingBottom: 10,
-  },
-  titulo: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-    color: '#333',
-  },
-  infoContainer: {
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 10,
-  },
-  item: {
-    marginBottom: 14,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#555',
-    marginBottom: 4,
-  },
-  value: {
-    fontSize: 16,
-    color: '#222',
-  },
-  estadoContainerCompact: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 2,
-    paddingHorizontal: 6,
-    borderRadius: 10,
-    alignSelf: 'flex-start',
-  },
-  verificado: {
-    backgroundColor: '#e8f5e9',
-  },
-  noVerificado: {
-    backgroundColor: '#ffebee',
-  },
-  estadoTexto: {
-    marginLeft: 4,
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  textoVerificado: {
-    color: '#2e7d32',
-  },
-  textoNoVerificado: {
-    color: '#d32f2f',
-  },
-  separador: {
-    height: 1,
-    backgroundColor: '#eee',
-    marginVertical: 10,
-  },
-  separadorGrande: {
-    height: 1,
-    backgroundColor: '#ddd',
-    marginVertical: 15,
-  },
-  subtitulo: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#444',
-    marginBottom: 15,
-  },
-  detalleItem: {
-    marginBottom: 10,
-  },
-  detalleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  detalleLabel: {
-    fontSize: 14,
-    color: '#555',
-    marginLeft: 10,
-    marginRight: 5,
-    width: 120,
-  },
-  detalleValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#222',
-    flex: 1,
-  },
-  cerrar: {
-    marginTop: 20,
-    alignSelf: 'center',
-    paddingHorizontal: 30,
-    paddingVertical: 10,
-    backgroundColor: '#424242',
-    borderRadius: 15,
-  },
-  textoCerrar: {
-    fontWeight: 'bold',
-    color: 'white',
-  },
+  scroll: { paddingBottom: 10 },
+  titulo: { fontSize: 22, fontWeight: "bold", marginBottom: 20, textAlign: "center" },
+  info: { backgroundColor: "#f9f9f9", borderRadius: 8, padding: 15, marginBottom: 10 },
+  item: { marginBottom: 12 },
+  label: { fontSize: 14, fontWeight: "bold", color: "#555" },
+  value: { fontSize: 16 },
+  total: { color: "#2e7d32", fontWeight: "bold", fontSize: 18 },
+  sepG: { height: 1, backgroundColor: "#ddd", marginVertical: 15 },
+  sub: { fontSize: 18, fontWeight: "600", marginBottom: 12 },
+  detItem: { marginBottom: 10 },
+  row: { flexDirection: "row", alignItems: "center", marginBottom: 6 },
+  lab: { marginLeft: 10, width: 120, fontWeight: "bold" },
+  val: { flex: 1 },
+  subtotal: { fontWeight: "bold", color: "#9C27B0" },
+  sep: { height: 1, backgroundColor: "#eee", marginVertical: 10 },
+  btn: { alignSelf: "center", marginTop: 20, paddingVertical: 10, paddingHorizontal: 30, backgroundColor: "#424242", borderRadius: 15 },
+  txtBtn: { color: "#fff", fontWeight: "bold" },
+  sin: { textAlign: "center", color: "#777", marginVertical: 20, fontStyle: "italic" },
 });
-
-export default DetalleCompra;

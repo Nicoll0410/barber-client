@@ -1,306 +1,671 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Dimensions, ScrollView } from 'react-native';
-import { MaterialIcons, FontAwesome, Feather, Ionicons } from '@expo/vector-icons';
+/*  Archivo: screens/clientes/ClientesScreen.js
+    Pantalla principal de Clientes (Expo + React Native)
+*/
+import React, { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  FlatList,
+  Dimensions,
+  ScrollView,
+  ActivityIndicator,
+  Image,
+  RefreshControl,
+} from 'react-native';
+import {
+  MaterialIcons,
+  FontAwesome,
+  Feather,
+  Ionicons,
+} from '@expo/vector-icons';
+
 import Paginacion from '../../components/Paginacion';
 import Buscador from '../../components/Buscador';
-import CrearCliente from '../clientes/CrearCliente';
+import CrearCliente from './CrearCliente';
 import DetalleCliente from './DetalleCliente';
 import EditarCliente from './EditarCliente';
 import Footer from '../../components/Footer';
 
+import ConfirmarModal from '../../components/ConfirmarModal';
+import InfoModal from '../../components/InfoModal';
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+
+/* --- medidas responsivas --- */
 const { width } = Dimensions.get('window');
 const isMobile = width < 768;
 
-// Avatar Component
-const Avatar = ({ nombre }) => {
-  const colors = ['#FF5733', '#33FF57', '#3357FF', '#F333FF', '#33FFF5'];
-  const color = colors[nombre.length % colors.length];
+/* ╔══════════════╗
+   ║  Sub‑componentes  ║
+   ╚══════════════╝ */
+const Avatar = ({ nombre, avatar }) => {
+  const colors = ['#9BA6AE', '#8F9AA2', '#A2ADB4', '#90979F', '#9CA5AD'];
+  const color = colors[nombre?.length % colors.length] || '#9BA6AE';
 
+  if (avatar) {
+    return (
+      <Image
+        source={{ uri: avatar }}
+        style={[styles.avatarContainer, { backgroundColor: '#f0f0f0' }]}
+      />
+    );
+  }
   return (
     <View style={[styles.avatarContainer, { backgroundColor: color }]}>
       <Text style={styles.avatarText}>
-        {nombre.split(' ').map(part => part[0]).join('').toUpperCase()}
+        {nombre?.split(' ').map(p => p[0]).join('').toUpperCase()}
       </Text>
     </View>
   );
 };
 
-// Verification Status Component
 const EstadoVerificacion = ({ verificado }) => (
-  <View style={[
-    styles.estadoContainer,
-    verificado ? styles.verificado : styles.noVerificado
-  ]}>
+  <View
+    style={[
+      styles.estadoContainer,
+      verificado ? styles.verificado : styles.noVerificado,
+    ]}
+  >
     {verificado ? (
       <>
         <MaterialIcons name="verified" size={16} color="#2e7d32" />
-        <Text style={styles.estadoTexto}>Verificado</Text>
+        <Text style={[styles.estadoTexto, styles.textoVerificado]}>
+          Verificado
+        </Text>
       </>
     ) : (
       <>
         <MaterialIcons name="warning" size={16} color="#d32f2f" />
-        <Text style={styles.estadoTexto}>No verificado</Text>
+        <Text style={[styles.estadoTexto, styles.textoNoVerificado]}>
+          No verificado
+        </Text>
       </>
     )}
   </View>
 );
 
-// Mobile Client Card
-const ClienteCard = ({ item, onVer, onEditar, onEliminar, onReenviar }) => (
+const ClienteCard = ({
+  item,
+  onVer,
+  onEditar,
+  onEliminar,
+  onReenviar,
+}) => (
   <View style={styles.card}>
     <View style={styles.cardHeader}>
-      <Avatar nombre={item.nombre} />
+      <Avatar nombre={item.nombre} avatar={item.avatar} />
       <View style={styles.cardHeaderText}>
         <Text style={styles.cardNombre}>{item.nombre}</Text>
         <Text style={styles.cardTelefono}>{item.telefono}</Text>
       </View>
     </View>
-    
+
     <View style={styles.cardDetails}>
       <View style={styles.detailRow}>
-        <MaterialIcons name="email" size={16} color="#757575" style={styles.detailIcon}/>
+        <MaterialIcons
+          name="email"
+          size={16}
+          color="#757575"
+          style={styles.detailIcon}
+        />
         <Text style={styles.detailText}>{item.email}</Text>
       </View>
       <View style={styles.detailRow}>
-        <EstadoVerificacion verificado={item.emailVerificado} />
+        <EstadoVerificacion verificado={item.estaVerificado} />
       </View>
     </View>
-    
+
     <View style={styles.cardActions}>
-      <TouchableOpacity style={styles.actionButton} onPress={() => onVer(item.id)}>
+      <TouchableOpacity
+        style={styles.actionButton}
+        onPress={() => onVer(item.id)}
+      >
         <FontAwesome name="eye" size={18} color="#424242" />
       </TouchableOpacity>
-      
-      <TouchableOpacity style={styles.actionButton} onPress={() => onEditar(item.id)}>
+      <TouchableOpacity
+        style={styles.actionButton}
+        onPress={() => onEditar(item.id)}
+      >
         <Feather name="edit" size={18} color="#424242" />
       </TouchableOpacity>
-      
-      {!item.emailVerificado && (
-        <TouchableOpacity style={styles.actionButton} onPress={() => onReenviar(item.id)}>
+      {!item.estaVerificado && (
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => onReenviar(item.id, item.email)}
+        >
           <MaterialIcons name="email" size={18} color="#424242" />
         </TouchableOpacity>
       )}
-      
-      <TouchableOpacity style={styles.actionButton} onPress={() => onEliminar(item.id)}>
+      <TouchableOpacity
+        style={styles.actionButton}
+        onPress={() => onEliminar(item.id)}
+      >
         <Feather name="trash-2" size={18} color="#d32f2f" />
       </TouchableOpacity>
     </View>
   </View>
 );
 
+/* ╔════════════════════════════════╗
+   ║  Pantalla principal de Clientes  ║
+   ╚════════════════════════════════╝ */
 const ClientesScreen = () => {
+  /* --------- estados de datos --------- */
   const [clientes, setClientes] = useState([]);
   const [clientesFiltrados, setClientesFiltrados] = useState([]);
   const [paginaActual, setPaginaActual] = useState(1);
   const [clientesPorPagina] = useState(4);
   const [busqueda, setBusqueda] = useState('');
-  const [modalVisible, setModalVisible] = useState(false);
+
+  /* --------- modales --------- */
+  const [modalCrearVisible, setModalCrearVisible] = useState(false);
   const [modalDetalleVisible, setModalDetalleVisible] = useState(false);
   const [modalEditarVisible, setModalEditarVisible] = useState(false);
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [idAEliminar, setIdAEliminar] = useState(null);
+  const [infoVisible, setInfoVisible] = useState(false);
+  const [infoTitle, setInfoTitle] = useState('');
+  const [infoMsg, setInfoMsg] = useState('');
+  const [infoType, setInfoType] = useState('info');
 
-  useEffect(() => {
-    const datosEjemplo = [
-      { 
-        id: 1, 
-        nombre: 'Maria Jose Urregu', 
-        telefono: '3233404990', 
-        email: 'maria@example.com', 
-        emailVerificado: false 
-      },
-      { 
-        id: 2, 
-        nombre: 'Cliente Ejemplo 1', 
-        telefono: '3101234567', 
-        email: 'cliente1@example.com', 
-        emailVerificado: true 
-      },
-      { 
-        id: 3, 
-        nombre: 'Cliente Ejemplo 2', 
-        telefono: '3202345678', 
-        email: 'cliente2@example.com', 
-        emailVerificado: false 
-      },
-      { 
-        id: 4, 
-        nombre: 'Cliente Ejemplo 3', 
-        telefono: '3003456789', 
-        email: 'cliente3@example.com', 
-        emailVerificado: true 
-      },
-    ];
-    setClientes(datosEjemplo);
-    setClientesFiltrados(datosEjemplo);
-  }, []);
+  /* --------- estados de carga --------- */
+  const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    if (busqueda.trim() === '') {
-      setClientesFiltrados(clientes);
-    } else {
-      const termino = busqueda.toLowerCase();
-      const filtrados = clientes.filter(c =>
-        c.nombre.toLowerCase().includes(termino) || 
-        c.telefono.includes(busqueda)
-      );
-      setClientesFiltrados(filtrados);
-    }
-    setPaginaActual(1);
-  }, [busqueda, clientes]);
+  /* --------- helper InfoModal --------- */
+  const showInfo = (title, message, type = 'info') => {
+    setInfoTitle(title);
+    setInfoMsg(message);
+    setInfoType(type);
+    setInfoVisible(true);
+  };
 
-  const indiceInicial = (paginaActual - 1) * clientesPorPagina;
-  const clientesMostrar = isMobile ? clientesFiltrados : clientesFiltrados.slice(indiceInicial, indiceInicial + clientesPorPagina);
-  const totalPaginas = Math.ceil(clientesFiltrados.length / clientesPorPagina);
-
-  const cambiarPagina = (nuevaPagina) => {
-    if (nuevaPagina > 0 && nuevaPagina <= totalPaginas) {
-      setPaginaActual(nuevaPagina);
+  /* ═════════════════════════════════╗
+     ║  Cargar clientes desde backend  ║
+     ╚════════════════════════════════╝ */
+  const fetchClientes = async () => {
+    try {
+      if (!refreshing) setLoading(true);
+      const token = await AsyncStorage.getItem('token');
+      const { data } = await axios.get('http://localhost:8080/clientes', {
+        headers: { Authorization: `Bearer ${token}` },
+        params: { search: busqueda },
+      });
+      const list = data.clientes.map(c => ({
+        ...c,
+        estaVerificado: c.usuario?.estaVerificado || false,
+        email: c.usuario?.email || '',
+        usuarioID: c.usuario?.id || null,
+      }));
+      setClientes(list);
+      setClientesFiltrados(list);
+    } catch (err) {
+      showInfo('Error', 'No se pudieron cargar los clientes', 'error');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const crearCliente = () => setModalVisible(true);
-  const handleSearchChange = (texto) => setBusqueda(texto);
+  /* --- cargar al montar y al cambiar búsqueda --- */
+  useEffect(() => {
+    fetchClientes();
+  }, [busqueda]);
 
-  const handleCreateClient = (newClient) => {
-    const newId = clientes.length > 0 ? Math.max(...clientes.map(c => c.id)) + 1 : 1;
-    const nuevoCliente = { 
-      id: newId, 
-      ...newClient, 
-      emailVerificado: false 
-    };
-    const nuevosClientes = [...clientes, nuevoCliente];
-    setClientes(nuevosClientes);
-    setClientesFiltrados(nuevosClientes);
-    setModalVisible(false);
+  /* --- recargar al volver a la pantalla --- */
+  useFocusEffect(
+    useCallback(() => {
+      fetchClientes();
+    }, [])
+  );
+
+  /* --- pull to refresh manual --- */
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchClientes();
   };
 
-  const reenviarEmail = (id) => console.log(`Reenviar email a cliente con ID: ${id}`);
-  
-  const verCliente = (id) => {
-    const cliente = clientes.find(c => c.id === id);
-    setClienteSeleccionado(cliente);
-    setModalDetalleVisible(true);
-  };
-
-  const editarCliente = (id) => {
-    const cliente = clientes.find(c => c.id === id);
-    setClienteSeleccionado(cliente);
-    setModalEditarVisible(true);
-  };
-
-  const handleUpdateClient = (updatedClient) => {
-    const nuevosClientes = clientes.map(c => 
-      c.id === updatedClient.id ? updatedClient : c
+  /* --- reajuste de página si quedó vacía (desktop) --- */
+  useEffect(() => {
+    const total = Math.max(
+      1,
+      Math.ceil(clientesFiltrados.length / clientesPorPagina)
     );
-    setClientes(nuevosClientes);
-    setClientesFiltrados(nuevosClientes);
-    setModalEditarVisible(false);
+    if (paginaActual > total) setPaginaActual(total);
+  }, [clientesFiltrados, clientesPorPagina, paginaActual]);
+
+  /* ╔════════════════════╗
+     ║  Paginación & filtros ║
+     ╚════════════════════╝ */
+  const i0 = (paginaActual - 1) * clientesPorPagina;
+  const clientesMostrar = isMobile
+    ? clientesFiltrados
+    : clientesFiltrados.slice(i0, i0 + clientesPorPagina);
+  const totalPaginas = Math.ceil(
+    clientesFiltrados.length / clientesPorPagina
+  );
+  const cambiarPagina = p => {
+    if (p > 0 && p <= totalPaginas) setPaginaActual(p);
   };
 
-  const eliminarCliente = (id) => {
-    const nuevosClientes = clientes.filter(c => c.id !== id);
-    setClientes(nuevosClientes);
-    setClientesFiltrados(nuevosClientes);
+  /* ╔═══════════╗
+     ║  CRUD acciones  ║
+     ╚═══════════╝ */
+  const crearCliente = () => setModalCrearVisible(true);
+  const handleSearchChange = t => setBusqueda(t);
+
+  const handleCreateCliente = async nuevo => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const { data } = await axios.post(
+        'http://localhost:8080/clientes',
+        {
+          nombre: nuevo.nombre,
+          telefono: nuevo.telefono,
+          fecha_nacimiento: nuevo.fechaNacimiento
+            .toISOString()
+            .split('T')[0],
+          email: nuevo.email,
+          password: nuevo.password,
+          avatar: nuevo.avatar,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const clienteCon = {
+        ...data.cliente,
+        estaVerificado: false,
+        email: nuevo.email,
+        usuarioID: data.cliente.usuarioID,
+      };
+      setClientes(prev => [...prev, clienteCon]);
+      setClientesFiltrados(prev => [...prev, clienteCon]);
+      setModalCrearVisible(false);
+      showInfo(
+        '🎉 ¡Cliente creado!',
+        'Email de verificación enviado',
+        'success'
+      );
+    } catch (error) {
+      showInfo(
+        'Error',
+        error.response?.data?.mensaje || 'Error al crear cliente',
+        'error'
+      );
+    }
   };
 
+  /* --- ver, editar y actualizar cliente --- */
+  const verCliente = async id => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const { data } = await axios.get(
+        `http://localhost:8080/clientes/by-id/${id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const c = data.cliente;
+      setClienteSeleccionado({
+        id: c.id,
+        nombre: c.nombre,
+        telefono: c.telefono,
+        fechaNacimiento: c.fecha_nacimiento
+          ? new Date(c.fecha_nacimiento)
+          : null,
+        avatar: c.avatar,
+        estaVerificado: c.usuario?.estaVerificado || false,
+        email: c.usuario?.email || '',
+        usuarioID: c.usuario?.id || null,
+      });
+      setModalDetalleVisible(true);
+    } catch {
+      showInfo('Error', 'No se pudo cargar el cliente', 'error');
+    }
+  };
+
+  const editarCliente = async id => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const { data } = await axios.get(
+        `http://localhost:8080/clientes/by-id/${id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const c = data.cliente;
+      setClienteSeleccionado({
+        id: c.id,
+        nombre: c.nombre,
+        telefono: c.telefono,
+        fechaNacimiento: c.fecha_nacimiento
+          ? new Date(c.fecha_nacimiento)
+          : null,
+        avatar: c.avatar,
+        estaVerificado: c.usuario?.estaVerificado || false,
+        email: c.usuario?.email || '',
+        usuarioID: c.usuario?.id || null,
+      });
+      setModalEditarVisible(true);
+    } catch {
+      showInfo('Error', 'No se pudo cargar para editar', 'error');
+    }
+  };
+
+  const handleUpdateCliente = async updated => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const { data } = await axios.put(
+        `http://localhost:8080/clientes/${updated.id}`,
+        {
+          nombre: updated.nombre,
+          telefono: updated.telefono,
+          fecha_nacimiento: updated.fechaNacimiento
+            .toISOString()
+            .split('T')[0],
+          email: updated.email,
+          avatar: updated.avatar,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const nuevos = clientes.map(c =>
+        c.id === updated.id
+          ? {
+              ...data.cliente,
+              estaVerificado: updated.estaVerificado,
+              email: updated.email,
+              usuarioID: updated.usuarioID,
+            }
+          : c
+      );
+      setClientes(nuevos);
+      setClientesFiltrados(nuevos);
+      setModalEditarVisible(false);
+      showInfo(
+        '✅ Cliente actualizado',
+        'Datos modificados correctamente',
+        'success'
+      );
+    } catch (error) {
+      showInfo(
+        'Error',
+        error.response?.data?.mensaje || 'Error al actualizar',
+        'error'
+      );
+    }
+  };
+
+  const reenviarEmailVerificacion = async (id, email) => {
+    try {
+      setSendingEmail(true);
+      const token = await AsyncStorage.getItem('token');
+      await axios.post(
+        `http://localhost:8080/clientes/${id}/reenviar-verificacion`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      showInfo(
+        '📧 Email reenviado',
+        'Se volvió a enviar el link de verificación',
+        'success'
+      );
+    } catch (error) {
+      showInfo(
+        'Error',
+        error.response?.data?.mensaje || 'No se pudo reenviar',
+        'error'
+      );
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  const eliminarCliente = id => {
+    setIdAEliminar(id);
+    setConfirmVisible(true);
+  };
+
+  const confirmarEliminacion = async () => {
+    setConfirmVisible(false);
+    setDeleting(true);
+    try {
+      const token = await AsyncStorage.getItem('token');
+      await axios.delete(
+        `http://localhost:8080/clientes/${idAEliminar}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const nuevos = clientes.filter(c => c.id !== idAEliminar);
+      setClientes(nuevos);
+      setClientesFiltrados(nuevos);
+      showInfo(
+        '🗑️ Eliminado',
+        'Cliente eliminado correctamente',
+        'success'
+      );
+    } catch (error) {
+      const msg = error.response?.data?.mensaje || '';
+      if (msg.toLowerCase().includes('citas')) {
+        showInfo(
+          '⚠️ No puedes eliminar',
+          'Este cliente tiene citas asociadas',
+          'warning'
+        );
+      } else {
+        showInfo('Error', msg || 'No se pudo eliminar', 'error');
+      }
+    } finally {
+      setDeleting(false);
+      setIdAEliminar(null);
+    }
+  };
+
+  /* ╔══════════╗
+     ║  Render  ║
+     ╚══════════╝ */
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.title}>Clientes</Text>
-          <View style={styles.counter}>
-            <Text style={styles.counterText}>{clientesFiltrados.length}</Text>
+    <View style={styles.mainContainer}>
+      <View style={styles.contentWrapper}>
+        <View style={styles.contentContainer}>
+          {/* --- cabecera + buscador --- */}
+          <View style={styles.header}>
+            <View style={styles.headerLeft}>
+              <Text style={styles.title}>Clientes</Text>
+              <View style={styles.counter}>
+                <Text style={styles.counterText}>
+                  {clientesFiltrados.length}
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={crearCliente}
+            >
+              <Ionicons name="add-circle" size={20} color="#fff" />
+              <Text style={styles.addButtonText}>Crear</Text>
+            </TouchableOpacity>
           </View>
+
+          <Buscador
+            placeholder="Buscar clientes"
+            value={busqueda}
+            onChangeText={handleSearchChange}
+          />
+
+          {/* --- listado --- */}
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#424242" />
+              <Text style={styles.loadingText}>
+                Cargando clientes...
+              </Text>
+            </View>
+          ) : !isMobile ? (
+            <>
+              <View style={styles.table}>
+                <View style={styles.tableHeader}>
+                  <View style={[styles.headerCell, styles.nameColumn]}>
+                    <Text style={styles.headerText}>Nombre</Text>
+                  </View>
+                  <View style={[styles.headerCell, styles.telColumn]}>
+                    <Text style={styles.headerText}>Teléfono</Text>
+                  </View>
+                  <View style={[styles.headerCell, styles.emailColumn]}>
+                    <Text style={styles.headerText}>Email</Text>
+                  </View>
+                  <View style={[styles.headerCell, styles.stateColumn]}>
+                    <Text style={styles.headerText}>Estado</Text>
+                  </View>
+                  <View style={[styles.headerCell, styles.actionsColumn]}>
+                    <Text style={styles.headerText}>Acciones</Text>
+                  </View>
+                </View>
+
+                <FlatList
+                  data={clientesMostrar}
+                  keyExtractor={item => item.id.toString()}
+                  renderItem={({ item }) => (
+                    <View style={styles.tableRow}>
+                      <View style={[styles.cell, styles.nameColumn]}>
+                        <View style={styles.nameContainer}>
+                          <Avatar
+                            nombre={item.nombre}
+                            avatar={item.avatar}
+                          />
+                          <Text style={styles.nameText}>
+                            {item.nombre}
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={[styles.cell, styles.telColumn]}>
+                        <Text style={styles.telText}>
+                          {item.telefono}
+                        </Text>
+                      </View>
+                      <View style={[styles.cell, styles.emailColumn]}>
+                        <Text style={styles.emailText}>{item.email}</Text>
+                      </View>
+                      <View style={[styles.cell, styles.stateColumn]}>
+                        <EstadoVerificacion
+                          verificado={item.estaVerificado}
+                        />
+                      </View>
+                      <View style={[styles.cell, styles.actionsColumn]}>
+                        <View style={styles.actionsContainer}>
+                          <TouchableOpacity
+                            onPress={() => verCliente(item.id)}
+                            style={styles.actionIcon}
+                          >
+                            <FontAwesome
+                              name="eye"
+                              size={20}
+                              color="#424242"
+                            />
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            onPress={() => editarCliente(item.id)}
+                            style={styles.actionIcon}
+                          >
+                            <Feather
+                              name="edit"
+                              size={20}
+                              color="#424242"
+                            />
+                          </TouchableOpacity>
+                          {!item.estaVerificado && (
+                            <TouchableOpacity
+                              onPress={() =>
+                                reenviarEmailVerificacion(
+                                  item.id,
+                                  item.email
+                                )
+                              }
+                              style={styles.actionIcon}
+                            >
+                              <MaterialIcons
+                                name="email"
+                                size={20}
+                                color="#424242"
+                              />
+                            </TouchableOpacity>
+                          )}
+                          <TouchableOpacity
+                            onPress={() => eliminarCliente(item.id)}
+                            style={styles.actionIcon}
+                            disabled={
+                              deleting && idAEliminar === item.id
+                            }
+                          >
+                            {deleting && idAEliminar === item.id ? (
+                              <ActivityIndicator
+                                size="small"
+                                color="#d32f2f"
+                              />
+                            ) : (
+                              <Feather
+                                name="trash-2"
+                                size={20}
+                                color="#d32f2f"
+                              />
+                            )}
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    </View>
+                  )}
+                />
+              </View>
+
+              {totalPaginas > 1 && (
+                <View style={styles.paginationContainer}>
+                  <Paginacion
+                    paginaActual={paginaActual}
+                    totalPaginas={totalPaginas}
+                    cambiarPagina={cambiarPagina}
+                  />
+                </View>
+              )}
+            </>
+          ) : (
+            <ScrollView 
+              style={styles.scrollContainer}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                />
+              }
+            >
+              <View style={styles.cardsContainer}>
+                {clientesMostrar.map(item => (
+                  <ClienteCard
+                    key={item.id}
+                    item={item}
+                    onVer={verCliente}
+                    onEditar={editarCliente}
+                    onEliminar={eliminarCliente}
+                    onReenviar={reenviarEmailVerificacion}
+                  />
+                ))}
+              </View>
+            </ScrollView>
+          )}
         </View>
-        <TouchableOpacity style={styles.addButton} onPress={crearCliente}>
-          <Ionicons name="add-circle" size={20} color="white" />
-          <Text style={styles.addButtonText}>Crear</Text>
-        </TouchableOpacity>
+
+        {/* --- footer --- */}
+        <View style={styles.footerContainer}>
+          <Footer />
+        </View>
       </View>
 
-      <Buscador
-        placeholder="Buscar clientes por nombre o teléfono"
-        value={busqueda}
-        onChangeText={handleSearchChange}
-      />
-
-      {!isMobile ? (
-        <View style={styles.table}>
-          <View style={styles.tableHeader}>
-            <View style={[styles.headerCell, styles.nameColumn]}><Text style={styles.headerText}>Nombre</Text></View>
-            <View style={[styles.headerCell, styles.phoneColumn]}><Text style={styles.headerText}>Teléfono</Text></View>
-            <View style={[styles.headerCell, styles.statusColumn]}><Text style={styles.headerText}>Verificación</Text></View>
-            <View style={[styles.headerCell, styles.actionsColumn]}><Text style={styles.headerText}>Acciones</Text></View>
-          </View>
-
-          <FlatList
-            data={clientesMostrar}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={({ item }) => (
-              <View style={styles.tableRow}>
-                <View style={[styles.cell, styles.nameColumn]}>
-                  <View style={styles.nameContainer}>
-                    <Avatar nombre={item.nombre} />
-                    <Text style={styles.nameText}>{item.nombre}</Text>
-                  </View>
-                </View>
-                <View style={[styles.cell, styles.phoneColumn]}>
-                  <Text style={styles.phoneText}>{item.telefono}</Text>
-                </View>
-                <View style={[styles.cell, styles.statusColumn]}>
-                  <EstadoVerificacion verificado={item.emailVerificado} />
-                </View>
-                <View style={[styles.cell, styles.actionsColumn]}>
-                  <View style={styles.actionsContainer}>
-                    {!item.emailVerificado && (
-                      <TouchableOpacity onPress={() => reenviarEmail(item.id)} style={styles.actionIcon}>
-                        <MaterialIcons name="email" size={20} color="black" />
-                      </TouchableOpacity>
-                    )}
-                    <TouchableOpacity onPress={() => verCliente(item.id)} style={styles.actionIcon}>
-                      <FontAwesome name="eye" size={20} color="black" />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => editarCliente(item.id)} style={styles.actionIcon}>
-                      <Feather name="edit" size={20} color="black" />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => eliminarCliente(item.id)} style={styles.actionIcon}>
-                      <Feather name="trash-2" size={20} color="black" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            )}
-          />
-        </View>
-      ) : (
-        <ScrollView style={styles.scrollContainer}>
-          <View style={styles.cardsContainer}>
-            {clientesMostrar.map(item => (
-              <ClienteCard 
-                key={item.id.toString()}
-                item={item}
-                onVer={verCliente}
-                onEditar={editarCliente}
-                onEliminar={eliminarCliente}
-                onReenviar={reenviarEmail}
-              />
-            ))}
-          </View>
-        </ScrollView>
-      )}
-
-      {!isMobile && (
-        <Paginacion
-          paginaActual={paginaActual}
-          totalPaginas={totalPaginas}
-          cambiarPagina={cambiarPagina}
-        />
-      )}
-
+      {/* --- modales CRUD e info --- */}
       <CrearCliente
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
-        onCreate={handleCreateClient}
+        visible={modalCrearVisible}
+        onClose={() => setModalCrearVisible(false)}
+        onCreate={handleCreateCliente}
       />
 
       <DetalleCliente
@@ -313,36 +678,51 @@ const ClientesScreen = () => {
         visible={modalEditarVisible}
         onClose={() => setModalEditarVisible(false)}
         cliente={clienteSeleccionado}
-        onUpdate={handleUpdateClient}
+        onUpdate={handleUpdateCliente}
       />
-      
-      <Footer />
+
+      <ConfirmarModal
+        visible={confirmVisible}
+        onCancel={() => setConfirmVisible(false)}
+        onConfirm={confirmarEliminacion}
+        title="Eliminar cliente"
+        message="¿Estás seguro de eliminar este cliente?"
+      />
+
+      <InfoModal
+        visible={infoVisible}
+        onClose={() => setInfoVisible(false)}
+        title={infoTitle}
+        message={infoMsg}
+        type={infoType}
+      />
     </View>
   );
 };
 
+/* ╔═════════╗
+   ║  Estilos ║
+   ╚═════════╝ */
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: '#fff',
-  },
+  /* Layout general */
+  mainContainer: { flex: 1, backgroundColor: '#fff' },
+  contentWrapper: { flex: 1, justifyContent: 'space-between' },
+  contentContainer: { flex: 1, padding: 16 },
+  footerContainer: { paddingHorizontal: 16, paddingBottom: 16 },
+  paginationContainer: { paddingBottom: 16 },
+
+  /* Loading */
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 10, color: '#424242' },
+
+  /* Header */
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
   },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#424242',
-    marginRight: 12,
-  },
+  headerLeft: { flexDirection: 'row', alignItems: 'center' },
+  title: { fontSize: 22, fontWeight: 'bold', color: '#424242', marginRight: 12 },
   counter: {
     backgroundColor: '#EEEEEE',
     width: 28,
@@ -351,11 +731,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  counterText: {
-    fontWeight: 'bold',
-    fontSize: 14,
-    color: '#424242',
-  },
+  counterText: { fontWeight: 'bold', fontSize: 14, color: '#424242' },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -364,92 +740,38 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 20,
   },
-  addButtonText: {
-    marginLeft: 8,
-    color: 'white',
-    fontWeight: '500',
-    fontSize: 14,
-  },
+  addButtonText: { marginLeft: 8, color: '#fff', fontWeight: '500', fontSize: 14 },
 
-  // Desktop Table Styles
-  table: {
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 8,
-    marginBottom: 16,
-    overflow: 'hidden',
-  },
-  tableHeader: {
-    flexDirection: 'row',
-    backgroundColor: '#424242',
-    paddingVertical: 12,
-  },
-  headerCell: {
-    justifyContent: 'center',
-    paddingHorizontal: 8,
-  },
-  headerText: {
-    fontWeight: 'bold',
-    color: 'white',
-    fontSize: 14,
-  },
+  /* Tabla desktop */
+  table: { borderWidth: 1, borderColor: '#e0e0e0', borderRadius: 8, overflow: 'hidden' },
+  tableHeader: { flexDirection: 'row', backgroundColor: '#424242', paddingVertical: 12 },
+  headerCell: { justifyContent: 'center', paddingHorizontal: 8 },
+  headerText: { fontWeight: 'bold', color: '#fff', fontSize: 14 },
   tableRow: {
     flexDirection: 'row',
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
-    backgroundColor: 'white',
+    backgroundColor: '#fff',
   },
-  cell: {
-    justifyContent: 'center',
-    paddingHorizontal: 8,
-  },
-  nameColumn: {
-    flex: 3,
-    alignItems: 'flex-start',
-  },
-  phoneColumn: {
-    flex: 2,
-    alignItems: 'center',
-  },
-  statusColumn: {
-    flex: 2,
-    alignItems: 'center',
-  },
-  actionsColumn: {
-    flex: 2,
-    alignItems: 'flex-end',
-  },
-  nameContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  nameText: {
-    marginLeft: 10,
-    fontWeight: '500',
-    fontSize: 14,
-    color: '#424242',
-  },
-  phoneText: {
-    fontSize: 14,
-    color: '#424242',
-  },
-  actionsContainer: {
-    flexDirection: 'row',
-  },
-  actionIcon: {
-    marginHorizontal: 6,
-  },
+  cell: { justifyContent: 'center', paddingHorizontal: 8 },
+  nameColumn: { flex: 3, alignItems: 'flex-start' },
+  telColumn: { flex: 2, alignItems: 'center' },
+  emailColumn: { flex: 3, alignItems: 'center' },
+  stateColumn: { flex: 2, alignItems: 'center' },
+  actionsColumn: { flex: 2, alignItems: 'flex-end' },
+  nameContainer: { flexDirection: 'row', alignItems: 'center' },
+  nameText: { marginLeft: 10, fontWeight: '500', fontSize: 14, color: '#424242' },
+  telText: { fontSize: 14, color: '#424242' },
+  emailText: { fontSize: 14, color: '#424242' },
+  actionsContainer: { flexDirection: 'row' },
+  actionIcon: { marginHorizontal: 6, padding: 4 },
 
-  // Mobile Card Styles
-  scrollContainer: {
-    flex: 1,
-  },
-  cardsContainer: {
-    paddingBottom: 16,
-  },
+  /* Cards mobile */
+  scrollContainer: { flex: 1 },
+  cardsContainer: { paddingBottom: 16 },
   card: {
-    backgroundColor: 'white',
+    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -461,92 +783,28 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  cardHeaderText: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  cardNombre: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#212121',
-    marginBottom: 2,
-  },
-  cardTelefono: {
-    fontSize: 14,
-    color: '#757575',
-  },
-  cardDetails: {
-    marginLeft: 52,
-    marginBottom: 8,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  detailIcon: {
-    marginRight: 8,
-  },
-  detailText: {
-    fontSize: 14,
-    color: '#616161',
-  },
-  cardActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 8,
-  },
-  actionButton: {
-    marginLeft: 12,
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: '#f5f5f5',
-  },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  cardHeaderText: { marginLeft: 12, flex: 1 },
+  cardNombre: { fontSize: 16, fontWeight: '600', color: '#212121', marginBottom: 2 },
+  cardTelefono: { fontSize: 14, color: '#757575' },
+  cardDetails: { marginLeft: 52, marginBottom: 8 },
+  detailRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+  detailIcon: { marginRight: 8 },
+  detailText: { fontSize: 14, color: '#616161' },
+  cardActions: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 },
+  actionButton: { marginLeft: 12, padding: 8, borderRadius: 20, backgroundColor: '#f5f5f5' },
 
-  // Verification Status
-  estadoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-  },
-  verificado: {
-    backgroundColor: '#E8F5E9',
-  },
-  noVerificado: {
-    backgroundColor: '#FFEBEE',
-  },
-  estadoTexto: {
-    marginLeft: 6,
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  verificadoText: {
-    color: '#2e7d32',
-  },
-  noVerificadoText: {
-    color: '#d32f2f',
-  },
+  /* Avatar */
+  avatarContainer: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+  avatarText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
 
-  // Avatar
-  avatarContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
+  /* Estado */
+  estadoContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 4, paddingHorizontal: 8, borderRadius: 12, alignSelf: 'center' },
+  verificado: { backgroundColor: '#E8F5E9' },
+  noVerificado: { backgroundColor: '#FFEBEE' },
+  estadoTexto: { marginLeft: 6, fontSize: 13, fontWeight: '500' },
+  textoVerificado: { color: '#2e7d32' },
+  textoNoVerificado: { color: '#d32f2f' },
 });
 
 export default ClientesScreen;

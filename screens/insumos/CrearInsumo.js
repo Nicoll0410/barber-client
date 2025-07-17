@@ -8,31 +8,35 @@ import {
   TextInput, 
   Picker, 
   Dimensions,
-  Platform,
-  ScrollView
+  ScrollView,
+  Alert
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 
 const CrearInsumo = ({ visible, onClose, onCreate, categoriasExistentes = [] }) => {
   const [nombre, setNombre] = useState('');
   const [descripcion, setDescripcion] = useState('');
-  const [categoria, setCategoria] = useState('');
+  const [categoriaID, setCategoriaID] = useState('');
   const [unidadMedida, setUnidadMedida] = useState('');
   const [isMobile, setIsMobile] = useState(false);
   const [orientation, setOrientation] = useState('portrait');
+  const [errores, setErrores] = useState({});
+
+  const unidadesMedida = [
+    { label: 'Kilogramos', value: 'Kg' },
+    { label: 'Gramos', value: 'Gr' },
+    { label: 'Litros', value: 'Lt' },
+    { label: 'Mililitros', value: 'Ml' }
+  ];
 
   useEffect(() => {
     const updateLayout = () => {
       const { width, height } = Dimensions.get('window');
       const isPortrait = height > width;
-      
       setOrientation(isPortrait ? 'portrait' : 'landscape');
-      
-      // Consideramos móvil si el ancho es menor a 768px (tablets pequeñas y móviles)
       setIsMobile(width < 768);
     };
 
-    // Ejecutamos al montar y añadimos listener para cambios
     updateLayout();
     Dimensions.addEventListener('change', updateLayout);
 
@@ -41,26 +45,38 @@ const CrearInsumo = ({ visible, onClose, onCreate, categoriasExistentes = [] }) 
     };
   }, []);
 
-  const unidadesMedida = [
-    { label: 'Kilogramos', value: 'kilogramos' },
-    { label: 'Gramos', value: 'gramos' },
-    { label: 'Litros', value: 'litros' },
-    { label: 'Mililitros', value: 'mililitros' }
-  ];
+  const validarFormulario = () => {
+    const nuevosErrores = {};
+    
+    if (!nombre.trim()) nuevosErrores.nombre = 'El nombre es requerido';
+    if (!descripcion.trim()) nuevosErrores.descripcion = 'La descripción es requerida';
+    if (!categoriaID) nuevosErrores.categoria = 'Debe seleccionar una categoría';
+    if (!unidadMedida) nuevosErrores.unidadMedida = 'Debe seleccionar una unidad de medida';
+    
+    setErrores(nuevosErrores);
+    return Object.keys(nuevosErrores).length === 0;
+  };
 
   const handleSubmit = () => {
-    if (!nombre || !descripcion || !categoria || !unidadMedida) {
-      alert('Por favor complete todos los campos requeridos');
-      return;
-    }
+    if (!validarFormulario()) return;
 
-    onCreate({
+    const newInsumo = {
       nombre,
       descripcion,
-      categoria,
+      categoriaID,
       unidadMedida
-    });
-    onClose();
+    };
+
+    onCreate(newInsumo);
+    resetForm();
+  };
+
+  const resetForm = () => {
+    setNombre('');
+    setDescripcion('');
+    setCategoriaID('');
+    setUnidadMedida('');
+    setErrores({});
   };
 
   return (
@@ -68,7 +84,10 @@ const CrearInsumo = ({ visible, onClose, onCreate, categoriasExistentes = [] }) 
       visible={visible}
       animationType="fade"
       transparent={true}
-      onRequestClose={onClose}
+      onRequestClose={() => {
+        resetForm();
+        onClose();
+      }}
     >
       <BlurView intensity={20} tint="light" style={StyleSheet.absoluteFill}>
         <View style={styles.modalContainer}>
@@ -88,53 +107,80 @@ const CrearInsumo = ({ visible, onClose, onCreate, categoriasExistentes = [] }) 
 
               <View style={styles.formContainer}>
                 <View style={styles.formGroup}>
-                  <Text style={styles.label}>Nombre*</Text>
+                  <Text style={styles.label}>
+                    Nombre<Text style={styles.asteriscoRojo}>*</Text>
+                  </Text>
                   <TextInput
-                    style={styles.input}
-                    placeholder="Mascarilla"
+                    style={[styles.input, errores.nombre && styles.inputError]}
+                    placeholder="Ej: Crema de afeitar"
                     placeholderTextColor="#D9D9D9"
                     value={nombre}
-                    onChangeText={setNombre}
+                    onChangeText={(text) => {
+                      setNombre(text);
+                      if (errores.nombre) setErrores({...errores, nombre: null});
+                    }}
                   />
+                  {errores.nombre && <Text style={styles.errorText}>{errores.nombre}</Text>}
                 </View>
 
                 <View style={styles.formGroup}>
-                  <Text style={styles.label}>Descripción*</Text>
+                  <Text style={styles.label}>
+                    Descripción<Text style={styles.asteriscoRojo}>*</Text>
+                  </Text>
                   <TextInput
-                    style={[styles.input, styles.multilineInput]}
-                    placeholder="Descripción de mascarilla"
+                    style={[
+                      styles.input, 
+                      styles.multilineInput, 
+                      errores.descripcion && styles.inputError
+                    ]}
+                    placeholder="Descripción detallada del insumo"
                     placeholderTextColor="#D9D9D9"
                     value={descripcion}
-                    onChangeText={setDescripcion}
+                    onChangeText={(text) => {
+                      setDescripcion(text);
+                      if (errores.descripcion) setErrores({...errores, descripcion: null});
+                    }}
                     multiline={true}
                     numberOfLines={isMobile ? 3 : 2}
                   />
+                  {errores.descripcion && <Text style={styles.errorText}>{errores.descripcion}</Text>}
                 </View>
 
                 <View style={styles.formGroup}>
-                  <Text style={styles.label}>Categoría*</Text>
-                  <View style={styles.pickerContainer}>
+                  <Text style={styles.label}>
+                    Categoría<Text style={styles.asteriscoRojo}>*</Text>
+                  </Text>
+                  <View style={[styles.pickerContainer, errores.categoria && styles.inputError]}>
                     <Picker
-                      selectedValue={categoria}
+                      selectedValue={categoriaID}
                       style={styles.picker}
-                      onValueChange={(itemValue) => setCategoria(itemValue)}
+                      onValueChange={(itemValue) => {
+                        setCategoriaID(itemValue);
+                        if (errores.categoria) setErrores({...errores, categoria: null});
+                      }}
                       dropdownIconColor="#666"
                     >
                       <Picker.Item label="Seleccione categoría" value="" />
                       {categoriasExistentes.map((cat) => (
-                        <Picker.Item key={cat.id} label={cat.nombre} value={cat.nombre} />
+                        <Picker.Item key={cat.id} label={cat.nombre} value={cat.id} />
                       ))}
                     </Picker>
                   </View>
+                  {errores.categoria && <Text style={styles.errorText}>{errores.categoria}</Text>}
                 </View>
 
                 <View style={styles.formGroup}>
-                  <Text style={styles.label}>Unidad de medida*</Text>
-                  <View style={styles.pickerContainer}>
+                  <Text style={styles.label}>
+                    Unidad de medida<Text style={styles.asteriscoRojo}>*</Text>
+                  </Text>
+                  <View style={[styles.pickerContainer, errores.unidadMedida && styles.inputError]}>
                     <Picker
                       selectedValue={unidadMedida}
                       style={styles.picker}
-                      onValueChange={(itemValue) => setUnidadMedida(itemValue)}
+                      onValueChange={(itemValue) => {
+                        setUnidadMedida(itemValue);
+                        if (errores.unidadMedida) setErrores({...errores, unidadMedida: null});
+                      }}
                       dropdownIconColor="#666"
                     >
                       <Picker.Item label="Seleccione unidad" value="" />
@@ -143,6 +189,7 @@ const CrearInsumo = ({ visible, onClose, onCreate, categoriasExistentes = [] }) 
                       ))}
                     </Picker>
                   </View>
+                  {errores.unidadMedida && <Text style={styles.errorText}>{errores.unidadMedida}</Text>}
                 </View>
               </View>
 
@@ -159,7 +206,10 @@ const CrearInsumo = ({ visible, onClose, onCreate, categoriasExistentes = [] }) 
                 
                 <TouchableOpacity 
                   style={styles.cancelButton}
-                  onPress={onClose}
+                  onPress={() => {
+                    resetForm();
+                    onClose();
+                  }}
                 >
                   <Text style={styles.cancelButtonText}>Cancelar</Text>
                 </TouchableOpacity>
@@ -178,7 +228,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 20
   },
-  // Estilo para desktop (se mantiene igual)
   desktopModalContent: {
     backgroundColor: 'white',
     borderRadius: 12,
@@ -194,7 +243,6 @@ const styles = StyleSheet.create({
     borderColor: 'black',
     maxHeight: '80%'
   },
-  // Estilo para móviles
   mobileModalContent: {
     backgroundColor: 'white',
     borderRadius: 12,
@@ -210,7 +258,6 @@ const styles = StyleSheet.create({
     borderColor: 'black',
     maxHeight: '90%'
   },
-  // Estilo adicional para móviles en landscape
   landscapeModalContent: {
     width: '70%',
     maxHeight: '80%'
@@ -247,6 +294,9 @@ const styles = StyleSheet.create({
     color: '#444',
     fontSize: 14
   },
+  asteriscoRojo: {
+    color: '#d32f2f'
+  },
   input: {
     borderWidth: 1.5,
     borderColor: '#b0b0b0',
@@ -255,6 +305,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     fontSize: 15,
     backgroundColor: '#f9f9f9'
+  },
+  inputError: {
+    borderColor: '#d32f2f'
+  },
+  errorText: {
+    color: '#d32f2f',
+    fontSize: 12,
+    marginTop: 4
   },
   multilineInput: {
     minHeight: 60,

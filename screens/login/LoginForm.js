@@ -167,7 +167,7 @@ const LoginForm = () => {
 
         <TouchableOpacity 
           style={styles.forgotPasswordButton}
-          onPress={() => navigation.navigate("RecoverPassword")}
+          onPress={() => navigation.navigate("ForgotPasswordScreen")}
         >
           <Text style={styles.forgotPassword}>¿Olvidaste tu contraseña?</Text>
         </TouchableOpacity>

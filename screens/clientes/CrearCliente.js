@@ -225,27 +225,26 @@ const CrearCliente = ({ visible, onClose }) => {
 
   const pickImage = async () => {
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permisos requeridos', 'Necesitamos acceso a tus fotos para seleccionar un avatar');
-        return;
-      }
-
-      let result = await ImagePicker.launchImageLibraryAsync({
+      const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.5,
+        quality: 0.7,
+        base64: true
       });
 
-      if (!result.canceled) {
-        handleChange('avatar', result.assets[0].uri);
+      if (!result.canceled && result.assets[0].base64) {
+        const base64String = `data:image/jpeg;base64,${result.assets[0].base64}`;
+        console.log('Imagen seleccionada (tamaño):', base64String.length);
+        setFormData({ ...formData, avatar: base64String });
       }
     } catch (error) {
       console.error('Error al seleccionar imagen:', error);
       Alert.alert('Error', 'No se pudo seleccionar la imagen');
     }
   };
+
+
 
   const validateForm = () => {
     let isValid = true;
@@ -268,10 +267,12 @@ const CrearCliente = ({ visible, onClose }) => {
         nombre: formData.nombre,
         telefono: formData.telefono,
         fecha_nacimiento: formatDateString(formData.fechaNacimiento),
+        avatarBase64: formData.avatar, // Envía el string base64
         email: formData.email,
         password: formData.password,
         rolID: 3 // ID del rol Cliente
       };
+          console.log('Enviando avatar (primeros 50 caracteres):', formData.avatar?.substring(0, 50)); // Para depuración
 
       const response = await axios.post(`${BASE_URL}/auth/signup`, payload);
       
@@ -730,9 +731,6 @@ const CrearCliente = ({ visible, onClose }) => {
               <MaterialIcons name="check-circle" size={60} color="#4CAF50" />
             </View>
             <Text style={styles.successModalTitle}>¡Cliente creado exitosamente!</Text>
-            <Text style={styles.successModalText}>
-              Se ha enviado un correo de verificación a {formData.email}.
-            </Text>
             <Text style={styles.successModalText}>
               El cliente debe verificar su cuenta antes de poder iniciar sesión.
             </Text>

@@ -46,14 +46,26 @@ const Avatar = ({ nombre, avatar }) => {
   const colors = ['#9BA6AE', '#8F9AA2', '#A2ADB4', '#90979F', '#9CA5AD'];
   const color = colors[nombre?.length % colors.length] || '#9BA6AE';
 
-  if (avatar) {
+  // Verificación robusta de imagen base64
+  const isBase64Image = avatar && (
+    avatar.startsWith('data:image/png;base64,') || 
+    avatar.startsWith('data:image/jpeg;base64,') ||
+    avatar.startsWith('data:image/jpg;base64,')
+  );
+
+  if (isBase64Image) {
     return (
       <Image
         source={{ uri: avatar }}
-        style={[styles.avatarContainer, { backgroundColor: '#f0f0f0' }]}
+        style={styles.avatarImage}
+        onError={(e) => {
+          console.log('Error cargando avatar:', e.nativeEvent.error);
+          console.log('Avatar problemático:', avatar?.substring(0, 50));
+        }}
       />
     );
   }
+
   return (
     <View style={[styles.avatarContainer, { backgroundColor: color }]}>
       <Text style={styles.avatarText}>
@@ -62,6 +74,7 @@ const Avatar = ({ nombre, avatar }) => {
     </View>
   );
 };
+
 
 const EstadoVerificacion = ({ verificado }) => (
   <View
@@ -190,29 +203,53 @@ const ClientesScreen = () => {
   /* ═════════════════════════════════╗
      ║  Cargar clientes desde backend  ║
      ╚════════════════════════════════╝ */
-  const fetchClientes = async () => {
-    try {
-      if (!refreshing) setLoading(true);
-      const token = await AsyncStorage.getItem('token');
-      const { data } = await axios.get('http://localhost:8080/clientes', {
-        headers: { Authorization: `Bearer ${token}` },
-        params: { search: busqueda },
-      });
-      const list = data.clientes.map(c => ({
-        ...c,
-        estaVerificado: c.usuario?.estaVerificado || false,
-        email: c.usuario?.email || '',
-        usuarioID: c.usuario?.id || null,
-      }));
-      setClientes(list);
-      setClientesFiltrados(list);
-    } catch (err) {
-      showInfo('Error', 'No se pudieron cargar los clientes', 'error');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
+const fetchClientes = async () => {
+  try {
+    if (!refreshing) setLoading(true);
+    const token = await AsyncStorage.getItem('token');
+    const { data } = await axios.get('http://localhost:8080/clientes', {
+      headers: { Authorization: `Bearer ${token}` },
+      params: { 
+        all: true,
+        search: busqueda 
+      },
+    });
+    
+          console.log('Datos recibidos del backend:', data.clientes.map(c => ({
+        id: c.id,
+        nombre: c.nombre,
+        avatarLength: c.avatar?.length || 0
+      })));
+    
+    const listaClientes = data.clientes || data;
+    const clientesFinales = Array.isArray(listaClientes) ? 
+      listaClientes : 
+      listaClientes.clientes || [];
+    
+    console.log('Clientes con avatares:', clientesFinales.map(c => ({
+      id: c.id,
+      nombre: c.nombre,
+      avatar: c.avatar // Verifica que esto no sea null/undefined
+    })));
+    
+    const list = clientesFinales.map(c => ({
+      ...c,
+      estaVerificado: c.usuario?.estaVerificado || false,
+      email: c.usuario?.email || '',
+      usuarioID: c.usuario?.id || null,
+      avatar: c.avatar // Asegúrate de incluir el avatar
+    }));
+    
+    setClientes(list);
+    setClientesFiltrados(list);
+  } catch (err) {
+    console.error('Error al cargar clientes:', err);
+    showInfo('Error', 'No se pudieron cargar los clientes', 'error');
+  } finally {
+    setLoading(false);
+    setRefreshing(false);
+  }
+};
 
   /* --- cargar al montar y al cambiar búsqueda --- */
   useEffect(() => {
@@ -261,46 +298,43 @@ const ClientesScreen = () => {
   const crearCliente = () => setModalCrearVisible(true);
   const handleSearchChange = t => setBusqueda(t);
 
-  const handleCreateCliente = async nuevo => {
-    try {
-      const token = await AsyncStorage.getItem('token');
-      const { data } = await axios.post(
-        'http://localhost:8080/clientes',
-        {
-          nombre: nuevo.nombre,
-          telefono: nuevo.telefono,
-          fecha_nacimiento: nuevo.fechaNacimiento
-            .toISOString()
-            .split('T')[0],
-          email: nuevo.email,
-          password: nuevo.password,
-          avatar: nuevo.avatar,
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      const clienteCon = {
-        ...data.cliente,
-        estaVerificado: false,
+const handleCreateCliente = async (nuevo) => {
+  try {
+    const token = await AsyncStorage.getItem('token');
+    const { data } = await axios.post(
+      'http://localhost:8080/clientes',
+      {
+        nombre: nuevo.nombre,
+        telefono: nuevo.telefono,
+        fecha_nacimiento: nuevo.fechaNacimiento?.toISOString().split('T')[0],
         email: nuevo.email,
-        usuarioID: data.cliente.usuarioID,
-      };
-      setClientes(prev => [...prev, clienteCon]);
-      setClientesFiltrados(prev => [...prev, clienteCon]);
-      setModalCrearVisible(false);
-      showInfo(
-        '🎉 ¡Cliente creado!',
-        'Email de verificación enviado',
-        'success'
-      );
-    } catch (error) {
-      showInfo(
-        'Error',
-        error.response?.data?.mensaje || 'Error al crear cliente',
-        'error'
-      );
-    }
-  };
+        password: nuevo.password,
+        avatarBase64: nuevo.avatar, // Asegúrate de enviar el avatar como avatarBase64
+      },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    const clienteCon = {
+      ...data.cliente,
+      avatar: nuevo.avatar, // Incluye el avatar en el estado local
+      estaVerificado: false,
+      email: nuevo.email,
+      usuarioID: data.cliente.usuarioID,
+    };
+    
+    setClientes(prev => [...prev, clienteCon]);
+    setClientesFiltrados(prev => [...prev, clienteCon]);
+    setModalCrearVisible(false);
+    showInfo('🎉 ¡Cliente creado!', 'Email de verificación enviado', 'success');
+  } catch (error) {
+    console.error('Error al crear cliente:', error);
+    showInfo(
+      'Error',
+      error.response?.data?.mensaje || 'Error al crear cliente',
+      'error'
+    );
+  }
+};
 
   /* --- ver, editar y actualizar cliente --- */
   const verCliente = async id => {
@@ -355,49 +389,46 @@ const ClientesScreen = () => {
     }
   };
 
-  const handleUpdateCliente = async updated => {
-    try {
-      const token = await AsyncStorage.getItem('token');
-      const { data } = await axios.put(
-        `http://localhost:8080/clientes/${updated.id}`,
-        {
-          nombre: updated.nombre,
-          telefono: updated.telefono,
-          fecha_nacimiento: updated.fechaNacimiento
-            .toISOString()
-            .split('T')[0],
-          email: updated.email,
-          avatar: updated.avatar,
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+const handleUpdateCliente = async (updated) => {
+  try {
+    const token = await AsyncStorage.getItem('token');
+    const { data } = await axios.put(
+      `http://localhost:8080/clientes/${updated.id}`,
+      {
+        nombre: updated.nombre,
+        telefono: updated.telefono,
+        fecha_nacimiento: updated.fechaNacimiento?.toISOString().split('T')[0],
+        email: updated.email,
+        avatarBase64: updated.avatar, // Envía el avatar actualizado
+      },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
-      const nuevos = clientes.map(c =>
-        c.id === updated.id
-          ? {
-              ...data.cliente,
-              estaVerificado: updated.estaVerificado,
-              email: updated.email,
-              usuarioID: updated.usuarioID,
-            }
-          : c
-      );
-      setClientes(nuevos);
-      setClientesFiltrados(nuevos);
-      setModalEditarVisible(false);
-      showInfo(
-        '✅ Cliente actualizado',
-        'Datos modificados correctamente',
-        'success'
-      );
-    } catch (error) {
-      showInfo(
-        'Error',
-        error.response?.data?.mensaje || 'Error al actualizar',
-        'error'
-      );
-    }
-  };
+    const nuevos = clientes.map(c =>
+      c.id === updated.id
+        ? {
+            ...data.cliente,
+            avatar: updated.avatar, // Mantén el avatar en el estado local
+            estaVerificado: updated.estaVerificado,
+            email: updated.email,
+            usuarioID: updated.usuarioID,
+          }
+        : c
+    );
+    
+    setClientes(nuevos);
+    setClientesFiltrados(nuevos);
+    setModalEditarVisible(false);
+    showInfo('✅ Cliente actualizado', 'Datos modificados correctamente', 'success');
+  } catch (error) {
+    console.error('Error al actualizar cliente:', error);
+    showInfo(
+      'Error',
+      error.response?.data?.mensaje || 'Error al actualizar',
+      'error'
+    );
+  }
+};
 
   const reenviarEmailVerificacion = async (id, email) => {
     try {
@@ -797,6 +828,12 @@ const styles = StyleSheet.create({
   /* Avatar */
   avatarContainer: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
   avatarText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+    avatarImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    resizeMode: 'cover'
+  },
 
   /* Estado */
   estadoContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 4, paddingHorizontal: 8, borderRadius: 12, alignSelf: 'center' },

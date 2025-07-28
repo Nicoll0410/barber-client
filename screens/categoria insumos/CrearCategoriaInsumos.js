@@ -98,7 +98,10 @@ const CrearCategoriaInsumos = ({ visible, onClose, onCreate }) => {
               )}
 
               <View style={styles.formSection}>
-                <Text style={styles.sectionTitle}>Nombre*</Text>
+                <View style={styles.sectionTitleContainer}>
+                  <Text style={styles.sectionTitle}>Nombre</Text>
+                  <Text style={styles.requiredAsterisk}>*</Text>
+                </View>
                 <TextInput
                   style={[styles.input, errors.nombre && styles.inputError]}
                   value={nombre}
@@ -113,7 +116,10 @@ const CrearCategoriaInsumos = ({ visible, onClose, onCreate }) => {
               </View>
 
               <View style={styles.formSection}>
-                <Text style={styles.sectionTitle}>Descripción*</Text>
+                <View style={styles.sectionTitleContainer}>
+                  <Text style={styles.sectionTitle}>Descripción</Text>
+                  <Text style={styles.requiredAsterisk}>*</Text>
+                </View>
                 <TextInput
                   style={[styles.multilineInput, errors.descripcion && styles.inputError]}
                   value={descripcion}
@@ -219,11 +225,19 @@ const styles = StyleSheet.create({
   formSection: {
     marginBottom: 16,
   },
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
   sectionTitle: {
     fontWeight: '600',
     color: '#111827',
-    marginBottom: 6,
     fontSize: 14,
+  },
+  requiredAsterisk: {
+    color: '#EF4444',
+    marginLeft: 2,
   },
   avatarSubtitle: {
     color: '#6B7280',

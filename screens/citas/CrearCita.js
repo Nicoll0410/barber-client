@@ -1,7 +1,7 @@
 /* ───────────────────────────────────────────────────────────
-   screens/citas/CrearCita.js
-   Wizard de 5 pasos (Admin/Barbero) o 4 pasos (Cliente)
-   ─────────────────────────────────────────────────────────── */
+  screens/citas/CrearCita.js
+  Wizard de 5 pasos (Admin/Barbero) o 4 pasos (Cliente)
+  ─────────────────────────────────────────────────────────── */
 import React, { useState, useEffect, useContext } from 'react';
 import {
   View,
@@ -113,24 +113,46 @@ const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
 
   /* -------------- API horas disponibles ---------------- */
   const obtenerHoras = async () => {
+    if (!fechaSel) return;
     try {
       setLoadingHoras(true);
-      const token = await AsyncStorage.getItem('token');
-      const params = new URLSearchParams({
-        servicioID: getId(servicioSel),
-        barberoID : getId(barberoSel),
-        fecha     : fechaSel,
-      });
-      const { data } = await axios.get(
-        `${API}/citas/get-availability-of-barber?${params.toString()}`,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-      setHorasDisp(data);
-    } catch {
-      Alert.alert('Error', 'No se pudieron cargar las horas');
+
+      const fecha = new Date(`${fechaSel}T00:00:00`);
+      const diaSemana = fecha.getDay(); // 0=Domingo, ..., 6=Sábado
+
+      let horaInicio, horaFin;
+
+      if (diaSemana >= 1 && diaSemana <= 3) {
+        // Lunes a miércoles
+        horaInicio = 11; // 11:00 AM
+        horaFin = 21;    // 9:00 PM
+      } else {
+        // Jueves a domingo
+        horaInicio = 9;  // 9:00 AM
+        horaFin = 22;    // 10:00 PM
+      }
+
+      const horas = [];
+      for (let h = horaInicio; h <= horaFin; h++) {
+        horas.push(formatearHora(h, 0));
+        if (h !== horaFin) {
+          horas.push(formatearHora(h, 30));
+        }
+      }
+
+      setHorasDisp(horas);
+    } catch (error) {
+      Alert.alert('Error', 'No se pudieron cargar las horas disponibles');
     } finally {
       setLoadingHoras(false);
     }
+  };
+
+  const formatearHora = (hora24, minutos) => {
+    const hora = hora24 % 12 || 12;
+    const sufijo = hora24 < 12 ? 'AM' : 'PM';
+    const minStr = minutos.toString().padStart(2, '0');
+    return `${hora}:${minStr} ${sufijo}`;
   };
 
   /* -------------------- Handlers ----------------------- */
@@ -148,10 +170,10 @@ const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
 
     const payload = {
       servicioID: getId(servicioSel),
-      barberoID : getId(barberoSel),
-      fecha     : fechaSel,
-      hora      : horaSel,
-      ...(isClient ? {} : { pacienteID: getId(clienteSel) }),
+      barberoID: getId(barberoSel),
+      fecha: fechaSel,
+      hora: horaSel,
+      ...(!isClient && { pacienteID: getId(clienteSel) }),
     };
 
     if (!payload.barberoID || !payload.servicioID) {

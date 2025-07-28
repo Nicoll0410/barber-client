@@ -4,7 +4,6 @@ import { MaterialIcons, Feather } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 
 const DetalleCita = ({ visible, onClose, cita }) => {
-  // Función para obtener los estilos según el estado
   const getStatusStyles = (status) => {
     if (!status) return { backgroundColor: 'rgba(0, 0, 0, 0.1)', color: '#000' };
     
@@ -25,6 +24,18 @@ const DetalleCita = ({ visible, onClose, cita }) => {
   const statusStyles = getStatusStyles(cita?.estado);
 
   if (!cita) return null;
+
+  // Función para formatear la hora de "HH:mm:ss" a "hh:mm a"
+  const formatHora = (hora) => {
+    if (!hora) return 'Hora no especificada';
+    
+    const [hours, minutes] = hora.split(':');
+    const hourNum = parseInt(hours, 10);
+    const period = hourNum >= 12 ? 'PM' : 'AM';
+    const hour12 = hourNum % 12 || 12;
+    
+    return `${hour12}:${minutes} ${period}`;
+  };
 
   return (
     <Modal
@@ -58,11 +69,11 @@ const DetalleCita = ({ visible, onClose, cita }) => {
           <View style={styles.timeDateContainer}>
             <View style={styles.timeDateRow}>
               <Feather name="calendar" size={20} color="#555" />
-              <Text style={styles.timeDateText}>{cita.fechaFormateada}</Text>
+              <Text style={styles.timeDateText}>{cita.fechaFormateada || 'Fecha no especificada'}</Text>
             </View>
             <View style={styles.timeDateRow}>
               <Feather name="clock" size={20} color="#555" />
-              <Text style={styles.timeDateText}>{cita.hora}</Text>
+              <Text style={styles.timeDateText}>{formatHora(cita.hora)}</Text>
             </View>
             <View style={styles.timeDateRow}>
               <Feather name="watch" size={20} color="#555" />

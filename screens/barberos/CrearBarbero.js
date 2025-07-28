@@ -64,6 +64,7 @@ const CrearBarbero = ({ visible, onClose, onCreate }) => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
   const [calendarYear, setCalendarYear] = useState(currentYear);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const [formData, setFormData] = useState({
     nombre: "",
@@ -209,6 +210,7 @@ const CrearBarbero = ({ visible, onClose, onCreate }) => {
       fechaNacimiento: toISODate(formData.fechaNacimiento),
       fechaContratacion: toISODate(formData.fechaContratacion),
     });
+    setShowSuccess(true);
     onClose();
     resetForm();
   };
@@ -806,6 +808,32 @@ const CrearBarbero = ({ visible, onClose, onCreate }) => {
           </View>
         </View>
       )}
+
+      {/* Modal de éxito */}
+      <Modal
+        visible={showSuccess}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowSuccess(false)}
+      >
+        <View style={styles.successModalOverlay}>
+          <View style={styles.successModalContent}>
+            <View style={styles.successModalIcon}>
+              <MaterialIcons name="check-circle" size={60} color="#4CAF50" />
+            </View>
+            <Text style={styles.successModalTitle}>¡Barbero creado exitosamente!</Text>
+            <Text style={styles.successModalText}>
+              El barbero ha sido registrado correctamente en el sistema.
+            </Text>
+            <TouchableOpacity
+              style={styles.successModalButton}
+              onPress={() => setShowSuccess(false)}
+            >
+              <Text style={styles.successModalButtonText}>Entendido</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </Modal>
   );
 };
@@ -998,6 +1026,61 @@ const styles = StyleSheet.create({
   closeButtonText: {
     color: "white",
     fontWeight: "bold",
+  },
+  // Estilos para el modal de éxito
+  successModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  successModalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    padding: 25,
+    width: '85%',
+    maxWidth: 350,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  successModalIcon: {
+    marginBottom: 20,
+  },
+  successModalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    color: '#424242',
+    textAlign: 'center',
+  },
+  successModalText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 10,
+    lineHeight: 22,
+  },
+  successModalButton: {
+    backgroundColor: '#424242',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    width: '100%',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  successModalButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
 

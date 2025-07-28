@@ -42,31 +42,30 @@ const { width } = Dimensions.get('window');
 
 /* ───────────────────────── COMPONENTE ───────────────────── */
 const AgendaScreen = () => {
-  /* ─────────── Estado ─────────── */
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const [selectedDate, setSelectedDate]       = useState(today);
-  const [showCalendar, setShowCalendar]       = useState(false);
-  const [selectedSlot, setSelectedSlot]       = useState(null);
-  const [showCrearCita, setShowCrearCita]     = useState(false);
+  const [selectedDate, setSelectedDate] = useState(today);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState(null);
+  const [showCrearCita, setShowCrearCita] = useState(false);
   const [showDetalleCita, setShowDetalleCita] = useState(false);
-  const [selectedCita, setSelectedCita]       = useState(null);
-
-  const [citas,     setCitas]     = useState([]);
-  const [barberos,  setBarberos]  = useState([]);
+  const [selectedCita, setSelectedCita] = useState(null);
+  const [citas, setCitas] = useState([]);
+  const [barberos, setBarberos] = useState([]);
   const [servicios, setServicios] = useState([]);
-  const [clientes,  setClientes]  = useState([]);
-  const [loading,   setLoading]   = useState(false);
+  const [clientes, setClientes] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  /* ────────────────────── PETICIONES ─────────────────────── */
   const fetchBarberos = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
       const { data } = await axios.get(
         'http://localhost:8080/barberos',
-        { params: { page: 1, limit: 100 },
-          headers: { Authorization: `Bearer ${token}` } }
+        { 
+          params: { page: 1, limit: 100 },
+          headers: { Authorization: `Bearer ${token}` } 
+        }
       );
 
       setBarberos(
@@ -97,31 +96,39 @@ const AgendaScreen = () => {
       );
 
       const transformed = data.flatMap(barbero =>
-        barbero.schedule.map(cita => ({
-          id: cita.id,
-          fecha: new Date(`${fecha}T00:00:00`),
-          hora: normalizeHoraFromDecimal(cita.start),    // "09:00:00"
-          horaFin: normalizeHoraFromDecimal(cita.end),
-          servicio: {
-            id:     cita.servicio.id,
-            nombre: cita.servicio.nombre,
-            duracion: cita.servicio.duracion,
-            precio: cita.servicio.precio,
-          },
-          barbero: {
-            id: barbero.id,
-            nombre: barbero.name,
-            avatar: barbero.avatar
-              ? { uri: barbero.avatar }
-              : require('../../assets/avatar.png'),
-          },
-          cliente: {
-            id: cita.cliente.id,
-            nombre: cita.cliente.nombre,
-            email:  cita.cliente.email,
-          },
-          estado: cita.estado,
-        }))
+        barbero.schedule.map(cita => {
+          const fechaCita = new Date(`${fecha}T00:00:00`);
+          return {
+            id: cita.id,
+            fecha: fechaCita,
+            fechaFormateada: fechaCita.toLocaleDateString('es-ES', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric'
+            }),
+            hora: normalizeHoraFromDecimal(cita.start),
+            horaFin: normalizeHoraFromDecimal(cita.end),
+            servicio: {
+              id: cita.servicio.id,
+              nombre: cita.servicio.nombre,
+              duracionMaxima: cita.servicio.duracion, // Campo corregido
+              precio: cita.servicio.precio,
+            },
+            barbero: {
+              id: barbero.id,
+              nombre: barbero.name,
+              avatar: barbero.avatar
+                ? { uri: barbero.avatar }
+                : require('../../assets/avatar.png'),
+            },
+            cliente: {
+              id: cita.cliente.id,
+              nombre: cita.cliente.nombre,
+              email: cita.cliente.email,
+            },
+            estado: cita.estado,
+          };
+        })
       );
 
       setCitas(transformed);
@@ -506,7 +513,7 @@ const AgendaScreen = () => {
       {/* ─── Detalle cita ─── */}
       <DetalleCita
         visible={showDetalleCita}
-        onClose={()=>setShowDetalleCita(false)}
+        onClose={() => setShowDetalleCita(false)}
         cita={selectedCita}
       />
 

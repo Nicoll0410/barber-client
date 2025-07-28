@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Dimensions, ActivityIndicator } from 'react-native';
 import { LineChart, BarChart } from 'react-native-chart-kit';
 import Footer from '../../components/Footer';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { useFocusEffect } from '@react-navigation/native';
 
 const DashboardScreen = () => {
   const [dashboardData, setDashboardData] = useState({
@@ -23,6 +24,7 @@ const DashboardScreen = () => {
 
   const fetchDashboardData = async () => {
     try {
+      setLoading(true);
       const token = await AsyncStorage.getItem('token');
       const response = await axios.get('http://localhost:8080/dashboard', {
         headers: {
@@ -31,8 +33,7 @@ const DashboardScreen = () => {
       });
 
       const data = response.data || {};
-      
-      // Validar y mapear datos para gráficos con valores por defecto
+
       const ventasPorMes = (data.ventasPorMes || []).map(item => ({
         mes: item?.x || 'Mes',
         total: item?.y || 0
@@ -63,7 +64,6 @@ const DashboardScreen = () => {
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
       setError('Error al cargar los datos del dashboard');
-      // Establecer datos por defecto en caso de error
       setDashboardData({
         ventasPorMes: [],
         comprasPorMes: [],
@@ -80,9 +80,12 @@ const DashboardScreen = () => {
     }
   };
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
+  // ✅ Se ejecuta cuando se entra o se regresa a esta pantalla
+  useFocusEffect(
+    useCallback(() => {
+      fetchDashboardData();
+    }, [])
+  );
 
   useEffect(() => {
     const onChange = ({ window }) => {
@@ -95,17 +98,17 @@ const DashboardScreen = () => {
   const isMobile = dimensions.width < 768;
   const chartWidth = isMobile ? dimensions.width * 0.85 : dimensions.width * 0.4;
 
-  // Calcular porcentajes de cambio (ya vienen calculados del backend)
   const porcentajeVentas = dashboardData.ventasChange;
   const porcentajeCompras = dashboardData.comprasChange;
   const porcentajeGanancias = dashboardData.profitChange;
 
-  // Función para formatear números con puntos y signo de pesos
   const formatMoney = (value) => {
-    return `$${value.toLocaleString('es-CO')}`;
+    return `${Math.round(value).toLocaleString('es-CO', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    })}`;
   };
 
-  // Datos para gráficos
   const chartData = {
     labels: dashboardData.ventasPorMes.map(item => item.mes),
     datasets: [
@@ -158,16 +161,23 @@ const DashboardScreen = () => {
       strokeDasharray: '',
       stroke: '#e0e0e0',
     },
-    formatYLabel: (value) => formatMoney(value),
+    formatYLabel: (value) => {
+      const formattedValue = Math.round(value).toLocaleString('es-CO');
+      return `$${formattedValue}`;
+    },
+    formatXLabel: (value) => value,
     style: {
       borderRadius: 16,
+      paddingRight: 40,
     },
     propsForVerticalLabels: {
       fontWeight: 'bold',
     },
     propsForHorizontalLabels: {
       fontWeight: 'bold',
-    }
+    },
+    yLabelsOffset: 10,
+    xLabelsOffset: 10,
   };
 
   const barChartConfig = {
@@ -187,10 +197,12 @@ const DashboardScreen = () => {
       strokeDasharray: '',
       stroke: '#e0e0e0',
     },
-    formatYLabel: (value) => formatMoney(value),
-    formatTopBarValue: (value) => formatMoney(value), // Esta línea es la que muestra los valores con $ y puntos sobre las barras
+    formatYLabel: (value) => '$' + formatMoney(value),
+    formatTopBarValue: (value) => '$' + formatMoney(value),
+    formatTooltipY: (value) => '$' + formatMoney(value),
     style: {
       borderRadius: 16,
+      paddingRight: 40,
     },
     propsForVerticalLabels: {
       fontWeight: 'bold',
@@ -199,6 +211,9 @@ const DashboardScreen = () => {
       fontWeight: 'bold',
     },
     barRadius: 4,
+    yAxisLabel: '',
+    yLabelsOffset: 10,
+    xLabelsOffset: 10,
   };
 
   if (loading) {
@@ -225,32 +240,15 @@ const DashboardScreen = () => {
 
         <View style={[styles.cardContainer, isMobile && styles.cardContainerMobile]}>
           {[
-            { 
-              label: 'Ventas', 
-              value: dashboardData.ventasEsteMes,
-              porcentaje: porcentajeVentas,
-              isPositive: porcentajeVentas >= 0
-            },
-            { 
-              label: 'Compras', 
-              value: dashboardData.comprasEsteMes,
-              porcentaje: porcentajeCompras,
-              isPositive: porcentajeCompras <= 0
-            },
-            { 
-              label: 'Ganancias', 
-              value: dashboardData.profitEsteMes,
-              porcentaje: porcentajeGanancias,
-              isPositive: porcentajeGanancias >= 0
-            }
+            { label: 'Ventas', value: dashboardData.ventasEsteMes, porcentaje: porcentajeVentas, isPositive: porcentajeVentas >= 0 },
+            { label: 'Compras', value: dashboardData.comprasEsteMes, porcentaje: porcentajeCompras, isPositive: porcentajeCompras <= 0 },
+            { label: 'Ganancias', value: dashboardData.profitEsteMes, porcentaje: porcentajeGanancias, isPositive: porcentajeGanancias >= 0 }
           ].map((item, i) => (
             <View key={i} style={[styles.card, isMobile && styles.cardMobile]}>
               <Text style={styles.cardTitle}>{item.label} de este mes</Text>
-              <Text style={styles.cardValue}>
-                {item.value.toLocaleString('es-CO')}
-              </Text>
+              <Text style={styles.cardValue}>${formatMoney(item.value)}</Text>
               <View style={[
-                styles.comparisonContainer, 
+                styles.comparisonContainer,
                 item.isPositive ? styles.comparisonPositive : styles.comparisonNegative,
                 isMobile && styles.comparisonContainerMobile
               ]}>
@@ -282,8 +280,15 @@ const DashboardScreen = () => {
               withShadow={true}
               withInnerLines={false}
               withOuterLines={false}
-              yAxisLabel="$"
               yAxisInterval={1}
+              fromZero
+              segments={5}
+              formatYLabel={(value) =>
+                `$${Math.round(value).toLocaleString('es-CO', {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                })}`
+              }
             />
           </View>
 
@@ -301,179 +306,61 @@ const DashboardScreen = () => {
               barRadius={4}
               withCustomBarColorFromData={true}
               flatColor={true}
-              yAxisLabel="$"
               yAxisInterval={1}
+              segments={5}
             />
           </View>
         </View>
       </ScrollView>
-      
+
       <Footer />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  mainContainer: {
-    flex: 1,
-    backgroundColor: '#fafafa',
-  },
-  container: {
-    padding: 16,
-    backgroundColor: '#fafafa',
-    paddingBottom: 80,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fafafa',
-  },
-  loadingText: {
-    marginTop: 20,
-    color: '#333',
-    fontSize: 16,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fafafa',
-    padding: 20,
-  },
-  errorText: {
-    color: '#c62828',
-    fontSize: 16,
-    textAlign: 'center',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#333',
-    textAlign: 'center',
-  },
-  titleMobile: {
-    textAlign: 'left',
-    marginLeft: 8,
-    marginBottom: 16,
-  },
-  cardContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  cardContainerMobile: {
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: 16,
-  },
+  mainContainer: { flex: 1, backgroundColor: '#fafafa' },
+  container: { padding: 16, backgroundColor: '#fafafa', paddingBottom: 80 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fafafa' },
+  loadingText: { marginTop: 20, color: '#333', fontSize: 16 },
+  errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fafafa', padding: 20 },
+  errorText: { color: '#c62828', fontSize: 16, textAlign: 'center' },
+  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, color: '#333', textAlign: 'center' },
+  titleMobile: { textAlign: 'left', marginLeft: 8, marginBottom: 16 },
+  cardContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
+  cardContainerMobile: { flexDirection: 'column', alignItems: 'center', gap: 16 },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    width: '30%',
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    elevation: 2,
+    backgroundColor: '#fff', borderRadius: 12, width: '30%', padding: 16,
+    borderWidth: 1, borderColor: '#e0e0e0',
+    shadowColor: '#000', shadowOpacity: 0.05, shadowOffset: { width: 0, height: 2 }, shadowRadius: 8, elevation: 2,
   },
-  cardMobile: {
-    width: '100%',
-  },
-  cardTitle: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '500',
-    marginBottom: 8,
-  },
-  cardValue: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
-  },
-  comparisonContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-  },
-  comparisonContainerMobile: {
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-  },
-  comparisonNegative: {
-    backgroundColor: 'rgba(231, 76, 60, 0.1)',
-  },
-  comparisonPositive: {
-    backgroundColor: 'rgba(46, 204, 113, 0.1)',
-  },
-  comparisonArrow: {
-    fontSize: 14,
-    marginRight: 4,
-  },
-  comparisonPercent: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginRight: 6,
-  },
-  comparisonNegativePercent: {
-    color: '#e74c3c',
-  },
-  comparisonPositivePercent: {
-    color: '#2ecc71',
-  },
-  comparisonText: {
-    fontSize: 12,
-    color: '#666',
-  },
-  graphsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    gap: 20,
-    marginBottom: 20,
-  },
-  graphsRowMobile: {
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: 20,
-  },
+  cardMobile: { width: '100%' },
+  cardTitle: { fontSize: 14, color: '#666', fontWeight: '500', marginBottom: 8 },
+  cardValue: { fontSize: 22, fontWeight: 'bold', color: '#333', marginBottom: 8 },
+  comparisonContainer: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6, paddingHorizontal: 8, borderRadius: 6 },
+  comparisonContainerMobile: { paddingVertical: 8, paddingHorizontal: 10 },
+  comparisonNegative: { backgroundColor: 'rgba(231, 76, 60, 0.1)' },
+  comparisonPositive: { backgroundColor: 'rgba(46, 204, 113, 0.1)' },
+  comparisonArrow: { fontSize: 14, marginRight: 4 },
+  comparisonPercent: { fontSize: 14, fontWeight: '600', marginRight: 6 },
+  comparisonNegativePercent: { color: '#e74c3c' },
+  comparisonPositivePercent: { color: '#2ecc71' },
+  comparisonText: { fontSize: 12, color: '#666' },
+  graphsRow: { flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap', gap: 20, marginBottom: 20 },
+  graphsRowMobile: { flexDirection: 'column', alignItems: 'center', gap: 20 },
   chartCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    elevation: 3,
+    backgroundColor: '#fff', borderRadius: 12, padding: 16,
+    borderWidth: 1, borderColor: '#e0e0e0',
+    shadowColor: '#000', shadowOpacity: 0.05, shadowOffset: { width: 0, height: 2 }, shadowRadius: 8, elevation: 3,
     width: '48%',
   },
-  chartCardMobile: {
-    width: '100%',
-  },
-  chartTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-  },
-  subTitle: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 12,
-  },
-  chart: {
-    borderRadius: 12,
+  chartCardMobile: { width: '100%' },
+  chartTitle: { fontSize: 16, fontWeight: '600', color: '#333', marginBottom: 4 },
+  subTitle: { fontSize: 12, color: '#666', marginBottom: 12 },
+  chart: { 
+    borderRadius: 12, 
     marginLeft: 10,
+    marginRight: 10,
   },
 });
 

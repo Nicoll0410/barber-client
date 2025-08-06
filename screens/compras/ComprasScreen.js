@@ -283,7 +283,7 @@ const ComprasScreen = () => {
         </View>
 
         <Buscador
-          placeholder="🔍 Buscar compras por proveedor, método o fecha"
+          placeholder="Buscar compras por proveedor, método o fecha"
           value={busqueda}
           onChangeText={setBusqueda}
         />

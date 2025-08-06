@@ -1,52 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Modal, StyleSheet, TextInput, TouchableOpacity, Image, ActivityIndicator, ScrollView } from 'react-native';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { View, Text, Modal, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
-import * as ImagePicker from 'expo-image-picker';
 
 const EditarCategoriaInsumos = ({ visible, onClose, categoria, onUpdate }) => {
   const [nombre, setNombre] = useState('');
   const [descripcion, setDescripcion] = useState('');
-  const [avatar, setAvatar] = useState('https://i.postimg.cc/Tw9dbMG1/Mediamodifier-Design-Template.png');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
-  const [imageError, setImageError] = useState('');
 
   useEffect(() => {
     if (categoria) {
       setNombre(categoria.nombre);
       setDescripcion(categoria.descripcion);
-      setAvatar(categoria.avatar || 'https://i.postimg.cc/Tw9dbMG1/Mediamodifier-Design-Template.png');
       setErrors({});
-      setImageError('');
     }
   }, [categoria]);
-
-  const selectImage = async () => {
-    try {
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
-      if (!permissionResult.granted) {
-        setImageError('Necesitamos acceso a tu galería para seleccionar una imagen');
-        return;
-      }
-
-      const pickerResult = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.5,
-      });
-
-      if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
-        setAvatar(pickerResult.assets[0].uri);
-        setImageError('');
-      }
-    } catch (error) {
-      console.error('Error al seleccionar imagen:', error);
-      setImageError('Ocurrió un error al seleccionar la imagen');
-    }
-  };
 
   const validateForm = () => {
     const newErrors = {};
@@ -65,8 +34,7 @@ const EditarCategoriaInsumos = ({ visible, onClose, categoria, onUpdate }) => {
       await onUpdate({
         id: categoria.id,
         nombre,
-        descripcion,
-        avatar
+        descripcion
       });
     } catch (error) {
       console.error('Error en handleUpdate:', error);
@@ -105,7 +73,10 @@ const EditarCategoriaInsumos = ({ visible, onClose, categoria, onUpdate }) => {
               )}
 
               <View style={styles.formSection}>
-                <Text style={styles.sectionTitle}>Nombre*</Text>
+                <View style={styles.sectionTitleContainer}>
+                  <Text style={styles.sectionTitle}>Nombre</Text>
+                  <Text style={styles.requiredAsterisk}>*</Text>
+                </View>
                 <TextInput
                   style={[styles.input, errors.nombre && styles.inputError]}
                   value={nombre}
@@ -120,7 +91,10 @@ const EditarCategoriaInsumos = ({ visible, onClose, categoria, onUpdate }) => {
               </View>
 
               <View style={styles.formSection}>
-                <Text style={styles.sectionTitle}>Descripción*</Text>
+                <View style={styles.sectionTitleContainer}>
+                  <Text style={styles.sectionTitle}>Descripción</Text>
+                  <Text style={styles.requiredAsterisk}>*</Text>
+                </View>
                 <TextInput
                   style={[styles.multilineInput, errors.descripcion && styles.inputError]}
                   value={descripcion}
@@ -134,25 +108,6 @@ const EditarCategoriaInsumos = ({ visible, onClose, categoria, onUpdate }) => {
                   numberOfLines={3}
                 />
                 {errors.descripcion && <Text style={styles.errorText}>{errors.descripcion}</Text>}
-              </View>
-
-              <View style={styles.formSection}>
-                <Text style={styles.sectionTitle}>Avatar</Text>
-                <Text style={styles.avatarSubtitle}>
-                  Te recomendamos usar íconos
-                </Text>
-                
-                <TouchableOpacity 
-                  style={[styles.avatarSelector, imageError && styles.inputError]} 
-                  onPress={selectImage}
-                  disabled={loading}
-                >
-                  <Image source={{ uri: avatar }} style={styles.avatarImage} />
-                  <View style={styles.avatarOverlay}>
-                    <MaterialIcons name="edit" size={24} color="white" />
-                  </View>
-                </TouchableOpacity>
-                {imageError && <Text style={styles.errorText}>{imageError}</Text>}
               </View>
 
               <View style={styles.buttonContainer}>
@@ -226,16 +181,19 @@ const styles = StyleSheet.create({
   formSection: {
     marginBottom: 16,
   },
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
   sectionTitle: {
     fontWeight: '600',
     color: '#111827',
-    marginBottom: 6,
     fontSize: 14,
   },
-  avatarSubtitle: {
-    color: '#6B7280',
-    fontSize: 12,
-    marginBottom: 8,
+  requiredAsterisk: {
+    color: '#EF4444',
+    marginLeft: 2,
   },
   input: {
     borderWidth: 1.5,
@@ -257,29 +215,6 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
     fontSize: 14,
     marginBottom: 8,
-  },
-  avatarSelector: {
-    height: 100,
-    borderWidth: 1.5,
-    borderColor: '#424242',
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-    overflow: 'hidden',
-  },
-  avatarOverlay: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
   },
   buttonContainer: {
     flexDirection: 'row',

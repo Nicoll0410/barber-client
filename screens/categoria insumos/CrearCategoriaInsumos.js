@@ -1,42 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, Modal, StyleSheet, TextInput, TouchableOpacity, Image, ActivityIndicator, ScrollView } from 'react-native';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { View, Text, Modal, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
-import * as ImagePicker from 'expo-image-picker';
 
 const CrearCategoriaInsumos = ({ visible, onClose, onCreate }) => {
   const [nombre, setNombre] = useState('');
   const [descripcion, setDescripcion] = useState('');
-  const [avatar, setAvatar] = useState('https://i.postimg.cc/Tw9dbMG1/Mediamodifier-Design-Template.png');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
-  const [imageError, setImageError] = useState('');
-
-  const selectImage = async () => {
-    try {
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
-      if (!permissionResult.granted) {
-        setImageError('Necesitamos acceso a tu galería para seleccionar una imagen');
-        return;
-      }
-
-      const pickerResult = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.5,
-      });
-
-      if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
-        setAvatar(pickerResult.assets[0].uri);
-        setImageError('');
-      }
-    } catch (error) {
-      console.error('Error al seleccionar imagen:', error);
-      setImageError('Ocurrió un error al seleccionar la imagen');
-    }
-  };
 
   const validateForm = () => {
     const newErrors = {};
@@ -54,12 +25,10 @@ const CrearCategoriaInsumos = ({ visible, onClose, onCreate }) => {
       setLoading(true);
       await onCreate({
         nombre,
-        descripcion,
-        avatar
+        descripcion
       });
       setNombre('');
       setDescripcion('');
-      setAvatar('https://i.postimg.cc/Tw9dbMG1/Mediamodifier-Design-Template.png');
       setErrors({});
     } catch (error) {
       console.error('Error en handleCreate:', error);
@@ -133,25 +102,6 @@ const CrearCategoriaInsumos = ({ visible, onClose, onCreate }) => {
                   numberOfLines={3}
                 />
                 {errors.descripcion && <Text style={styles.errorText}>{errors.descripcion}</Text>}
-              </View>
-
-              <View style={styles.formSection}>
-                <Text style={styles.sectionTitle}>Avatar</Text>
-                <Text style={styles.avatarSubtitle}>
-                  Te recomendamos usar íconos
-                </Text>
-                
-                <TouchableOpacity 
-                  style={styles.avatarSelector} 
-                  onPress={selectImage}
-                  disabled={loading}
-                >
-                  <Image source={{ uri: avatar }} style={styles.avatarImage} />
-                  <View style={styles.avatarOverlay}>
-                    <MaterialIcons name="edit" size={24} color="white" />
-                  </View>
-                </TouchableOpacity>
-                {imageError && <Text style={styles.errorText}>{imageError}</Text>}
               </View>
 
               <View style={styles.buttonContainer}>
@@ -239,11 +189,6 @@ const styles = StyleSheet.create({
     color: '#EF4444',
     marginLeft: 2,
   },
-  avatarSubtitle: {
-    color: '#6B7280',
-    fontSize: 12,
-    marginBottom: 8,
-  },
   input: {
     borderWidth: 1.5,
     borderColor: '#424242',
@@ -264,27 +209,6 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
     fontSize: 14,
     marginBottom: 8,
-  },
-  avatarSelector: {
-    height: 100,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  avatarImage: {
-    width: '100%',
-    height: '100%',
-  },
-  avatarOverlay: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   buttonContainer: {
     flexDirection: 'row',

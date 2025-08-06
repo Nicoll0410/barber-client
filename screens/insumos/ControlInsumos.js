@@ -108,55 +108,56 @@ const ControlInsumos = () => {
     }));
   };
 
-  const reducirInsumo = async (id) => {
-    const cantidadSolicitada = cantidadReducir[id] || 0;
-    const item = insumos.find((i) => i.id === id);
+const reducirInsumo = async (id) => {
+  const cantidadSolicitada = cantidadReducir[id] || 0;
+  const item = insumos.find((i) => i.id === id);
 
-    console.log('🔻 Reducir', { id, cantidadSolicitada, item });
+  if (!item) return;
+  if (cantidadSolicitada <= 0) {
+    setInfoTitle('⚠️ Atención');
+    setInfoMsg('La cantidad a reducir debe ser mayor a cero');
+    setInfoVisible(true);
+    return;
+  }
+  if (cantidadSolicitada > item.cantidad) {
+    setInfoTitle('⚠️ No disponible');
+    setInfoMsg(`🚫 Solo hay ${item.cantidad} unidades. No puedes reducir ${cantidadSolicitada}.`);
+    setInfoVisible(true);
+    return;
+  }
 
-    if (!item) return;
-    if (cantidadSolicitada <= 0) {
-      setInfoTitle('⚠️ Atención');
-      setInfoMsg('La cantidad a reducir debe ser mayor a cero');
-      setInfoVisible(true);
-      return;
-    }
-    if (cantidadSolicitada > item.cantidad) {
-      setInfoTitle('⚠️ No disponible');
-      setInfoMsg(
-        `🚫 Solo hay ${item.cantidad} unidades. No puedes reducir ${cantidadSolicitada}.`
-      );
-      setInfoVisible(true);
-      return;
-    }
+  try {
+    setLoading(true);
+    const token = await AsyncStorage.getItem('token');
+    
+    // Modifica la llamada axios así:
+    const { data } = await axios({
+      method: 'patch',
+      url: `http://localhost:8080/insumos/${id}/reducir`,
+      data: { cantidad: cantidadSolicitada },
+      headers: { 
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      withCredentials: true
+    });
 
-    try {
-      setLoading(true);
-      const token = await AsyncStorage.getItem('token');
-      const { data } = await axios.patch(
-        `http://localhost:8080/insumos/${id}/reducir`,
-        { cantidad: cantidadSolicitada },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+    console.log('✅ Respuesta backend:', data);
 
-      console.log('✅ Respuesta backend:', data);
-
-      /* Refrescamos desde backend para evitar des‑sincronización */
-      await cargarInsumos();
-
-      setCantidadReducir((p) => ({ ...p, [id]: 0 }));
-      setInfoTitle('✅ ¡Éxito!');
-      setInfoMsg('La cantidad se redujo correctamente 🎉');
-      setInfoVisible(true);
-    } catch (e) {
-      console.error('Error al reducir:', e);
-      setInfoTitle('❌ Error');
-      setInfoMsg('Hubo un problema al reducir el insumo 😢');
-      setInfoVisible(true);
-    } finally {
-      setLoading(false);
-    }
-  };
+    await cargarInsumos();
+    setCantidadReducir((p) => ({ ...p, [id]: 0 }));
+    setInfoTitle('✅ ¡Éxito!');
+    setInfoMsg('La cantidad se redujo correctamente 🎉');
+    setInfoVisible(true);
+  } catch (e) {
+    console.error('Error al reducir:', e);
+    setInfoTitle('❌ Error');
+    setInfoMsg(e.response?.data?.message || 'Hubo un problema al reducir el insumo 😢');
+    setInfoVisible(true);
+  } finally {
+    setLoading(false);
+  }
+};
 
   /* ============ Render Item Móvil / Desktop ============ */
   const renderMobileItem = ({ item }) => (

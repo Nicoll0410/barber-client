@@ -145,7 +145,7 @@ const VentasScreen = () => {
       </View>
 
       <View style={styles.cardInfoRow}>
-        <Text style={styles.cardLabel}>Profesional:</Text>
+        <Text style={styles.cardLabel}>Barbero:</Text>
         <Text style={styles.cardValue}>
           {item.barbero?.nombre || "—"}
         </Text>

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';          // ★ FIX
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,6 @@ import {
   ScrollView,
   Dimensions,
   RefreshControl,
-  Image,
   ActivityIndicator,
 } from 'react-native';
 import {
@@ -47,7 +46,6 @@ axios.interceptors.response.use(
 const CategoriaCard = ({ item, onVer, onEditar, onEliminar }) => (
   <View style={styles.card}>
     <View style={styles.cardHeader}>
-      {item.avatar && <Image source={{ uri: item.avatar }} style={styles.avatarImage} />}
       <View style={styles.cardHeaderText}>
         <Text style={styles.cardNombre}>{item.nombre}</Text>
         <Text style={styles.cardDescripcion}>{item.descripcion}</Text>
@@ -235,13 +233,13 @@ const CategoriaInsumosScreen = () => {
     }
   };
 
-  /* ─── FIX: reajustar la página si queda fuera de rango ─── */     // ★ FIX
+  /* ─── FIX: reajustar la página si queda fuera de rango ─── */
   useEffect(() => {
     const totalPaginas = Math.max(1, Math.ceil(categoriasFiltradas.length / categoriasPorPagina));
     if (paginaActual > totalPaginas) {
       setPaginaActual(totalPaginas);
     }
-  }, [categoriasFiltradas, categoriasPorPagina, paginaActual]);       // ★ FIN FIX
+  }, [categoriasFiltradas, categoriasPorPagina, paginaActual]);
 
   /* ─── helpers tabla/paginación ─── */
   const i0 = (paginaActual - 1) * categoriasPorPagina;
@@ -268,10 +266,24 @@ const CategoriaInsumosScreen = () => {
         <View style={styles.contentContainer}>
           <View style={styles.header}>
             <View style={styles.headerLeft}>
-              <Text style={styles.title}>Categorías de Insumos</Text>
-              <View style={styles.counter}>
-                <Text style={styles.counterText}>{categoriasFiltradas.length}</Text>
-              </View>
+              {isMobile ? (
+                <View style={styles.mobileTitleContainer}>
+                  <Text style={styles.title}>Categorías de</Text>
+                  <View style={styles.mobileTitleRow}>
+                    <Text style={styles.title}>Insumos</Text>
+                    <View style={styles.counter}>
+                      <Text style={styles.counterText}>{categoriasFiltradas.length}</Text>
+                    </View>
+                  </View>
+                </View>
+              ) : (
+                <>
+                  <Text style={styles.title}>Categorías de Insumos</Text>
+                  <View style={styles.counter}>
+                    <Text style={styles.counterText}>{categoriasFiltradas.length}</Text>
+                  </View>
+                </>
+              )}
             </View>
             <TouchableOpacity style={styles.addButton} onPress={crearCategoria}>
               <Ionicons name="add-circle" size={20} color="white" />
@@ -404,6 +416,13 @@ const styles = StyleSheet.create({
   counterText: { fontWeight: 'bold', fontSize: 14, color: '#424242' },
   addButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#424242', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20 },
   addButtonText: { marginLeft: 8, color: 'white', fontWeight: '500', fontSize: 14 },
+  mobileTitleContainer: {
+    flexDirection: 'column',
+  },
+  mobileTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
 
   /* tabla desktop */
   tableWrapper: { flex: 1, marginBottom: 16 },
@@ -429,7 +448,6 @@ const styles = StyleSheet.create({
   cardsContainer: { paddingBottom: 16 },
   card: { backgroundColor: 'white', borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#e0e0e0', elevation: 2 },
   cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  avatarImage: { width: 40, height: 40, borderRadius: 20, marginRight: 12 },
   cardHeaderText: { flex: 1 },
   cardNombre: { fontSize: 16, fontWeight: '600', color: '#212121', marginBottom: 4 },
   cardDescripcion: { fontSize: 14, color: '#757575' },

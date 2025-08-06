@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Modal, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, Modal, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 
@@ -20,13 +20,6 @@ const DetalleCategoriaInsumos = ({ visible, onClose, categoria }) => {
             <TouchableOpacity onPress={onClose} style={styles.closeIcon}>
               <Ionicons name="close" size={24} color="#6B7280" />
             </TouchableOpacity>
-          </View>
-
-          <View style={styles.avatarContainer}>
-            <Image 
-              source={{ uri: categoria.avatar || 'https://i.postimg.cc/Tw9dbMG1/Mediamodifier-Design-Template.png' }} 
-              style={styles.avatarLarge}
-            />
           </View>
 
           <View style={styles.contentContainer}>
@@ -86,15 +79,6 @@ const styles = StyleSheet.create({
   },
   closeIcon: {
     padding: 4,
-  },
-  avatarContainer: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  avatarLarge: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
   },
   contentContainer: {
     marginBottom: 16,

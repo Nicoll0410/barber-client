@@ -1,8 +1,4 @@
-/* ───────────────────────────────────────────────────────────
-   screens/agenda/AgendaScreen.js
-   Agenda diaria con creación y detalle de citas
-   ─────────────────────────────────────────────────────────── */
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -25,7 +21,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import CrearCita from './CrearCita';
 import DetalleCita from './DetalleCita';
 
-/* ─────────────── Localización calendario (es) ────────────── */
 LocaleConfig.locales.es = {
   monthNames: [
     'Enero','Febrero','Marzo','Abril','Mayo','Junio',
@@ -40,7 +35,6 @@ LocaleConfig.defaultLocale = 'es';
 
 const { width } = Dimensions.get('window');
 
-/* ───────────────────────── COMPONENTE ───────────────────── */
 const AgendaScreen = () => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -56,6 +50,18 @@ const AgendaScreen = () => {
   const [servicios, setServicios] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [disponibilidadBarberos, setDisponibilidadBarberos] = useState({});
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const diasSemanaTexto = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+
+  const getHorarioBarberia = (day) => {
+    if (day >= 1 && day <= 3) {
+      return { inicio: 11, fin: 21 };
+    } else {
+      return { inicio: 9, fin: 22 };
+    }
+  };
 
   const fetchBarberos = async () => {
     try {
@@ -63,21 +69,74 @@ const AgendaScreen = () => {
       const { data } = await axios.get(
         'http://localhost:8080/barberos',
         { 
-          params: { page: 1, limit: 100 },
+          params: { page: 1, limit: 100, all: 'true' },
           headers: { Authorization: `Bearer ${token}` } 
         }
       );
 
-      setBarberos(
-        data.barberos.map(b => ({
-          id: b.id,
-          nombre: b.nombre,
-          avatar: b.avatar
-            ? { uri: b.avatar }
-            : require('../../assets/avatar.png'),
-          subItems: ['Barbero'],
-        }))
-      );
+      const barberosConHorario = await Promise.all(data.barberos.map(async b => {
+        try {
+          const horarioResponse = await axios.get(
+            `http://localhost:8080/barberos/${b.id}/horario`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          
+          return {
+            id: b.id,
+            nombre: b.nombre,
+            avatar: b.avatar
+              ? { uri: b.avatar }
+              : require('../../assets/avatar.png'),
+            subItems: ['Barbero'],
+            disponibilidad: horarioResponse.data?.horario || {
+              diasLaborales: {
+                lunes: { activo: false, horas: [] },
+                martes: { activo: false, horas: [] },
+                miercoles: { activo: false, horas: [] },
+                jueves: { activo: false, horas: [] },
+                viernes: { activo: false, horas: [] },
+                sabado: { activo: false, horas: [] },
+                domingo: { activo: false, horas: [] }
+              },
+              horarioAlmuerzo: {
+                inicio: "13:00",
+                fin: "14:00",
+                activo: true
+              },
+              excepciones: []
+            }
+          };
+        } catch (error) {
+          console.error(`Error al obtener horario para barbero ${b.id}:`, error);
+          return {
+            id: b.id,
+            nombre: b.nombre,
+            avatar: b.avatar
+              ? { uri: b.avatar }
+              : require('../../assets/avatar.png'),
+            subItems: ['Barbero'],
+            disponibilidad: {
+              diasLaborales: {
+                lunes: { activo: false, horas: [] },
+                martes: { activo: false, horas: [] },
+                miercoles: { activo: false, horas: [] },
+                jueves: { activo: false, horas: [] },
+                viernes: { activo: false, horas: [] },
+                sabado: { activo: false, horas: [] },
+                domingo: { activo: false, horas: [] }
+              },
+              horarioAlmuerzo: {
+                inicio: "13:00",
+                fin: "14:00",
+                activo: true
+              },
+              excepciones: []
+            }
+          };
+        }
+      }));
+
+      setBarberos(barberosConHorario);
     } catch (err) {
       console.error('Error al obtener barberos:', err);
       Alert.alert('Error', 'No se pudieron cargar los barberos');
@@ -111,7 +170,7 @@ const AgendaScreen = () => {
             servicio: {
               id: cita.servicio.id,
               nombre: cita.servicio.nombre,
-              duracionMaxima: cita.servicio.duracion, // Campo corregido
+              duracionMaxima: cita.servicio.duracion,
               precio: cita.servicio.precio,
             },
             barbero: {
@@ -120,6 +179,7 @@ const AgendaScreen = () => {
               avatar: barbero.avatar
                 ? { uri: barbero.avatar }
                 : require('../../assets/avatar.png'),
+              disponibilidad: barbero.disponibilidad
             },
             cliente: {
               id: cita.cliente.id,
@@ -155,7 +215,7 @@ const AgendaScreen = () => {
           id: c.id,
           nombre: c.nombre,
           telefono: c.telefono,
-          email: c.usuario?.email, // ← viene anidado
+          email: c.usuario?.email,
           avatar: c.avatar
             ? { uri: c.avatar }
             : require('../../assets/avatar.png'),
@@ -167,16 +227,14 @@ const AgendaScreen = () => {
     }
   };
 
-  /* ─────────────── useFocusEffect: carga/refresh ─────────── */
   useFocusEffect(
     useCallback(() => {
       fetchBarberos();
       fetchCitas();
       fetchInformationForCreate();
-    }, [selectedDate])
+    }, [selectedDate, refreshKey])
   );
 
-  /* ─────────────── Helpers de fecha/hora ──────────────── */
   const formatDateString = d => {
     const y = d.getFullYear();
     const m = `${d.getMonth() + 1}`.padStart(2, '0');
@@ -184,14 +242,12 @@ const AgendaScreen = () => {
     return `${y}-${m}-${da}`;
   };
 
-  // Decimal (9.5) -> "09:30:00"
   const normalizeHoraFromDecimal = decimal => {
     const h = Math.floor(decimal);
     const m = Math.round((decimal - h) * 60);
     return `${`${h}`.padStart(2, '0')}:${`${m}`.padStart(2, '0')}:00`;
   };
 
-  // "09:00" -> "9:00 am"
   const toAMPM = t => {
     const [h, m] = t.split(':').map(Number);
     const period = h >= 12 ? 'pm' : 'am';
@@ -199,38 +255,146 @@ const AgendaScreen = () => {
     return `${h12}:${`${m}`.padStart(2, '0')} ${period}`;
   };
 
-  /* Genera slots cada 30 min según día */
+  const calcularDisponibilidad = useCallback(() => {
+    const nuevaDisponibilidad = {};
+    
+    barberos.forEach(barbero => {
+      const disponibilidad = barbero.disponibilidad || {};
+      const diaActual = selectedDate.getDay();
+      const diaSemanaTexto = diasSemanaTexto[diaActual];
+      const fechaStr = formatDateString(selectedDate);
+      
+      const esDiaLaboral = disponibilidad.diasLaborales?.[diaSemanaTexto]?.activo || false;
+      
+      const tieneExcepcion = disponibilidad.excepciones?.some(ex => 
+        ex.fecha === fechaStr && ex.activo === false
+      );
+      
+      const horasDisponibles = generateTimeSlots().filter(slot => {
+        return isBarberoDisponible(barbero, selectedDate, slot.startTime);
+      }).length;
+
+      const citasBarbero = citas.filter(c => c.barbero.id === barbero.id);
+      const estaCompleto = horasDisponibles <= citasBarbero.length;
+
+      nuevaDisponibilidad[barbero.id] = {
+        esDiaLaboral,
+        tieneExcepcion,
+        estaCompleto,
+        horasDisponibles
+      };
+    });
+
+    setDisponibilidadBarberos(nuevaDisponibilidad);
+  }, [barberos, selectedDate, citas]);
+
+  useEffect(() => {
+    if (barberos.length > 0 && citas) {
+      calcularDisponibilidad();
+    }
+  }, [barberos, selectedDate, citas, calcularDisponibilidad]);
+
+  const isBarberoDisponible = (barbero, fecha, hora) => {
+    const disponibilidad = barbero.disponibilidad || {};
+    const diaSemana = fecha.getDay();
+    const diaSemanaTexto = diasSemanaTexto[diaSemana];
+    const fechaStr = formatDateString(fecha);
+    
+    // 1. Verificar excepciones
+    const tieneExcepcion = disponibilidad.excepciones?.some(ex => 
+      ex.fecha === fechaStr && ex.activo === false
+    );
+    if (tieneExcepcion) return false;
+    
+    // 2. Verificar día laboral
+    const diaConfig = disponibilidad.diasLaborales?.[diaSemanaTexto];
+    if (!diaConfig?.activo) {
+      return false;
+    }
+    
+    // 3. Convertir hora a minutos para comparación
+    const [horaActual, minActual] = hora.split(':').map(Number);
+    const horaActualMinutos = horaActual * 60 + minActual;
+    
+    // 4. Verificar horario específico del día si está configurado
+    if (diaConfig.horas && diaConfig.horas.length > 0) {
+      const horaDisponible = diaConfig.horas.some(h => {
+        const [horaDisp, minDisp] = h.split(':').map(Number);
+        return horaDisp === horaActual && minDisp === minActual;
+      });
+      if (!horaDisponible) return false;
+    }
+    
+    // 5. Verificar horario de almuerzo
+    if (disponibilidad.horarioAlmuerzo?.activo !== false) {
+      const almuerzoInicio = disponibilidad.horarioAlmuerzo?.inicio || '13:00';
+      const almuerzoFin = disponibilidad.horarioAlmuerzo?.fin || '14:00';
+      
+      const [almuerzoHInicio, almuerzoMInicio] = almuerzoInicio.split(':').map(Number);
+      const [almuerzoHFin, almuerzoMFin] = almuerzoFin.split(':').map(Number);
+      
+      const almuerzoInicioMinutos = almuerzoHInicio * 60 + almuerzoMInicio;
+      const almuerzoFinMinutos = almuerzoHFin * 60 + almuerzoMFin;
+      
+      if (horaActualMinutos >= almuerzoInicioMinutos && horaActualMinutos < almuerzoFinMinutos) {
+        return false;
+      }
+    }
+    
+    // 6. Verificar si ya tiene cita en ese horario
+    const citaExistente = citas.find(c => 
+      c.barbero.id === barbero.id && 
+      c.fecha.toDateString() === fecha.toDateString() && 
+      c.hora === `${hora}:00`
+    );
+    
+    return !citaExistente;
+  };
+
   const generateTimeSlots = () => {
     const day = selectedDate.getDay();
+    const horarioBarberia = getHorarioBarberia(day);
     const slots = [];
-    const startHour = day >= 1 && day <= 3 ? 11 : 9; // Lun‑Mié 11‑21, resto 9‑22
-    const endHour   = day >= 1 && day <= 3 ? 21 : 22;
 
-    for (let h = startHour; h < endHour; h++) {
-      ['00','30'].forEach(min => {
-        const start = `${`${h}`.padStart(2,'0')}:${min}`;
-        const end   = min === '00'
-          ? `${`${h}`.padStart(2,'0')}:30`
-          : `${`${h+1}`.padStart(2,'0')}:00`;
+    for (let h = horarioBarberia.inicio; h < horarioBarberia.fin; h++) {
+      if (day >= 1 && day <= 3 && h === 21) {
         slots.push({
-          key:       start,
+          key: '21:00',
+          startTime: '21:00',
+          endTime: '21:30',
+          displayTime: '9:00 pm'
+        });
+        break;
+      }
+      
+      ['00','30'].forEach(min => {
+        const start = `${h < 10 ? '0' + h : h}:${min}`;
+        const end = min === '00' 
+          ? `${h < 10 ? '0' + h : h}:30`
+          : `${h + 1 < 10 ? '0' + (h + 1) : h + 1}:00`;
+        
+        slots.push({
+          key: start,
           startTime: start,
-          endTime:   end,
+          endTime: end,
           displayTime: toAMPM(start),
         });
       });
     }
 
-    /* Eliminar slots pasados si es hoy */
     if (isToday(selectedDate)) {
       const now = new Date();
-      const current      = now.getHours() + now.getMinutes()/60;
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+      const currentTotal = currentHour * 60 + currentMinute;
+      
       return slots.filter(s => {
-        const [h, m]   = s.startTime.split(':').map(Number);
-        const slotTime = h + m/60;
-        return slotTime >= current;
+        const [h, m] = s.startTime.split(':').map(Number);
+        const slotTotal = h * 60 + m;
+        return slotTotal >= currentTotal;
       });
     }
+    
     return slots;
   };
 
@@ -250,7 +414,6 @@ const AgendaScreen = () => {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
     });
 
-  /* ─────────── Navegación por días ─────────── */
   const navigateDay = dir => {
     const n = new Date(selectedDate);
     n.setDate(n.getDate() + (dir === 'next' ? 1 : -1));
@@ -273,7 +436,6 @@ const AgendaScreen = () => {
     }
   };
 
-  /* ─────────── Slots & Citas ─────────── */
   const citaForSlot = (slot, barbero) =>
     citas.find(c =>
       c.fecha.toDateString() === selectedDate.toDateString() &&
@@ -287,25 +449,31 @@ const AgendaScreen = () => {
       setSelectedCita(existente);
       setShowDetalleCita(true);
     } else {
+      if (!isBarberoDisponible(barbero, selectedDate, slot.startTime)) {
+        Alert.alert('No disponible', 'El barbero no está disponible en este horario');
+        return;
+      }
       setSelectedSlot({ ...slot, barbero, fecha: selectedDate });
       setShowCrearCita(true);
     }
   };
 
-  /* ─────────── Callback al crear exitoso ─────────── */
   const onCitaCreada = () => {
-    fetchCitas();          // refrescar agenda
+    setRefreshKey(prev => prev + 1);
     setShowCrearCita(false);
     setSelectedSlot(null);
-    Alert.alert('Éxito', 'Cita creada correctamente');
   };
 
-  /* ─────────── Disabled dates (ayer & antes) ───────── */
+  const onCitaActualizada = () => {
+    setRefreshKey(prev => prev + 1);
+    setShowDetalleCita(false);
+  };
+
   const getDisabledDates = () => {
     const disabled = {};
     const start = new Date(selectedDate.getFullYear(),
                            selectedDate.getMonth()-1, 1);
-    const end   = new Date(selectedDate.getFullYear(),
+    const end = new Date(selectedDate.getFullYear(),
                            selectedDate.getMonth()+2, 0);
     const tmp = new Date(start);
     while (tmp <= end) {
@@ -317,7 +485,107 @@ const AgendaScreen = () => {
     return disabled;
   };
 
-  /* ─────────────────────── RENDER ─────────────────────── */
+  const renderBarberoHeader = (b) => {
+    const disp = disponibilidadBarberos[b.id] || {};
+    const estaDisponible = disp.esDiaLaboral && !disp.tieneExcepcion && !disp.estaCompleto;
+    
+    return (
+      <View key={b.id} style={styles.barberoHeader}>
+        <Image source={b.avatar} style={styles.avatar} />
+        <Text style={styles.barberoNombre}>{b.nombre}</Text>
+        <Text style={styles.subItem}>Barbero</Text>
+        <View style={styles.disponibilidadContainer}>
+          <View style={[
+            styles.disponibilidadPunto,
+            estaDisponible ? styles.disponible : styles.noDisponible
+          ]} />
+          <Text style={[
+            styles.disponibilidadTexto,
+            estaDisponible ? styles.disponible : styles.noDisponible
+          ]}>
+            {estaDisponible ? 'Disponible' : 'No disponible'}
+          </Text>
+        </View>
+      </View>
+    );
+  };
+
+  const renderBarberoSlot = (slot, b) => {
+    const cita = citaForSlot(slot, b);
+    const disp = disponibilidadBarberos[b.id] || {};
+    
+    let cellState = 'disponible';
+    if (cita) {
+      cellState = 'ocupado';
+    } else if (!disp.esDiaLaboral || disp.tieneExcepcion) {
+      cellState = 'no-laboral';
+    } else {
+      const horaDecimal = parseInt(slot.startTime.split(':')[0]) + 
+                         (parseInt(slot.startTime.split(':')[1]) / 60);
+      
+      const diaSemana = selectedDate.getDay();
+      const diaSemanaTexto = diasSemanaTexto[diaSemana];
+      const diaConfig = b.disponibilidad.diasLaborales?.[diaSemanaTexto];
+      
+      if (diaConfig?.horas && diaConfig.horas.length > 0) {
+        const horaDisponible = diaConfig.horas.some(h => h === slot.startTime);
+        if (!horaDisponible) {
+          cellState = 'fuera-horario';
+        }
+      }
+      
+      if (cellState === 'disponible' && b.disponibilidad?.horarioAlmuerzo?.activo !== false) {
+        const [almuerzoInicio, almuerzoMinInicio] = b.disponibilidad?.horarioAlmuerzo?.inicio?.split(':').map(Number) || [13, 0];
+        const [almuerzoFin, almuerzoMinFin] = b.disponibilidad?.horarioAlmuerzo?.fin?.split(':').map(Number) || [14, 0];
+        
+        const almuerzoInicioDecimal = almuerzoInicio + almuerzoMinInicio / 60;
+        const almuerzoFinDecimal = almuerzoFin + almuerzoMinFin / 60;
+        
+        if (horaDecimal >= almuerzoInicioDecimal && horaDecimal < almuerzoFinDecimal) {
+          cellState = 'almuerzo';
+        }
+      }
+    }
+
+    return (
+      <TouchableOpacity
+        key={`${slot.key}-${b.id}`}
+        style={[
+          styles.slot,
+          styles[`slot-${cellState}`],
+          selectedSlot?.key === slot.key && selectedSlot?.barbero.id === b.id && styles.selectedSlot,
+        ]}
+        onPress={() => cellState === 'disponible' ? handleSlotPress(slot, b) : null}
+        disabled={cellState !== 'disponible'}
+      >
+        {cellState === 'no-laboral' && (
+          <Text style={styles.slotNoLaboralText}>NO LABORAL</Text>
+        )}
+        {cellState === 'almuerzo' && (
+          <Text style={styles.slotAlmuerzoText}>ALMUERZO</Text>
+        )}
+        {cellState === 'fuera-horario' && (
+          <Text style={styles.slotFueraHorarioText}>---</Text>
+        )}
+        {cellState === 'disponible' && !cita && (
+          <Text style={styles.slotDisponibleText}>DISPONIBLE</Text>
+        )}
+        {cita && (
+          <TouchableOpacity 
+            style={styles.citaContent}
+            onPress={() => {
+              setSelectedCita(cita);
+              setShowDetalleCita(true);
+            }}
+          >
+            <Text style={styles.citaCliente}>{cita.cliente.nombre}</Text>
+            <Text style={styles.citaServicio}>{cita.servicio.nombre}</Text>
+          </TouchableOpacity>
+        )}
+      </TouchableOpacity>
+    );
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -329,7 +597,6 @@ const AgendaScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header fecha */}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => setShowCalendar(true)}
@@ -356,64 +623,28 @@ const AgendaScreen = () => {
         </View>
       </View>
 
-      {/* Cabecera barberos */}
       <View style={styles.barberosHeader}>
         <View style={styles.timeColumn} />
-        {barberos.map(b => (
-          <View key={b.id} style={styles.barberoHeader}>
-            <Image source={b.avatar} style={styles.avatar} />
-            <Text style={styles.barberoNombre}>{b.nombre}</Text>
-            {b.subItems.map((s,i)=>(
-              <Text key={i} style={styles.subItem}>{s}</Text>
-            ))}
-          </View>
-        ))}
+        {barberos.map(renderBarberoHeader)}
       </View>
 
-      {/* Slots */}
       <View style={styles.mainContent}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          {generateTimeSlots().map(slot=>(
+          {generateTimeSlots().map(slot => (
             <View key={slot.key} style={styles.row}>
-              {/* Columna hora */}
               <View style={styles.timeCell}>
                 <Text style={styles.horaText}>{slot.displayTime}</Text>
               </View>
-
-              {/* Columnas barberos */}
-              {barberos.map(b=>{
-                const cita = citaForSlot(slot,b);
-                return (
-                  <TouchableOpacity
-                    key={`${slot.key}-${b.id}`}
-                    style={[
-                      styles.slot,
-                      cita && styles.slotConCita,
-                      selectedSlot?.key===slot.key &&
-                      selectedSlot?.barbero.id===b.id &&
-                      styles.selectedSlot,
-                    ]}
-                    onPress={()=>handleSlotPress(slot,b)}>
-                    {cita && (
-                      <View style={styles.citaContent}>
-                        <Text style={styles.citaCliente}>{cita.cliente.nombre}</Text>
-                        <Text style={styles.citaServicio}>{cita.servicio.nombre}</Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
+              {barberos.map(b => renderBarberoSlot(slot, b))}
             </View>
           ))}
         </ScrollView>
       </View>
 
-      {/* ─── Calendario modal ─── */}
       <Modal visible={showCalendar} animationType="fade" transparent>
         <BlurView intensity={15} tint="light" style={StyleSheet.absoluteFill} />
         <View style={styles.calendarModal}>
           <View style={styles.customDatePicker}>
-            {/* Header mes‑año */}
             <View style={styles.datePickerHeader}>
               <TouchableOpacity
                 onPress={()=>changeMonth(-1)}
@@ -444,7 +675,6 @@ const AgendaScreen = () => {
               </TouchableOpacity>
             </View>
 
-            {/* Calendario */}
             <View style={styles.calendarContainer}>
               <Calendar
                 current={formatDateString(selectedDate)}
@@ -482,7 +712,6 @@ const AgendaScreen = () => {
               />
             </View>
 
-            {/* Acciones */}
             <View style={styles.datePickerActions}>
               <TouchableOpacity
                 style={styles.datePickerButton}
@@ -498,7 +727,6 @@ const AgendaScreen = () => {
         </View>
       </Modal>
 
-      {/* ─── Crear cita ─── */}
       <CrearCita
         visible={showCrearCita}
         onClose={()=>setShowCrearCita(false)}
@@ -510,14 +738,14 @@ const AgendaScreen = () => {
         clientes={clientes}
       />
 
-      {/* ─── Detalle cita ─── */}
       <DetalleCita
         visible={showDetalleCita}
         onClose={() => setShowDetalleCita(false)}
         cita={selectedCita}
+        onDelete={onCitaActualizada}
+        onUpdate={onCitaActualizada}
       />
 
-      {/* Footer */}
       <View style={styles.footerContainer}>
         <Footer />
       </View>
@@ -525,7 +753,6 @@ const AgendaScreen = () => {
   );
 };
 
-/* ────────────────────────── ESTILOS ───────────────────────── */
 const styles = StyleSheet.create({
   container:{flex:1,backgroundColor:'#fff'},
   loadingContainer:{flex:1,justifyContent:'center',alignItems:'center'},
@@ -543,9 +770,17 @@ const styles = StyleSheet.create({
   row:{flexDirection:'row',borderBottomWidth:1,borderBottomColor:'#000',minHeight:60},
   timeCell:{width:80,justifyContent:'center',alignItems:'center',borderRightWidth:1,borderRightColor:'#000'},
   horaText:{fontSize:14},
-  slot:{flex:1,borderRightWidth:1,borderRightColor:'#000',backgroundColor:'#fff',padding:5},
-  slotConCita:{backgroundColor:'#D9D9D9'},
+  slot:{flex:1,borderRightWidth:1,borderRightColor:'#000',padding:5,justifyContent:'center',alignItems:'center'},
+  'slot-no-laboral':{backgroundColor:'#FFEBEE'},
+  'slot-almuerzo':{backgroundColor:'#FFF8E1'},
+  'slot-fuera-horario':{backgroundColor:'#F5F5F5',opacity:0.6},
+  'slot-ocupado':{backgroundColor:'#E0E0E0'},
+  'slot-disponible':{backgroundColor:'#E8F5E9'},
   selectedSlot:{backgroundColor:'#D9D9D9'},
+  slotNoLaboralText:{fontSize:10,color:'#F44336',fontWeight:'bold',textAlign:'center'},
+  slotAlmuerzoText:{fontSize:10,color:'#FF8F00',fontWeight:'bold',textAlign:'center'},
+  slotFueraHorarioText:{fontSize:10,color:'#9E9E9E',textAlign:'center',textDecorationLine:'line-through'},
+  slotDisponibleText:{fontSize:10,color:'#2E7D32',textAlign:'center', fontWeight: 'bold'},
   citaContent:{flex:1,justifyContent:'center'},
   citaCliente:{fontSize:12,fontWeight:'bold',marginBottom:2},
   citaServicio:{fontSize:10,color:'#555'},
@@ -563,6 +798,11 @@ const styles = StyleSheet.create({
   closeButton:{padding:10,borderRadius:5,backgroundColor:'#424242'},
   closeButtonText:{color:'#fff',fontWeight:'bold'},
   footerContainer:{position:'absolute',bottom:0,left:0,right:0,height:60},
+  disponibilidadContainer:{flexDirection:'row',alignItems:'center',marginTop:4},
+  disponibilidadPunto:{width:8,height:8,borderRadius:4,marginRight:4},
+  disponible:{color:'#000000ff',backgroundColor:'#4CAF50', borderRadius: 7},
+  noDisponible:{color:'#000000ff',backgroundColor:'#F44336', borderRadius: 7},
+  disponibilidadTexto:{fontSize:10,fontWeight:'bold'},
 });
 
 export default AgendaScreen;

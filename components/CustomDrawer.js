@@ -27,7 +27,7 @@ const ROLE_MENU = {
         { label: "Clientes", screen: "Clientes", icon: Feather, name: "user" },
       ],
       Compras: [
-        { label: "Insumos", screen: "Insumos", icon: MaterialCommunityIcons, name: "spray" },
+        // { label: "Insumos", screen: "Insumos", icon: MaterialCommunityIcons, name: "spray" },
         { label: "Movimientos", screen: "Movimientos", icon: FontAwesome5, name: "exchange-alt" },
       ],
       Ventas: [
@@ -44,14 +44,14 @@ const ROLE_MENU = {
       Usuarios: [
         { label: "Clientes", screen: "Clientes", icon: Feather, name: "user" },
         { label: "Barberos", screen: "Barberos", icon: Ionicons, name: "cut-outline" },
-        { label: "Roles", screen: "Roles", icon: Ionicons, name: "key-outline" },
+        // { label: "Roles", screen: "Roles", icon: Ionicons, name: "key-outline" },
       ],
-      Compras: [
-        { label: "Categoría de Insumos", screen: "CategoriaInsumos", icon: MaterialCommunityIcons, name: "database-arrow-left-outline" },
-        { label: "Insumos", screen: "Insumos", icon: MaterialCommunityIcons, name: "spray" },
-        { label: "Proveedores", screen: "Proveedores", icon: MaterialCommunityIcons, name: "toolbox-outline" },
-        { label: "Compras", screen: "Compras", icon: AntDesign, name: "shoppingcart" },
-      ],
+      // Compras: [
+      //   { label: "Categoría de Insumos", screen: "CategoriaInsumos", icon: MaterialCommunityIcons, name: "database-arrow-left-outline" },
+      //   { label: "Insumos", screen: "Insumos", icon: MaterialCommunityIcons, name: "spray" },
+      //   { label: "Proveedores", screen: "Proveedores", icon: MaterialCommunityIcons, name: "toolbox-outline" },
+      //   { label: "Compras", screen: "Compras", icon: AntDesign, name: "shoppingcart" },
+      // ],
       Ventas: [
         { label: "Movimientos", screen: "Movimientos", icon: FontAwesome5, name: "exchange-alt" },
         { label: "Servicios", screen: "Servicios", icon: MaterialCommunityIcons, name: "toolbox-outline" },

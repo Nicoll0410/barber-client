@@ -54,63 +54,100 @@ const CrearCita = ({
     onClose();
   };
 
-const handleCrear = async () => {
+  const handleCrear = async () => {
     try {
-        const datosEnvio = {
-            barberoID: barbero.id,
-            servicioID: servicioSel.id,
-            fecha: `${fecha.getFullYear()}-${(fecha.getMonth() + 1).toString().padStart(2, '0')}-${fecha.getDate().toString().padStart(2, '0')}`,
-            hora: slot.displayTime.toUpperCase(),
-            direccion: "En barbería",
-        };
+      // Validaciones básicas
+      if (!servicioSel || !barbero) {
+        throw new Error('Falta información del servicio o barbero');
+      }
 
-        // Manejo de cliente temporal vs registrado
-        if (isTemporal) {
-            datosEnvio.pacienteTemporalNombre = temporalNombre.trim();
-            if (temporalTelefono.trim()) {
-                datosEnvio.pacienteTemporalTelefono = temporalTelefono.trim();
+      // Validación de cliente
+      if (!isTemporal && !clienteSel) {
+        throw new Error('Selecciona un cliente o marca como cliente temporal');
+      }
+
+      if (isTemporal && !temporalNombre.trim()) {
+        throw new Error('El nombre del cliente temporal es obligatorio');
+      }
+
+      // Validar teléfono si se proporciona
+      if (isTemporal && temporalTelefono.trim() && !/^\d{10}$/.test(temporalTelefono.trim())) {
+        throw new Error('El teléfono debe tener 10 dígitos numéricos');
+      }
+
+      // Formatear fecha correctamente
+      const fechaFormateada = `${fecha.getFullYear()}-${(fecha.getMonth() + 1)
+        .toString()
+        .padStart(2, '0')}-${fecha.getDate().toString().padStart(2, '0')}`;
+
+      // Construir objeto de la cita
+      const citaData = {
+        barberoID: barbero.id,
+        servicioID: servicioSel.id,
+        fecha: fechaFormateada,
+        hora: slot.displayTime.toUpperCase(),
+        direccion: "En barbería",
+        estado: "Pendiente"
+      };
+
+      // Manejo de cliente
+      if (isTemporal) {
+        citaData.pacienteTemporalNombre = temporalNombre.trim();
+        if (temporalTelefono.trim()) {
+          citaData.pacienteTemporalTelefono = temporalTelefono.trim();
+        }
+      } else {
+        citaData.pacienteID = clienteSel.id;
+      }
+
+      console.log('Datos a enviar:', JSON.stringify(citaData, null, 2));
+
+      // Obtener token de autenticación
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        throw new Error('No se encontró el token de autenticación');
+      }
+
+      // Enviar solicitud al backend
+      const response = await axios.post('http://localhost:8080/citas', citaData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      // Manejar respuesta
+      if (response.data?.success) {
+        Alert.alert('Éxito', response.data.mensaje, [
+          { 
+            text: 'OK', 
+            onPress: () => {
+              onCreate?.(response.data.cita);
+              handleClose();
             }
-        } else {
-            datosEnvio.pacienteID = clienteSel.id;
-        }
+          }
+        ]);
+      } else {
+        throw new Error(response.data?.mensaje || 'Respuesta inesperada del servidor');
+      }
+    } catch (error) {
+      console.error('Error detallado:', {
+        message: error.message,
+        response: error.response?.data,
+        request: error.request,
+        config: error.config
+      });
 
-        console.log('Payload a enviar:', JSON.stringify(datosEnvio, null, 2));
+      let mensajeError = 'Error al crear la cita';
+      if (error.response?.data?.mensaje) {
+        mensajeError = error.response.data.mensaje;
+      } else if (error.message) {
+        mensajeError = error.message;
+      }
 
-        const token = await AsyncStorage.getItem('token');
-        if (!token) throw new Error('Token no encontrado');
-
-        const response = await axios.post('http://localhost:8080/citas', datosEnvio, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json',
-            },
-        });
-
-        if (response.data?.cita) {
-            onCreate?.(response.data.cita);
-            handleClose();
-            Alert.alert('Éxito', 'Cita creada correctamente');
-        } else {
-            throw new Error('Respuesta inesperada del servidor');
-        }
-    } catch (err) {
-        console.error('Error detallado:', {
-            message: err.message,
-            response: err.response?.data,
-            request: err.request,
-            config: err.config
-        });
-
-        let errorMessage = 'Error al crear la cita';
-        if (err.response) {
-            errorMessage = err.response.data?.mensaje || 
-                          err.response.data?.error || 
-                          `Error ${err.response.status}`;
-        }
-
-        Alert.alert('Error', errorMessage);
+      Alert.alert('Error', mensajeError);
     }
-};
+  };
 
   const Paso1 = () => (
     <View style={styles.stepContainer}>
@@ -149,7 +186,7 @@ const handleCrear = async () => {
     </View>
   );
 
-  const Paso2 = () => {
+const Paso2 = () => {
     const filtrados = clientes.filter(c =>
       c.nombre.toLowerCase().includes(busqueda.toLowerCase())
     );
@@ -161,13 +198,22 @@ const handleCrear = async () => {
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
           <TouchableOpacity
             style={[styles.optionToggle, !isTemporal && styles.optionToggleActive]}
-            onPress={() => { setIsTemporal(false); setClienteSel(null); }}
+            onPress={() => { 
+              setIsTemporal(false); 
+              setClienteSel(null);
+              setTemporalNombre('');
+              setTemporalTelefono('');
+            }}
           >
             <Text style={[styles.optionText, !isTemporal && styles.optionTextActive]}>Cliente existente</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.optionToggle, isTemporal && styles.optionToggleActive, { marginLeft: 10 }]}
-            onPress={() => { setIsTemporal(true); setClienteSel(null); }}
+            onPress={() => { 
+              setIsTemporal(true); 
+              setClienteSel(null);
+              setBusqueda('');
+            }}
           >
             <Text style={[styles.optionText, isTemporal && styles.optionTextActive]}>Cliente nuevo</Text>
           </TouchableOpacity>
@@ -208,12 +254,13 @@ const handleCrear = async () => {
           </>
         ) : (
           <>
-            <Text style={styles.inputLabel}>Nombre del cliente</Text>
+            <Text style={styles.inputLabel}>Nombre del cliente*</Text>
             <TextInput
               style={styles.input}
               placeholder="Ej. Juan Pérez"
               value={temporalNombre}
               onChangeText={setTemporalNombre}
+              maxLength={50}
             />
             <Text style={styles.inputLabel}>Teléfono (opcional)</Text>
             <TextInput
@@ -222,6 +269,7 @@ const handleCrear = async () => {
               value={temporalTelefono}
               keyboardType="phone-pad"
               onChangeText={setTemporalTelefono}
+              maxLength={10}
             />
           </>
         )}
@@ -249,7 +297,7 @@ const handleCrear = async () => {
     );
   };
 
-  const Paso3 = () => (
+const Paso3 = () => (
     <View style={styles.stepContainer}>
       <Text style={styles.subtitle}>Revisa y confirma la información</Text>
 
@@ -257,35 +305,39 @@ const handleCrear = async () => {
         <Text style={styles.infoLabel}>Servicio</Text>
         <Text style={styles.infoText}>{servicioSel.nombre}</Text>
 
-        <Text style={styles.infoLabel}>Descripción</Text>
-        <Text style={styles.infoText}>
-          {servicioSel.descripcion || 'Sin descripción'}
-        </Text>
-
         <Text style={styles.infoLabel}>Barbero</Text>
         <Text style={styles.infoText}>{barbero.nombre}</Text>
 
         <Text style={styles.infoLabel}>Cliente</Text>
         <Text style={styles.infoText}>
           {isTemporal ? temporalNombre : clienteSel?.nombre}
+          {isTemporal && ' (Temporal)'}
         </Text>
 
         {isTemporal && (
           <>
             <Text style={styles.infoLabel}>Teléfono</Text>
-            <Text style={styles.infoText}>{temporalTelefono || 'No especificado'}</Text>
+            <Text style={styles.infoText}>
+              {temporalTelefono || 'No especificado'}
+            </Text>
           </>
         )}
 
         <Text style={styles.infoLabel}>Fecha</Text>
         <Text style={styles.infoText}>
           {fecha.toLocaleDateString('es-ES', {
-            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric',
           })}
         </Text>
 
         <Text style={styles.infoLabel}>Hora</Text>
         <Text style={styles.infoText}>{slot.displayTime.toUpperCase()}</Text>
+
+        <Text style={styles.infoLabel}>Duración</Text>
+        <Text style={styles.infoText}>{servicioSel.duracionMaxima}</Text>
       </View>
 
       <View style={styles.navBtns}>

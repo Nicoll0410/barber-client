@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Roboto'
   },
   titleMobile: { 
-    textAlign: 'left', 
+    textAlign: 'center', 
     marginLeft: 8, 
     marginBottom: 16 
   },

@@ -1,6 +1,7 @@
 /* ───────────────────────────────────────────────────────────
   screens/citas/CrearCita.js
   Wizard de 5 pasos (Admin/Barbero) o 4 pasos (Cliente)
+  Añadido soporte cliente temporal
   ─────────────────────────────────────────────────────────── */
 import React, { useState, useEffect, useContext } from 'react';
 import {
@@ -46,6 +47,11 @@ const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
 
   const [busBarbero, setBusBarbero] = useState('');
   const [busCliente, setBusCliente] = useState('');
+
+  // cliente temporal
+  const [isTempClient, setIsTempClient] = useState(false);
+  const [tempNombre, setTempNombre] = useState('');
+  const [tempTelefono, setTempTelefono] = useState('');
 
   /* ------------ Datos origen ---------------------------- */
   const servicios = infoCreacion?.servicios || [];
@@ -156,36 +162,75 @@ const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
   };
 
   /* -------------------- Handlers ----------------------- */
-  const crearCita = () => {
+const crearCita = async () => {
     if (
-      !servicioSel ||
-      !barberoSel  ||
-      !fechaSel    ||
-      !horaSel     ||
-      (!isClient && !clienteSel)
+        !servicioSel ||
+        !barberoSel  ||
+        !fechaSel    ||
+        !horaSel     ||
+        (!isClient && !clienteSel && !isTempClient)
     ) {
-      Alert.alert('Error', 'Completa todos los campos');
-      return;
+        Alert.alert('Error', 'Completa todos los campos');
+        return;
     }
 
     const payload = {
-      servicioID: getId(servicioSel),
-      barberoID: getId(barberoSel),
-      fecha: fechaSel,
-      hora: horaSel,
-      ...(!isClient && { pacienteID: getId(clienteSel) }),
+        servicioID: getId(servicioSel),
+        barberoID: getId(barberoSel),
+        fecha: fechaSel,
+        hora: horaSel,
+        direccion: "En barbería" // o puedes agregar un campo para esto
     };
 
-    if (!payload.barberoID || !payload.servicioID) {
-      Alert.alert('Error', 'Ocurrió un problema con los IDs seleccionados');
-      return;
+    // Cliente: cliente existente o temporal
+    if (!isClient) {
+        if (clienteSel) {
+            payload.pacienteID = getId(clienteSel);
+        } else if (isTempClient) {
+            if (!tempNombre.trim()) {
+                Alert.alert('Error', 'Escribe el nombre del cliente temporal');
+                return;
+            }
+            payload.pacienteTemporalNombre = tempNombre.trim();
+            if (tempTelefono.trim()) {
+                payload.pacienteTemporalTelefono = tempTelefono.trim();
+            }
+        }
     }
 
-    console.log('Payload enviado a /citas ->', payload);
-    onCreate(payload);
-    reset();
-  };
+    try {
+        const token = await AsyncStorage.getItem('token');
+        if (!token) throw new Error('Token no encontrado');
 
+        const response = await axios.post(`${API}/citas`, payload, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (response.data && response.data.cita) {
+            Alert.alert('Éxito', 'Cita creada correctamente');
+            reset();
+            onCreate?.(response.data.cita);
+        } else {
+            throw new Error('Respuesta inesperada del servidor');
+        }
+    } catch (err) {
+        console.error('Error crearCita:', err);
+        let errorMessage = 'Error al crear cita';
+        
+        if (err.response) {
+            errorMessage = err.response.data?.mensaje || 
+                         err.response.data?.error || 
+                         `Error ${err.response.status}: ${err.response.statusText}`;
+        } else if (err.request) {
+            errorMessage = 'No se pudo conectar al servidor';
+        }
+        
+        Alert.alert('Error', errorMessage);
+    }
+};
   const reset = (close = true) => {
     setPaso(1);
     setServicioSel(null);
@@ -198,6 +243,9 @@ const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
     setMesActual(new Date());
     setDiasMes([]);
     setHorasDisp([]);
+    setIsTempClient(false);
+    setTempNombre('');
+    setTempTelefono('');
     if (close) onClose();
   };
 
@@ -303,6 +351,43 @@ const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
           onChangeText={setBusCliente}
         />
       </View>
+
+      {/* Opción cliente temporal */}
+      <TouchableOpacity
+        style={[
+          styles.tempClientBtn,
+          isTempClient && styles.tempClientBtnActive
+        ]}
+        onPress={()=>{
+          setIsTempClient(prev => !prev);
+          if (clienteSel) setClienteSel(null);
+        }}>
+        <Text style={isTempClient ? styles.tempClientTextActive : styles.tempClientText}>
+          {isTempClient ? 'Cliente temporal seleccionado' : 'Crear cliente nuevo (temporal)'}
+        </Text>
+      </TouchableOpacity>
+
+      {/* Inputs si cliente temporal */}
+      {isTempClient && (
+        <View style={{ marginTop:12 }}>
+          <Text style={styles.inputLabel}>Nombre del cliente</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Ej: Pedro Gómez"
+            value={tempNombre}
+            onChangeText={setTempNombre}
+          />
+          <Text style={styles.inputLabel}>Teléfono (opcional)</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="3001234567"
+            keyboardType="phone-pad"
+            value={tempTelefono}
+            onChangeText={setTempTelefono}
+          />
+        </View>
+      )}
+
       <FlatList
         data={clientesFiltrados}
         keyExtractor={(i) => getId(i)}
@@ -312,7 +397,12 @@ const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
               styles.clienteItem,
               clienteSel && getId(clienteSel) === getId(item) && styles.clienteSeleccionado,
             ]}
-            onPress={() => setClienteSel(item)}
+            onPress={() => {
+              setClienteSel(item);
+              setIsTempClient(false);
+              setTempNombre('');
+              setTempTelefono('');
+            }}
           >
             <View style={styles.avatarContainer}>
               <Text style={styles.avatarText}>
@@ -332,8 +422,8 @@ const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
           <Text style={styles.botonTextoVolver}>Volver</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.botonSiguiente, !clienteSel && styles.botonDisabled]}
-          disabled={!clienteSel}
+          style={[styles.botonSiguiente, !clienteSel && !isTempClient && styles.botonDisabled]}
+          disabled={!clienteSel && !isTempClient}
           onPress={() => setPaso(4)}
         >
           <Text style={styles.botonTexto}>Siguiente</Text>
@@ -486,7 +576,7 @@ const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
         {[
           ['Servicio:', servicioSel?.nombre],
           ['Barbero:',  barberoSel?.nombre],
-          !isClient && ['Cliente:', clienteSel?.nombre],
+          !isClient && ['Cliente:', clienteSel?.nombre || (isTempClient ? tempNombre : '')],
           [
             'Fecha:',
             new Date(`${fechaSel}T00:00:00`).toLocaleDateString('es-ES', {
@@ -554,6 +644,7 @@ const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
 };
 
 /* ──────────────────── ESTILOS ───────────────────────── */
+/* (Reutilizo estilos del archivo original y agrego los necesarios para cliente temporal) */
 const styles = StyleSheet.create({
   blurContainer: {
     flex: 1,
@@ -908,6 +999,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 18,
   },
+  tempClientBtn:{padding:12, borderRadius:10, borderWidth:1, borderColor:'#d9d9d9', backgroundColor:'#fff', marginBottom:12},
+  tempClientBtnActive:{backgroundColor:'#D9D9D9', borderColor:'#424242'},
+  tempClientText:{color:'#424242', fontWeight:'600'},
+  tempClientTextActive:{color:'#222', fontWeight:'700'},
 });
 
 export default CrearCita;

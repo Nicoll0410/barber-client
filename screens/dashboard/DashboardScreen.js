@@ -22,9 +22,9 @@ const DashboardScreen = () => {
     topHoras: [],
     topServicios: [],
     tiposDeUsuarios: [
-      { label: 'Clientes', value: 0, color: '#3498db' },  // Azul
-      { label: 'Barberos', value: 0, color: '#e74c3c' },  // Rojo
-      { label: 'Administradores', value: 0, color: '#044c68ff' }  // Verde
+      { name: 'Clientes', population: 0, color: '#3498db', legendFontColor: '#7F7F7F', legendFontSize: 15 },  // Azul
+      { name: 'Barberos', population: 0, color: '#e74c3c', legendFontColor: '#7F7F7F', legendFontSize: 15 },  // Rojo
+      { name: 'Administradores', population: 0, color: '#044c68ff', legendFontColor: '#7F7F7F', legendFontSize: 15 }  // Verde
     ],
     totalUsuarios: 0,
     topBarberos: [],
@@ -47,18 +47,18 @@ const DashboardScreen = () => {
       // Procesar tipos de usuarios para asegurar que tengamos los 3 tipos
       const tiposUsuarios = response.data.tiposDeUsuarios || [];
       const tiposProcesados = [
-        { label: 'Clientes', value: 0, color: '#3498db' },  // Azul
-        { label: 'Barberos', value: 0, color: '#e74c3c' },  // Rojo
-        { label: 'Administradores', value: 0, color: '#044c68ff' }  // Verde
+        { name: 'Clientes', population: 0, color: '#3498db', legendFontColor: '#7F7F7F', legendFontSize: 15 },
+        { name: 'Barberos', population: 0, color: '#e74c3c', legendFontColor: '#7F7F7F', legendFontSize: 15 },
+        { name: 'Administradores', population: 0, color: '#044c68ff', legendFontColor: '#7F7F7F', legendFontSize: 15 }
       ];
 
       tiposUsuarios.forEach(item => {
         if (item.label.includes('Cliente') || item.label.includes('Paciente')) {
-          tiposProcesados[0].value += item.value;
+          tiposProcesados[0].population += item.value;
         } else if (item.label.includes('Barbero') || item.label.includes('Cosmetólogo')) {
-          tiposProcesados[1].value += item.value;
+          tiposProcesados[1].population += item.value;
         } else if (item.label.includes('Admin')) {
-          tiposProcesados[2].value += item.value;
+          tiposProcesados[2].population += item.value;
         }
       });
 
@@ -79,9 +79,9 @@ const DashboardScreen = () => {
         topHoras: [],
         topServicios: [],
         tiposDeUsuarios: [
-          { label: 'Clientes', value: 0, color: '#3498db' },  // Azul
-          { label: 'Barberos', value: 0, color: '#e74c3c' },  // Rojo
-          { label: 'Administradores', value: 0, color: '#044c68ff' }  // Verde
+          { name: 'Clientes', population: 0, color: '#3498db', legendFontColor: '#7F7F7F', legendFontSize: 15 },
+          { name: 'Barberos', population: 0, color: '#e74c3c', legendFontColor: '#7F7F7F', legendFontSize: 15 },
+          { name: 'Administradores', population: 0, color: '#044c68ff', legendFontColor: '#7F7F7F', legendFontSize: 15 }
         ],
         totalUsuarios: 0,
         topBarberos: [],
@@ -240,8 +240,9 @@ const DashboardScreen = () => {
                 labels: dashboardData.topHoras.map(item => item.label),
                 datasets: [{
                   data: dashboardData.topHoras.map(item => item.value),
+                  color: (opacity = 1) => `rgba(231, 76, 60, ${opacity})`,
                   colors: dashboardData.topHoras.map((_, index) => 
-                    `rgba(231, 76, 60, ${0.7 + (index * 0.05)})`
+                    (opacity = 1) => `rgba(231, 76, 60, ${0.7 + (index * 0.05)})`
                   )
                 }]
               }}
@@ -269,8 +270,9 @@ const DashboardScreen = () => {
                 labels: dashboardData.topServicios.map(item => item.label),
                 datasets: [{
                   data: dashboardData.topServicios.map(item => item.value),
+                  color: (opacity = 1) => `rgba(52, 152, 219, ${opacity})`,
                   colors: dashboardData.topServicios.map((_, index) => 
-                    `rgba(52, 152, 219, ${0.7 + (index * 0.05)})`
+                    (opacity = 1) => `rgba(52, 152, 219, ${0.7 + (index * 0.05)})`
                   )
                 }]
               }}
@@ -302,7 +304,7 @@ const DashboardScreen = () => {
               width={isMobile ? dimensions.width * 0.9 : dimensions.width * 0.45}
               height={200}
               chartConfig={pieChartConfig}
-              accessor="value"
+              accessor="population"
               backgroundColor="transparent"
               paddingLeft="15"
               absolute
@@ -349,6 +351,7 @@ const DashboardScreen = () => {
   );
 };
 
+// Los estilos permanecen exactamente iguales
 const styles = StyleSheet.create({
   mainContainer: { 
     flex: 1, 

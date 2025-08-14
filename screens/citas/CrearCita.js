@@ -1,8 +1,3 @@
-/* ───────────────────────────────────────────────────────────
-  screens/citas/CrearCita.js
-  Wizard de 5 pasos (Admin/Barbero) o 4 pasos (Cliente)
-  Añadido soporte cliente temporal
-  ─────────────────────────────────────────────────────────── */
 import React, { useState, useEffect, useContext } from 'react';
 import {
   View,
@@ -22,45 +17,31 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthContext } from '../../contexts/AuthContext';
 
-/* -------------------- Constantes ------------------------ */
-const API = 'http://localhost:8080';
-
-/* ======================================================== */
 const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
   const { userRole } = useContext(AuthContext);
   const isClient = userRole === 'Cliente';
 
-  /* ------------------- State ---------------------------- */
   const [paso, setPaso] = useState(1);
-
   const [servicioSel, setServicioSel] = useState(null);
   const [barberoSel, setBarberoSel] = useState(null);
   const [clienteSel, setClienteSel] = useState(null);
-
-  const [fechaSel, setFechaSel] = useState(null); // "YYYY-MM-DD"
-  const [horaSel, setHoraSel] = useState(null);   // "h:mm AM"
-
+  const [fechaSel, setFechaSel] = useState(null);
+  const [horaSel, setHoraSel] = useState(null);
   const [mesActual, setMesActual] = useState(new Date());
   const [diasMes, setDiasMes] = useState([]);
   const [horasDisp, setHorasDisp] = useState([]);
   const [loadingHoras, setLoadingHoras] = useState(false);
-
   const [busBarbero, setBusBarbero] = useState('');
   const [busCliente, setBusCliente] = useState('');
-
-  // cliente temporal
   const [isTempClient, setIsTempClient] = useState(false);
   const [tempNombre, setTempNombre] = useState('');
   const [tempTelefono, setTempTelefono] = useState('');
 
-  /* ------------ Datos origen ---------------------------- */
   const servicios = infoCreacion?.servicios || [];
   const barberos  = infoCreacion?.barberos  || [];
   const clientes  = infoCreacion?.clientes  || [];
-
   const diasSemana = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
-  /* ----------------- Efectos ---------------------------- */
   useEffect(() => { if (visible) reset(false); }, [visible]);
   useEffect(() => { if (paso === (isClient ? 3 : 4)) generarDiasMes(); }, [paso, mesActual]);
   useEffect(() => {
@@ -69,13 +50,13 @@ const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
     }
   }, [fechaSel, barberoSel, servicioSel]);
 
-  /* --------------- Helpers fecha/hora ------------------ */
   const formatearFecha = (d) => {
     const y = d.getFullYear();
     const m = `${d.getMonth() + 1}`.padStart(2, '0');
     const da = `${d.getDate()}`.padStart(2, '0');
     return `${y}-${m}-${da}`;
   };
+
   const esPasada = (d) => {
     const h = new Date();
     h.setHours(0, 0, 0, 0);
@@ -84,16 +65,9 @@ const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
     return cmp < h;
   };
 
-  /* ---------- Helper para asegurar el ID correcto ------- */
   const getId = (obj) =>
-    obj?.id
-    ?? obj?.barberoID
-    ?? obj?.servicioID
-    ?? obj?.pacienteID
-    ?? obj?._id
-    ?? null;
+    obj?.id ?? obj?.barberoID ?? obj?.servicioID ?? obj?.pacienteID ?? obj?._id ?? null;
 
-  /* ----------------- Generar calendario ---------------- */
   const generarDiasMes = () => {
     const y = mesActual.getFullYear();
     const m = mesActual.getMonth();
@@ -117,38 +91,30 @@ const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
     setHorasDisp([]);
   };
 
-  /* -------------- API horas disponibles ---------------- */
   const obtenerHoras = async () => {
     if (!fechaSel) return;
     try {
       setLoadingHoras(true);
 
-      const fecha = new Date(`${fechaSel}T00:00:00`);
-      const diaSemana = fecha.getDay(); // 0=Domingo, ..., 6=Sábado
+      const token = await AsyncStorage.getItem('token');
+      const response = await axios.get(`http://localhost:8080/citas/disponibilidad`, {
+        params: {
+          servicioID: getId(servicioSel),
+          barberoID: getId(barberoSel),
+          fecha: fechaSel
+        },
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
-      let horaInicio, horaFin;
-
-      if (diaSemana >= 1 && diaSemana <= 3) {
-        // Lunes a miércoles
-        horaInicio = 11; // 11:00 AM
-        horaFin = 21;    // 9:00 PM
+      if (response.data) {
+        setHorasDisp(response.data);
       } else {
-        // Jueves a domingo
-        horaInicio = 9;  // 9:00 AM
-        horaFin = 22;    // 10:00 PM
+        setHorasDisp([]);
       }
-
-      const horas = [];
-      for (let h = horaInicio; h <= horaFin; h++) {
-        horas.push(formatearHora(h, 0));
-        if (h !== horaFin) {
-          horas.push(formatearHora(h, 30));
-        }
-      }
-
-      setHorasDisp(horas);
     } catch (error) {
+      console.error('Error al obtener horas:', error);
       Alert.alert('Error', 'No se pudieron cargar las horas disponibles');
+      setHorasDisp([]);
     } finally {
       setLoadingHoras(false);
     }
@@ -161,76 +127,69 @@ const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
     return `${hora}:${minStr} ${sufijo}`;
   };
 
-  /* -------------------- Handlers ----------------------- */
-const crearCita = async () => {
-    if (
-        !servicioSel ||
-        !barberoSel  ||
-        !fechaSel    ||
-        !horaSel     ||
-        (!isClient && !clienteSel && !isTempClient)
-    ) {
-        Alert.alert('Error', 'Completa todos los campos');
-        return;
+  const crearCita = async () => {
+    if (!servicioSel || !barberoSel || !fechaSel || !horaSel || (!isClient && !clienteSel && !isTempClient)) {
+      Alert.alert('Error', 'Completa todos los campos');
+      return;
     }
 
     const payload = {
-        servicioID: getId(servicioSel),
-        barberoID: getId(barberoSel),
-        fecha: fechaSel,
-        hora: horaSel,
-        direccion: "En barbería" // o puedes agregar un campo para esto
+      servicioID: getId(servicioSel),
+      barberoID: getId(barberoSel),
+      fecha: fechaSel,
+      hora: horaSel,
+      direccion: "En barbería"
     };
 
-    // Cliente: cliente existente o temporal
     if (!isClient) {
-        if (clienteSel) {
-            payload.pacienteID = getId(clienteSel);
-        } else if (isTempClient) {
-            if (!tempNombre.trim()) {
-                Alert.alert('Error', 'Escribe el nombre del cliente temporal');
-                return;
-            }
-            payload.pacienteTemporalNombre = tempNombre.trim();
-            if (tempTelefono.trim()) {
-                payload.pacienteTemporalTelefono = tempTelefono.trim();
-            }
+      if (clienteSel) {
+        payload.pacienteID = getId(clienteSel);
+      } else if (isTempClient) {
+        if (!tempNombre.trim()) {
+          Alert.alert('Error', 'Escribe el nombre del cliente temporal');
+          return;
         }
+        payload.pacienteTemporalNombre = tempNombre.trim();
+        if (tempTelefono.trim()) {
+          payload.pacienteTemporalTelefono = tempTelefono.trim();
+        }
+      }
     }
 
     try {
-        const token = await AsyncStorage.getItem('token');
-        if (!token) throw new Error('Token no encontrado');
+      const token = await AsyncStorage.getItem('token');
+      if (!token) throw new Error('Token no encontrado');
 
-        const response = await axios.post(`${API}/citas`, payload, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (response.data && response.data.cita) {
-            Alert.alert('Éxito', 'Cita creada correctamente');
-            reset();
-            onCreate?.(response.data.cita);
-        } else {
-            throw new Error('Respuesta inesperada del servidor');
+      const response = await axios.post(`http://localhost:8080/citas`, payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
+      });
+
+      if (response.data?.cita) {
+        Alert.alert('Éxito', 'Cita creada correctamente');
+        reset();
+        onCreate?.(response.data.cita);
+      } else {
+        throw new Error('Respuesta inesperada del servidor');
+      }
     } catch (err) {
-        console.error('Error crearCita:', err);
-        let errorMessage = 'Error al crear cita';
-        
-        if (err.response) {
-            errorMessage = err.response.data?.mensaje || 
-                         err.response.data?.error || 
-                         `Error ${err.response.status}: ${err.response.statusText}`;
-        } else if (err.request) {
-            errorMessage = 'No se pudo conectar al servidor';
-        }
-        
-        Alert.alert('Error', errorMessage);
+      console.error('Error crearCita:', err);
+      let errorMessage = 'Error al crear cita';
+      
+      if (err.response) {
+        errorMessage = err.response.data?.mensaje || 
+                     err.response.data?.error || 
+                     `Error ${err.response.status}: ${err.response.statusText}`;
+      } else if (err.request) {
+        errorMessage = 'No se pudo conectar al servidor';
+      }
+      
+      Alert.alert('Error', errorMessage);
     }
-};
+  };
+
   const reset = (close = true) => {
     setPaso(1);
     setServicioSel(null);
@@ -249,7 +208,6 @@ const crearCita = async () => {
     if (close) onClose();
   };
 
-  /* ---------------- Render Paso ------------------------ */
   const Paso1 = () => (
     <View style={styles.pasoContainer}>
       <Text style={styles.subtitulo}>Selecciona el servicio</Text>
@@ -264,7 +222,12 @@ const crearCita = async () => {
             ]}
             onPress={() => setServicioSel(item)}
           >
-            <Text style={styles.servicioNombre}>{item.nombre}</Text>
+            <View>
+              <Text style={styles.servicioNombre}>{item.nombre}</Text>
+              <Text style={styles.servicioDuracion}>
+                Duración: {item.duracionMaxima} (Reserva: {Math.ceil(convertirDuracionAMinutos(item.duracionMaxima) / 30) * 30} min
+              </Text>
+            </View>
             <Text style={styles.servicioPrecio}>${item.precio}</Text>
           </TouchableOpacity>
         )}
@@ -352,7 +315,6 @@ const crearCita = async () => {
         />
       </View>
 
-      {/* Opción cliente temporal */}
       <TouchableOpacity
         style={[
           styles.tempClientBtn,
@@ -367,7 +329,6 @@ const crearCita = async () => {
         </Text>
       </TouchableOpacity>
 
-      {/* Inputs si cliente temporal */}
       {isTempClient && (
         <View style={{ marginTop:12 }}>
           <Text style={styles.inputLabel}>Nombre del cliente</Text>
@@ -436,7 +397,6 @@ const crearCita = async () => {
     <View style={styles.pasoContainer}>
       <Text style={styles.subtitulo}>Elige fecha y hora</Text>
 
-      {/* Header mes */}
       <View style={styles.calendarioHeader}>
         <TouchableOpacity onPress={() => cambiarMes(-1)}>
           <MaterialIcons name="chevron-left" size={24} color="#424242" />
@@ -452,7 +412,6 @@ const crearCita = async () => {
         </TouchableOpacity>
       </View>
 
-      {/* Días semana */}
       <View style={styles.diasSemanaContainer}>
         {diasSemana.map((d) => (
           <View key={d} style={styles.diaSemanaItem}>
@@ -461,7 +420,6 @@ const crearCita = async () => {
         ))}
       </View>
 
-      {/* Días mes */}
       <View style={styles.diasMesContainer}>
         {Array.from({ length: 6 }).map((_, s) => (
           <View key={s} style={styles.semanaContainer}>
@@ -507,7 +465,6 @@ const crearCita = async () => {
         ))}
       </View>
 
-      {/* Horas */}
       {fechaSel && (
         <View style={styles.horasContainer}>
           <Text style={styles.horasTitulo}>Horarios disponibles:</Text>
@@ -547,7 +504,6 @@ const crearCita = async () => {
         </View>
       )}
 
-      {/* Navegación */}
       <View style={styles.botonesNavegacion}>
         <TouchableOpacity
           style={styles.botonVolver}
@@ -587,6 +543,18 @@ const crearCita = async () => {
             }),
           ],
           ['Hora:', horaSel],
+          ['Duración real:', servicioSel?.duracionMaxima],
+          ['Intervalo reservado:', 
+            servicioSel?.duracionMaxima ? 
+              (() => {
+                const [h, m] = servicioSel.duracionMaxima.split(':').map(Number);
+                const totalMin = h * 60 + m;
+                if (totalMin <= 30) return "30 minutos";
+                if (totalMin <= 60) return "1 hora";
+                return `${Math.ceil(totalMin / 30) * 30 / 60} horas`;
+              })() 
+            : ''
+          ]
         ]
           .filter(Boolean)
           .map(([k, v]) => (
@@ -615,12 +583,10 @@ const crearCita = async () => {
     return <PasoRevisa />;
   };
 
-  /* -------------------- Modal --------------------------- */
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <BlurView intensity={20} tint="light" style={styles.blurContainer}>
         <View style={styles.modalContent}>
-          {/* Header */}
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>
               {
@@ -643,8 +609,12 @@ const crearCita = async () => {
   );
 };
 
-/* ──────────────────── ESTILOS ───────────────────────── */
-/* (Reutilizo estilos del archivo original y agrego los necesarios para cliente temporal) */
+// Función auxiliar para convertir duración a minutos
+function convertirDuracionAMinutos(duracionStr) {
+  const [h, m] = duracionStr.split(':').map(Number);
+  return h * 60 + m;
+}
+
 const styles = StyleSheet.create({
   blurContainer: {
     flex: 1,
@@ -713,6 +683,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#222',
   },
+  servicioDuracion: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+  },
   servicioPrecio: {
     fontSize: 16,
     color: '#000',
@@ -727,9 +702,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     marginBottom: 15,
     backgroundColor: '#fafafa',
-  },
-  buscadorIcono: {
-    marginRight: 10,
   },
   buscadorInput: {
     flex: 1,
@@ -999,10 +971,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 18,
   },
-  tempClientBtn:{padding:12, borderRadius:10, borderWidth:1, borderColor:'#d9d9d9', backgroundColor:'#fff', marginBottom:12},
-  tempClientBtnActive:{backgroundColor:'#D9D9D9', borderColor:'#424242'},
-  tempClientText:{color:'#424242', fontWeight:'600'},
-  tempClientTextActive:{color:'#222', fontWeight:'700'},
+  tempClientBtn: {
+    padding: 12, 
+    borderRadius: 10, 
+    borderWidth: 1, 
+    borderColor: '#d9d9d9', 
+    backgroundColor: '#fff', 
+    marginBottom: 12
+  },
+  tempClientBtnActive: {
+    backgroundColor: '#D9D9D9', 
+    borderColor: '#424242'
+  },
+  tempClientText: {
+    color: '#424242', 
+    fontWeight: '600'
+  },
+  tempClientTextActive: {
+    color: '#222', 
+    fontWeight: '700'
+  },
 });
 
 export default CrearCita;

@@ -90,12 +90,12 @@ const AgendaScreen = () => {
             subItems: ['Barbero'],
             disponibilidad: horarioResponse.data?.horario || {
               diasLaborales: {
-                lunes: { activo: false, horas: [] },
-                martes: { activo: false, horas: [] },
-                miercoles: { activo: false, horas: [] },
-                jueves: { activo: false, horas: [] },
-                viernes: { activo: false, horas: [] },
-                sabado: { activo: false, horas: [] },
+                lunes: { activo: true, horas: [] },
+                martes: { activo: true, horas: [] },
+                miercoles: { activo: true, horas: [] },
+                jueves: { activo: true, horas: [] },
+                viernes: { activo: true, horas: [] },
+                sabado: { activo: true, horas: [] },
                 domingo: { activo: false, horas: [] }
               },
               horarioAlmuerzo: {
@@ -117,12 +117,12 @@ const AgendaScreen = () => {
             subItems: ['Barbero'],
             disponibilidad: {
               diasLaborales: {
-                lunes: { activo: false, horas: [] },
-                martes: { activo: false, horas: [] },
-                miercoles: { activo: false, horas: [] },
-                jueves: { activo: false, horas: [] },
-                viernes: { activo: false, horas: [] },
-                sabado: { activo: false, horas: [] },
+                lunes: { activo: true, horas: [] },
+                martes: { activo: true, horas: [] },
+                miercoles: { activo: true, horas: [] },
+                jueves: { activo: true, horas: [] },
+                viernes: { activo: true, horas: [] },
+                sabado: { activo: true, horas: [] },
                 domingo: { activo: false, horas: [] }
               },
               horarioAlmuerzo: {
@@ -300,23 +300,19 @@ const AgendaScreen = () => {
     const diaSemanaTexto = diasSemanaTexto[diaSemana];
     const fechaStr = formatDateString(fecha);
     
-    // 1. Verificar excepciones
     const tieneExcepcion = disponibilidad.excepciones?.some(ex => 
       ex.fecha === fechaStr && ex.activo === false
     );
     if (tieneExcepcion) return false;
     
-    // 2. Verificar día laboral
     const diaConfig = disponibilidad.diasLaborales?.[diaSemanaTexto];
     if (!diaConfig?.activo) {
       return false;
     }
     
-    // 3. Convertir hora a minutos para comparación
     const [horaActual, minActual] = hora.split(':').map(Number);
     const horaActualMinutos = horaActual * 60 + minActual;
     
-    // 4. Verificar horario específico del día si está configurado
     if (diaConfig.horas && diaConfig.horas.length > 0) {
       const horaDisponible = diaConfig.horas.some(h => {
         const [horaDisp, minDisp] = h.split(':').map(Number);
@@ -325,7 +321,6 @@ const AgendaScreen = () => {
       if (!horaDisponible) return false;
     }
     
-    // 5. Verificar horario de almuerzo
     if (disponibilidad.horarioAlmuerzo?.activo !== false) {
       const almuerzoInicio = disponibilidad.horarioAlmuerzo?.inicio || '13:00';
       const almuerzoFin = disponibilidad.horarioAlmuerzo?.fin || '14:00';
@@ -341,7 +336,6 @@ const AgendaScreen = () => {
       }
     }
     
-    // 6. Verificar si ya tiene cita en ese horario
     const citaExistente = citas.find(c => 
       c.barbero.id === barbero.id && 
       c.fecha.toDateString() === fecha.toDateString() && 
@@ -436,12 +430,31 @@ const AgendaScreen = () => {
     }
   };
 
-  const citaForSlot = (slot, barbero) =>
-    citas.find(c =>
+  const citaForSlot = (slot, barbero) => {
+    return citas.find(c => 
+      c.barbero.id === barbero.id &&
       c.fecha.toDateString() === selectedDate.toDateString() &&
-      c.hora === `${slot.startTime}:00` &&
-      c.barbero.id === barbero.id
+      c.hora.split(':').slice(0, 2).join(':') === slot.startTime
     );
+  };
+
+  const isSlotInCita = (slot, barbero) => {
+    return citas.some(c => 
+      c.barbero.id === barbero.id &&
+      c.fecha.toDateString() === selectedDate.toDateString() &&
+      slot.startTime >= c.hora.split(':').slice(0, 2).join(':') && 
+      slot.startTime < c.horaFin.split(':').slice(0, 2).join(':')
+    );
+  };
+
+  const getCitaForSlot = (slot, barbero) => {
+    return citas.find(c => 
+      c.barbero.id === barbero.id &&
+      c.fecha.toDateString() === selectedDate.toDateString() &&
+      slot.startTime >= c.hora.split(':').slice(0, 2).join(':') && 
+      slot.startTime < c.horaFin.split(':').slice(0, 2).join(':')
+    );
+  };
 
   const handleSlotPress = (slot, barbero) => {
     const existente = citaForSlot(slot, barbero);
@@ -511,12 +524,30 @@ const AgendaScreen = () => {
   };
 
   const renderBarberoSlot = (slot, b) => {
-    const cita = citaForSlot(slot, b);
+    const cita = getCitaForSlot(slot, b);
+    const estaEnCita = isSlotInCita(slot, b);
     const disp = disponibilidadBarberos[b.id] || {};
     
+    // Determinar si este slot es el primero de una cita multi-slot
+    const isFirstSlot = cita && cita.hora.split(':').slice(0, 2).join(':') === slot.startTime;
+    
+    // Determinar si el slot anterior está ocupado por la misma cita
+    const slots = generateTimeSlots();
+    const currentIndex = slots.findIndex(s => s.key === slot.key);
+    const previousSlot = currentIndex > 0 ? slots[currentIndex - 1] : null;
+    const citaAnterior = previousSlot ? getCitaForSlot(previousSlot, b) : null;
+    const esContinuacion = citaAnterior && citaAnterior.id === cita?.id;
+    
     let cellState = 'disponible';
-    if (cita) {
+    if (cita && isFirstSlot) {
       cellState = 'ocupado';
+    } else if (estaEnCita || esContinuacion) {
+      // No renderizar nada para slots intermedios de una cita
+      return (
+        <View key={`${slot.key}-${b.id}`} style={styles.slotContainer}>
+          <View style={[styles.slot, styles.slotOcupadoSecundario]} />
+        </View>
+      );
     } else if (!disp.esDiaLaboral || disp.tieneExcepcion) {
       cellState = 'no-laboral';
     } else {
@@ -548,41 +579,46 @@ const AgendaScreen = () => {
     }
 
     return (
-      <TouchableOpacity
-        key={`${slot.key}-${b.id}`}
-        style={[
-          styles.slot,
-          styles[`slot-${cellState}`],
-          selectedSlot?.key === slot.key && selectedSlot?.barbero.id === b.id && styles.selectedSlot,
-        ]}
-        onPress={() => cellState === 'disponible' ? handleSlotPress(slot, b) : null}
-        disabled={cellState !== 'disponible'}
-      >
-        {cellState === 'no-laboral' && (
-          <Text style={styles.slotNoLaboralText}>NO LABORAL</Text>
-        )}
-        {cellState === 'almuerzo' && (
-          <Text style={styles.slotAlmuerzoText}>ALMUERZO</Text>
-        )}
-        {cellState === 'fuera-horario' && (
-          <Text style={styles.slotFueraHorarioText}>---</Text>
-        )}
-        {cellState === 'disponible' && !cita && (
-          <Text style={styles.slotDisponibleText}>DISPONIBLE</Text>
-        )}
-        {cita && (
-          <TouchableOpacity 
-            style={styles.citaContent}
-            onPress={() => {
-              setSelectedCita(cita);
-              setShowDetalleCita(true);
-            }}
-          >
-            <Text style={styles.citaCliente}>{cita.cliente.nombre}</Text>
-            <Text style={styles.citaServicio}>{cita.servicio.nombre}</Text>
-          </TouchableOpacity>
-        )}
-      </TouchableOpacity>
+      <View key={`${slot.key}-${b.id}`} style={styles.slotContainer}>
+        <TouchableOpacity
+          style={[
+            styles.slot,
+            styles[`slot-${cellState}`],
+            selectedSlot?.key === slot.key && selectedSlot?.barbero.id === b.id && styles.selectedSlot,
+            cita && isFirstSlot && styles.multiSlotFirst,
+          ]}
+          onPress={() => cellState === 'disponible' ? handleSlotPress(slot, b) : null}
+          disabled={cellState !== 'disponible'}
+        >
+          {cellState === 'no-laboral' && (
+            <Text style={styles.slotNoLaboralText}>NO LABORAL</Text>
+          )}
+          {cellState === 'almuerzo' && (
+            <Text style={styles.slotAlmuerzoText}>ALMUERZO</Text>
+          )}
+          {cellState === 'fuera-horario' && (
+            <Text style={styles.slotFueraHorarioText}>---</Text>
+          )}
+          {cellState === 'disponible' && !cita && (
+            <Text style={styles.slotDisponibleText}>DISPONIBLE</Text>
+          )}
+          {cita && isFirstSlot && (
+            <TouchableOpacity 
+              style={styles.citaContent}
+              onPress={() => {
+                setSelectedCita(cita);
+                setShowDetalleCita(true);
+              }}
+            >
+              <Text style={styles.citaCliente}>{cita.cliente.nombre}</Text>
+              <Text style={styles.citaServicio}>{cita.servicio.nombre}</Text>
+              <Text style={styles.citaHora}>
+                {toAMPM(cita.hora.split(':').slice(0, 2).join(':'))} - {toAMPM(cita.horaFin.split(':').slice(0, 2).join(':'))}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </TouchableOpacity>
+      </View>
     );
   };
 
@@ -754,55 +790,264 @@ const AgendaScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container:{flex:1,backgroundColor:'#fff'},
-  loadingContainer:{flex:1,justifyContent:'center',alignItems:'center'},
-  header:{flexDirection:'row',alignItems:'center',padding:16,borderBottomWidth:1,borderBottomColor:'#eee'},
-  dateContainer:{flexDirection:'row',alignItems:'center',flex:1,marginLeft:15},
-  dateText:{fontSize:18,fontWeight:'bold',marginHorizontal:10},
-  calendarButton:{marginRight:10},
-  barberosHeader:{flexDirection:'row',borderBottomWidth:1,borderBottomColor:'#000',paddingVertical:10},
-  timeColumn:{width:80},
-  barberoHeader:{flex:1,alignItems:'center',paddingHorizontal:5,borderRightWidth:1,borderRightColor:'#000'},
-  avatar:{width:40,height:40,borderRadius:20,marginBottom:5},
-  barberoNombre:{fontWeight:'bold',fontSize:14,textAlign:'center'},
-  subItem:{fontSize:10,color:'#666',textAlign:'center'},
-  mainContent:{flex:1,marginBottom:60},
-  row:{flexDirection:'row',borderBottomWidth:1,borderBottomColor:'#000',minHeight:60},
-  timeCell:{width:80,justifyContent:'center',alignItems:'center',borderRightWidth:1,borderRightColor:'#000'},
-  horaText:{fontSize:14},
-  slot:{flex:1,borderRightWidth:1,borderRightColor:'#000',padding:5,justifyContent:'center',alignItems:'center'},
-  'slot-no-laboral':{backgroundColor:'#FFEBEE'},
-  'slot-almuerzo':{backgroundColor:'#FFF8E1'},
-  'slot-fuera-horario':{backgroundColor:'#F5F5F5',opacity:0.6},
-  'slot-ocupado':{backgroundColor:'#E0E0E0'},
-  'slot-disponible':{backgroundColor:'#E8F5E9'},
-  selectedSlot:{backgroundColor:'#D9D9D9'},
-  slotNoLaboralText:{fontSize:10,color:'#F44336',fontWeight:'bold',textAlign:'center'},
-  slotAlmuerzoText:{fontSize:10,color:'#FF8F00',fontWeight:'bold',textAlign:'center'},
-  slotFueraHorarioText:{fontSize:10,color:'#9E9E9E',textAlign:'center',textDecorationLine:'line-through'},
-  slotDisponibleText:{fontSize:10,color:'#2E7D32',textAlign:'center', fontWeight: 'bold'},
-  citaContent:{flex:1,justifyContent:'center'},
-  citaCliente:{fontSize:12,fontWeight:'bold',marginBottom:2},
-  citaServicio:{fontSize:10,color:'#555'},
-  scrollContent:{paddingBottom:20},
-  calendarModal:{flex:1,justifyContent:'center',alignItems:'center',backgroundColor:'rgba(0,0,0,0.5)'},
-  customDatePicker:{width:width*0.85,maxWidth:350,backgroundColor:'#fff',borderRadius:10,padding:12,elevation:5},
-  datePickerHeader:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',marginBottom:10},
-  monthYearSelector:{flex:1,alignItems:'center'},
-  monthYearText:{fontSize:18,fontWeight:'bold',color:'#333'},
-  calendarContainer:{height:300,overflow:'hidden'},
-  calendar:{marginBottom:10},
-  datePickerActions:{flexDirection:'row',justifyContent:'space-between'},
-  datePickerButton:{padding:10,borderRadius:5},
-  datePickerButtonText:{color:'#424242',fontWeight:'bold'},
-  closeButton:{padding:10,borderRadius:5,backgroundColor:'#424242'},
-  closeButtonText:{color:'#fff',fontWeight:'bold'},
-  footerContainer:{position:'absolute',bottom:0,left:0,right:0,height:60},
-  disponibilidadContainer:{flexDirection:'row',alignItems:'center',marginTop:4},
-  disponibilidadPunto:{width:8,height:8,borderRadius:4,marginRight:4},
-  disponible:{color:'#000000ff',backgroundColor:'#4CAF50', borderRadius: 7},
-  noDisponible:{color:'#000000ff',backgroundColor:'#F44336', borderRadius: 7},
-  disponibilidadTexto:{fontSize:10,fontWeight:'bold'},
+  container: {
+    flex: 1,
+    backgroundColor: '#fff'
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee'
+  },
+  dateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginLeft: 15
+  },
+  dateText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginHorizontal: 10
+  },
+  calendarButton: {
+    marginRight: 10
+  },
+  barberosHeader: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#000',
+    paddingVertical: 10
+  },
+  timeColumn: {
+    width: 80
+  },
+  barberoHeader: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 5,
+    borderRightWidth: 1,
+    borderRightColor: '#000'
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginBottom: 5
+  },
+  barberoNombre: {
+    fontWeight: 'bold',
+    fontSize: 14,
+    textAlign: 'center'
+  },
+  subItem: {
+    fontSize: 10,
+    color: '#666',
+    textAlign: 'center'
+  },
+  mainContent: {
+    flex: 1,
+    marginBottom: 60
+  },
+  row: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#000',
+    minHeight: 60
+  },
+  timeCell: {
+    width: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRightWidth: 1,
+    borderRightColor: '#000'
+  },
+  horaText: {
+    fontSize: 14
+  },
+  slotContainer: {
+    flex: 1,
+    borderRightWidth: 1,
+    borderRightColor: '#000',
+    justifyContent: 'center',
+    height: 60, // Altura fija para cada intervalo
+  },
+  slot: {
+    flex: 1,
+    padding: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100%'
+  },
+  'slot-no-laboral': {
+    backgroundColor: '#FFEBEE'
+  },
+  'slot-almuerzo': {
+    backgroundColor: '#FFF8E1'
+  },
+  'slot-fuera-horario': {
+    backgroundColor: '#F5F5F5',
+    opacity: 0.6
+  },
+  'slot-ocupado': {
+    backgroundColor: '#E0E0E0'
+  },
+  slotOcupadoSecundario: {
+    backgroundColor: '#E0E0E0',
+    borderBottomWidth: 0
+  },
+  'slot-disponible': {
+    backgroundColor: '#E8F5E9'
+  },
+  selectedSlot: {
+    backgroundColor: '#D9D9D9'
+  },
+  multiSlotFirst: {
+    borderBottomWidth: 0, // Elimina el borde inferior para unificar visualmente con el siguiente slot
+  },
+  slotNoLaboralText: {
+    fontSize: 10,
+    color: '#F44336',
+    fontWeight: 'bold',
+    textAlign: 'center'
+  },
+  slotAlmuerzoText: {
+    fontSize: 10,
+    color: '#FF8F00',
+    fontWeight: 'bold',
+    textAlign: 'center'
+  },
+  slotFueraHorarioText: {
+    fontSize: 10,
+    color: '#9E9E9E',
+    textAlign: 'center',
+    textDecorationLine: 'line-through'
+  },
+  slotDisponibleText: {
+    fontSize: 10,
+    color: '#2E7D32',
+    textAlign: 'center', 
+    fontWeight: 'bold'
+  },
+  citaContent: {
+    flex: 1,
+    justifyContent: 'center', 
+    padding: 5
+  },
+  citaCliente: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginBottom: 2
+  },
+  citaServicio: {
+    fontSize: 10,
+    color: '#555'
+  },
+  citaHora: {
+    fontSize: 10,
+    color: '#555',
+    fontStyle: 'italic',
+    marginTop: 2
+  },
+  scrollContent: {
+    paddingBottom: 20
+  },
+  calendarModal: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)'
+  },
+  customDatePicker: {
+    width: width*0.85,
+    maxWidth: 350,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 12,
+    elevation: 5
+  },
+  datePickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10
+  },
+  monthYearSelector: {
+    flex: 1,
+    alignItems: 'center'
+  },
+  monthYearText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333'
+  },
+  calendarContainer: {
+    height: 300,
+    overflow: 'hidden'
+  },
+  calendar: {
+    marginBottom: 10
+  },
+  datePickerActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between'
+  },
+  datePickerButton: {
+    padding: 10,
+    borderRadius: 5
+  },
+  datePickerButtonText: {
+    color: '#424242',
+    fontWeight: 'bold'
+  },
+  closeButton: {
+    padding: 10,
+    borderRadius: 5,
+    backgroundColor: '#424242'
+  },
+  closeButtonText: {
+    color: '#fff',
+    fontWeight: 'bold'
+  },
+  footerContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 60
+  },
+  disponibilidadContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4
+  },
+  disponibilidadPunto: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 4
+  },
+  disponible: {
+    color: '#000000ff',
+    backgroundColor: '#4CAF50', 
+    borderRadius: 7
+  },
+  noDisponible: {
+    color: '#000000ff',
+    backgroundColor: '#F44336', 
+    borderRadius: 7
+  },
+  disponibilidadTexto: {
+    fontSize: 10,
+    fontWeight: 'bold'
+  }
 });
 
 export default AgendaScreen;

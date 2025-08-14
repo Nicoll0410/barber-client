@@ -1,8 +1,3 @@
-/* ───────────────────────────────────────────────────────────
-   screens/agenda/CrearCita.js
-   Wizard de 3 pasos para creación de cita (VERSIÓN FINAL CORREGIDA)
-   Manejo seguro de clientes temporales y registrados
-   ─────────────────────────────────────────────────────────── */
 import React, { useState } from 'react';
 import {
   View,
@@ -15,6 +10,7 @@ import {
   TextInput,
   ScrollView,
   Alert,
+  ActivityIndicator
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -38,6 +34,7 @@ const CrearCita = ({
   const [isTemporal, setIsTemporal] = useState(false);
   const [temporalNombre, setTemporalNombre] = useState('');
   const [temporalTelefono, setTemporalTelefono] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const reset = () => {
     setServicioSel(null);
@@ -47,6 +44,7 @@ const CrearCita = ({
     setIsTemporal(false);
     setTemporalNombre('');
     setTemporalTelefono('');
+    setIsLoading(false);
   };
 
   const handleClose = () => {
@@ -54,110 +52,167 @@ const CrearCita = ({
     onClose();
   };
 
-  const handleCrear = async () => {
-    try {
-      // Validaciones básicas
-      if (!servicioSel || !barbero) {
-        throw new Error('Falta información del servicio o barbero');
-      }
-
-      // Validación de cliente
-      if (!isTemporal && !clienteSel) {
-        throw new Error('Selecciona un cliente o marca como cliente temporal');
-      }
-
-      if (isTemporal && !temporalNombre.trim()) {
-        throw new Error('El nombre del cliente temporal es obligatorio');
-      }
-
-      // Validar teléfono si se proporciona
-      if (isTemporal && temporalTelefono.trim() && !/^\d{10}$/.test(temporalTelefono.trim())) {
-        throw new Error('El teléfono debe tener 10 dígitos numéricos');
-      }
-
-      // Formatear fecha correctamente
-      const fechaFormateada = `${fecha.getFullYear()}-${(fecha.getMonth() + 1)
-        .toString()
-        .padStart(2, '0')}-${fecha.getDate().toString().padStart(2, '0')}`;
-
-      // Construir objeto de la cita
-      const citaData = {
-        barberoID: barbero.id,
-        servicioID: servicioSel.id,
-        fecha: fechaFormateada,
-        hora: slot.displayTime.toUpperCase(),
-        direccion: "En barbería",
-        estado: "Pendiente"
-      };
-
-      // Manejo de cliente
-      if (isTemporal) {
-        citaData.pacienteTemporalNombre = temporalNombre.trim();
-        if (temporalTelefono.trim()) {
-          citaData.pacienteTemporalTelefono = temporalTelefono.trim();
-        }
-      } else {
-        citaData.pacienteID = clienteSel.id;
-      }
-
-      console.log('Datos a enviar:', JSON.stringify(citaData, null, 2));
-
-      // Obtener token de autenticación
-      const token = await AsyncStorage.getItem('token');
-      if (!token) {
-        throw new Error('No se encontró el token de autenticación');
-      }
-
-      // Enviar solicitud al backend
-      const response = await axios.post('http://localhost:8080/citas', citaData, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      // Manejar respuesta
-      if (response.data?.success) {
-        Alert.alert('Éxito', response.data.mensaje, [
-          { 
-            text: 'OK', 
-            onPress: () => {
-              onCreate?.(response.data.cita);
-              handleClose();
-            }
-          }
-        ]);
-      } else {
-        throw new Error(response.data?.mensaje || 'Respuesta inesperada del servidor');
-      }
-    } catch (error) {
-      console.error('Error detallado:', {
-        message: error.message,
-        response: error.response?.data,
-        request: error.request,
-        config: error.config
-      });
-
-      let mensajeError = 'Error al crear la cita';
-      if (error.response?.data?.mensaje) {
-        mensajeError = error.response.data.mensaje;
-      } else if (error.message) {
-        mensajeError = error.message;
-      }
-
-      Alert.alert('Error', mensajeError);
+  // Función para convertir hora AM/PM a 24 horas
+  const convertirHora24 = (horaStr) => {
+    horaStr = horaStr.trim().toUpperCase();
+    
+    // Si ya está en formato 24 horas (HH:MM)
+    if (/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(horaStr)) {
+      return horaStr;
     }
+    
+    // Convertir de AM/PM a 24 horas (ej: "5:00 PM" -> "17:00")
+    if (/^([0-9]|1[0-2]):[0-5][0-9] [AP]M$/.test(horaStr)) {
+      const [time, period] = horaStr.split(' ');
+      let [hours, minutes] = time.split(':');
+      
+      hours = parseInt(hours, 10);
+      if (period === 'PM' && hours < 12) hours += 12;
+      if (period === 'AM' && hours === 12) hours = 0;
+      
+      return `${hours.toString().padStart(2, '0')}:${minutes}`;
+    }
+    
+    throw new Error('Formato de hora no válido');
   };
 
+  // Calcular hora final basada en la duración
+  const calcularHoraFin = (horaInicio, duracionMinutos) => {
+    const [hours, minutes] = horaInicio.split(':').map(Number);
+    const totalMinutes = hours * 60 + minutes + duracionMinutos;
+    
+    const endHours = Math.floor(totalMinutes / 60) % 24;
+    const endMinutes = totalMinutes % 60;
+    
+    return `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
+  };
+
+  // Convertir duración a minutos
+  const convertirDuracionAMinutos = (duracionStr) => {
+    if (!duracionStr) return 60; // Valor por defecto de 1 hora
+    
+    // Formato HH:MM:SS o HH:MM
+    const partes = duracionStr.split(':');
+    if (partes.length >= 2) {
+      return parseInt(partes[0]) * 60 + parseInt(partes[1]);
+    }
+    
+    // Si es solo un número, asumir minutos
+    return parseInt(duracionStr) || 60;
+  };
+
+  // Formatear hora para mostrar en pantalla
+  const formatearHoraParaMostrar = (hora24) => {
+    const [hours, minutes] = hora24.split(':').map(Number);
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const hours12 = hours % 12 || 12;
+    return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
+  };
+
+  // Función principal para crear la cita
+// Reemplaza la función handleCrear con esta versión mejorada:
+const handleCrear = async () => {
+  try {
+    setIsLoading(true);
+    
+    // Validaciones básicas
+    if (!servicioSel || !barbero) {
+      throw new Error('Falta información del servicio o barbero');
+    }
+
+    // Formatear fecha como YYYY-MM-DD
+    const fechaFormateada = `${fecha.getFullYear()}-${(fecha.getMonth() + 1)
+      .toString().padStart(2, '0')}-${fecha.getDate().toString().padStart(2, '0')}`;
+    
+    // Convertir hora a formato 24 horas (HH:MM)
+    const horaInicio24 = convertirHora24(slot.displayTime);
+    
+    // Calcular duración en minutos
+    const duracionMinutos = convertirDuracionAMinutos(servicioSel.duracionMaxima);
+    
+    // Calcular hora final
+    const horaFin24 = calcularHoraFin(horaInicio24, duracionMinutos);
+
+    // Preparar datos para enviar al backend
+    const citaData = {
+      barberoID: barbero.id,
+      servicioID: servicioSel.id,
+      fecha: fechaFormateada,
+      hora: `${horaInicio24}:00`,
+      horaFin: `${horaFin24}:00`,
+      direccion: "En barbería",
+      estado: "Pendiente",
+      duracionReal: servicioSel.duracionMaxima || "00:30:00",
+      duracionRedondeada: `${Math.floor(duracionMinutos / 60)}:${(duracionMinutos % 60).toString().padStart(2, '0')}:00`
+    };
+
+    // Asignar cliente (registrado o temporal)
+    if (isTemporal) {
+      citaData.pacienteTemporalNombre = temporalNombre.trim();
+      if (temporalTelefono.trim()) {
+        citaData.pacienteTemporalTelefono = temporalTelefono.trim();
+      }
+    } else {
+      citaData.pacienteID = clienteSel.id;
+    }
+
+    // Obtener token de autenticación
+    const token = await AsyncStorage.getItem('token');
+    if (!token) {
+      throw new Error('No se encontró el token de autenticación');
+    }
+
+    // Enviar petición al backend
+    const response = await axios.post('http://localhost:8080/citas', citaData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      timeout: 10000
+    });
+
+    if (response.data?.success) {
+      Alert.alert('Éxito', 'Cita creada correctamente', [
+        { 
+          text: 'OK', 
+          onPress: () => {
+            onCreate?.(response.data.cita);
+            handleClose();
+          }
+        }
+      ]);
+    } else {
+      throw new Error(response.data?.mensaje || 'Error al crear la cita');
+    }
+  } catch (error) {
+    console.error('Error al crear cita:', {
+      message: error.message,
+      response: error.response?.data,
+      request: error.request,
+    });
+    
+    let mensajeError = 'Error al crear la cita';
+    if (error.response?.data?.mensaje) {
+      mensajeError = error.response.data.mensaje;
+    } else if (error.message) {
+      mensajeError = error.message;
+    } else if (error.code === 'ECONNABORTED') {
+      mensajeError = 'El servidor no respondió a tiempo';
+    }
+    
+    Alert.alert('Error', mensajeError);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+  // Componente para el paso 1 (Selección de servicio)
   const Paso1 = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.subtitle}>
-        Selecciona el servicio que se realizará en la cita
-      </Text>
-
+      <Text style={styles.subtitle}>Selecciona el servicio que se realizará en la cita</Text>
       <FlatList
         data={servicios}
-        keyExtractor={i => i.id}
+        keyExtractor={item => item.id}
         renderItem={({ item }) => (
           <TouchableOpacity
             style={[
@@ -165,12 +220,17 @@ const CrearCita = ({
               servicioSel?.id === item.id && styles.servicioSel,
             ]}
             onPress={() => setServicioSel(item)}>
-            <Text style={styles.servicioNombre}>{item.nombre}</Text>
-            <Text style={styles.servicioPrecio}>${item.precio}</Text>
+            <View>
+              <Text style={styles.servicioNombre}>{item.nombre}</Text>
+              <Text style={styles.servicioDuracion}>
+                Duración: {item.duracionMaxima || "1 hora"} 
+                (Bloquea todo el horario necesario)
+              </Text>
+            </View>
+            <Text style={styles.servicioPrecio}>${item.precio || "0"}</Text>
           </TouchableOpacity>
         )}
       />
-
       <View style={styles.centeredBtn}>
         <TouchableOpacity
           style={[
@@ -186,7 +246,8 @@ const CrearCita = ({
     </View>
   );
 
-const Paso2 = () => {
+  // Componente para el paso 2 (Selección de cliente)
+  const Paso2 = () => {
     const filtrados = clientes.filter(c =>
       c.nombre.toLowerCase().includes(busqueda.toLowerCase())
     );
@@ -194,7 +255,6 @@ const Paso2 = () => {
     return (
       <View style={styles.stepContainer}>
         <Text style={styles.subtitle}>Selecciona el cliente</Text>
-
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
           <TouchableOpacity
             style={[styles.optionToggle, !isTemporal && styles.optionToggleActive]}
@@ -235,10 +295,9 @@ const Paso2 = () => {
                 onChangeText={setBusqueda}
               />
             </View>
-
             <FlatList
               data={filtrados}
-              keyExtractor={i => i.id}
+              keyExtractor={item => item.id}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={[
@@ -280,7 +339,6 @@ const Paso2 = () => {
             onPress={() => setStep(1)}>
             <Text style={styles.btnSecondaryText}>Volver</Text>
           </TouchableOpacity>
-
           <TouchableOpacity
             style={[
               styles.btnPrimary,
@@ -297,65 +355,88 @@ const Paso2 = () => {
     );
   };
 
-const Paso3 = () => (
-    <View style={styles.stepContainer}>
-      <Text style={styles.subtitle}>Revisa y confirma la información</Text>
+  // Componente para el paso 3 (Confirmación)
+  const Paso3 = () => {
+    const duracionMinutos = convertirDuracionAMinutos(servicioSel?.duracionMaxima || "01:00:00");
+    const horasCompletas = Math.floor(duracionMinutos / 60);
+    const minutosRestantes = duracionMinutos % 60;
+    const duracionFormateada = `${horasCompletas > 0 ? `${horasCompletas} hora${horasCompletas > 1 ? 's' : ''}` : ''} ${minutosRestantes > 0 ? `${minutosRestantes} minutos` : ''}`.trim();
 
-      <View style={styles.infoBox}>
-        <Text style={styles.infoLabel}>Servicio</Text>
-        <Text style={styles.infoText}>{servicioSel.nombre}</Text>
+    const horaInicio24 = convertirHora24(slot.displayTime);
+    const horaFin24 = calcularHoraFin(horaInicio24, duracionMinutos);
 
-        <Text style={styles.infoLabel}>Barbero</Text>
-        <Text style={styles.infoText}>{barbero.nombre}</Text>
+    return (
+      <View style={styles.stepContainer}>
+        <Text style={styles.subtitle}>Revisa y confirma la información</Text>
+        <View style={styles.infoBox}>
+          <Text style={styles.infoLabel}>Servicio</Text>
+          <Text style={styles.infoText}>{servicioSel.nombre}</Text>
 
-        <Text style={styles.infoLabel}>Cliente</Text>
-        <Text style={styles.infoText}>
-          {isTemporal ? temporalNombre : clienteSel?.nombre}
-          {isTemporal && ' (Temporal)'}
-        </Text>
+          <Text style={styles.infoLabel}>Barbero</Text>
+          <Text style={styles.infoText}>{barbero.nombre}</Text>
 
-        {isTemporal && (
-          <>
-            <Text style={styles.infoLabel}>Teléfono</Text>
-            <Text style={styles.infoText}>
-              {temporalTelefono || 'No especificado'}
-            </Text>
-          </>
-        )}
+          <Text style={styles.infoLabel}>Cliente</Text>
+          <Text style={styles.infoText}>
+            {isTemporal ? temporalNombre : clienteSel?.nombre}
+            {isTemporal && ' (Temporal)'}
+          </Text>
 
-        <Text style={styles.infoLabel}>Fecha</Text>
-        <Text style={styles.infoText}>
-          {fecha.toLocaleDateString('es-ES', {
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric',
-          })}
-        </Text>
+          {isTemporal && (
+            <>
+              <Text style={styles.infoLabel}>Teléfono</Text>
+              <Text style={styles.infoText}>
+                {temporalTelefono || 'No especificado'}
+              </Text>
+            </>
+          )}
 
-        <Text style={styles.infoLabel}>Hora</Text>
-        <Text style={styles.infoText}>{slot.displayTime.toUpperCase()}</Text>
+          <Text style={styles.infoLabel}>Fecha</Text>
+          <Text style={styles.infoText}>
+            {fecha.toLocaleDateString('es-ES', {
+              weekday: 'long', 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric',
+            })}
+          </Text>
 
-        <Text style={styles.infoLabel}>Duración</Text>
-        <Text style={styles.infoText}>{servicioSel.duracionMaxima}</Text>
+          <Text style={styles.infoLabel}>Hora de inicio</Text>
+          <Text style={styles.infoText}>{formatearHoraParaMostrar(horaInicio24)}</Text>
+
+          <Text style={styles.infoLabel}>Hora de finalización</Text>
+          <Text style={styles.infoText}>{formatearHoraParaMostrar(horaFin24)}</Text>
+
+          <Text style={styles.infoLabel}>Duración total</Text>
+          <Text style={styles.infoText}>{duracionFormateada}</Text>
+
+          <Text style={[styles.infoLabel, { color: '#E53935', marginTop: 20 }]}>
+            ¡Todo este horario será reservado!
+          </Text>
+        </View>
+
+        <View style={styles.navBtns}>
+          <TouchableOpacity
+            style={styles.btnSecondary}
+            onPress={() => setStep(2)}
+            disabled={isLoading}>
+            <Text style={styles.btnSecondaryText}>Volver</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.btnPrimary, isLoading && styles.btnDisabled]}
+            onPress={handleCrear}
+            disabled={isLoading}>
+            {isLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.btnPrimaryText}>Confirmar cita</Text>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
+    );
+  };
 
-      <View style={styles.navBtns}>
-        <TouchableOpacity
-          style={styles.btnSecondary}
-          onPress={() => setStep(2)}>
-          <Text style={styles.btnSecondaryText}>Volver</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.btnPrimary}
-          onPress={handleCrear}>
-          <Text style={styles.btnPrimaryText}>Confirmar cita</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
+  // Renderizar el paso actual
   const renderStep = () => {
     switch (step) {
       case 1: return <Paso1 />;
@@ -379,7 +460,6 @@ const Paso3 = () => (
               <MaterialIcons name="close" size={24} color="#000" />
             </TouchableOpacity>
           </View>
-
           <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
             {renderStep()}
           </ScrollView>
@@ -389,6 +469,7 @@ const Paso3 = () => (
   );
 };
 
+// Estilos
 const styles = StyleSheet.create({
   blur: {
     flex: 1,
@@ -447,6 +528,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#222'
+  },
+  servicioDuracion: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4
   },
   servicioPrecio: {
     fontSize: 16,

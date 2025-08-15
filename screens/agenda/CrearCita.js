@@ -52,16 +52,13 @@ const CrearCita = ({
     onClose();
   };
 
-  // Función para convertir hora AM/PM a 24 horas
   const convertirHora24 = (horaStr) => {
     horaStr = horaStr.trim().toUpperCase();
     
-    // Si ya está en formato 24 horas (HH:MM)
     if (/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(horaStr)) {
       return horaStr;
     }
     
-    // Convertir de AM/PM a 24 horas (ej: "5:00 PM" -> "17:00")
     if (/^([0-9]|1[0-2]):[0-5][0-9] [AP]M$/.test(horaStr)) {
       const [time, period] = horaStr.split(' ');
       let [hours, minutes] = time.split(':');
@@ -76,7 +73,6 @@ const CrearCita = ({
     throw new Error('Formato de hora no válido');
   };
 
-  // Calcular hora final basada en la duración
   const calcularHoraFin = (horaInicio, duracionMinutos) => {
     const [hours, minutes] = horaInicio.split(':').map(Number);
     const totalMinutes = hours * 60 + minutes + duracionMinutos;
@@ -87,21 +83,17 @@ const CrearCita = ({
     return `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
   };
 
-  // Convertir duración a minutos
   const convertirDuracionAMinutos = (duracionStr) => {
-    if (!duracionStr) return 60; // Valor por defecto de 1 hora
+    if (!duracionStr) return 60;
     
-    // Formato HH:MM:SS o HH:MM
     const partes = duracionStr.split(':');
     if (partes.length >= 2) {
       return parseInt(partes[0]) * 60 + parseInt(partes[1]);
     }
     
-    // Si es solo un número, asumir minutos
     return parseInt(duracionStr) || 60;
   };
 
-  // Formatear hora para mostrar en pantalla
   const formatearHoraParaMostrar = (hora24) => {
     const [hours, minutes] = hora24.split(':').map(Number);
     const period = hours >= 12 ? 'PM' : 'AM';
@@ -109,31 +101,24 @@ const CrearCita = ({
     return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
   };
 
-  // Función principal para crear la cita
-// Reemplaza la función handleCrear con esta versión mejorada:
 const handleCrear = async () => {
+  console.log("Iniciando creación de cita...");
   try {
     setIsLoading(true);
     
-    // Validaciones básicas
     if (!servicioSel || !barbero) {
       throw new Error('Falta información del servicio o barbero');
     }
 
-    // Formatear fecha como YYYY-MM-DD
     const fechaFormateada = `${fecha.getFullYear()}-${(fecha.getMonth() + 1)
       .toString().padStart(2, '0')}-${fecha.getDate().toString().padStart(2, '0')}`;
     
-    // Convertir hora a formato 24 horas (HH:MM)
     const horaInicio24 = convertirHora24(slot.displayTime);
     
-    // Calcular duración en minutos
     const duracionMinutos = convertirDuracionAMinutos(servicioSel.duracionMaxima);
     
-    // Calcular hora final
     const horaFin24 = calcularHoraFin(horaInicio24, duracionMinutos);
 
-    // Preparar datos para enviar al backend
     const citaData = {
       barberoID: barbero.id,
       servicioID: servicioSel.id,
@@ -146,7 +131,6 @@ const handleCrear = async () => {
       duracionRedondeada: `${Math.floor(duracionMinutos / 60)}:${(duracionMinutos % 60).toString().padStart(2, '0')}:00`
     };
 
-    // Asignar cliente (registrado o temporal)
     if (isTemporal) {
       citaData.pacienteTemporalNombre = temporalNombre.trim();
       if (temporalTelefono.trim()) {
@@ -156,13 +140,12 @@ const handleCrear = async () => {
       citaData.pacienteID = clienteSel.id;
     }
 
-    // Obtener token de autenticación
     const token = await AsyncStorage.getItem('token');
     if (!token) {
       throw new Error('No se encontró el token de autenticación');
     }
 
-    // Enviar petición al backend
+    console.log("Enviando datos al servidor:", citaData);
     const response = await axios.post('http://localhost:8080/citas', citaData, {
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -171,42 +154,40 @@ const handleCrear = async () => {
       timeout: 10000
     });
 
-    if (response.data?.success) {
-      Alert.alert('Éxito', 'Cita creada correctamente', [
-        { 
-          text: 'OK', 
-          onPress: () => {
-            onCreate?.(response.data.cita);
-            handleClose();
-          }
-        }
-      ]);
-    } else {
-      throw new Error(response.data?.mensaje || 'Error al crear la cita');
+    console.log("Respuesta del servidor:", response.data);
+    
+    // Modificación clave aquí - Verificamos la respuesta correctamente
+    if (response.data && response.data.mensaje === 'Cita creada exitosamente') {
+      console.log("Cita creada exitosamente, ejecutando onCreate...");
+      onCreate(); // Esto ejecutará handleCitaCreada en AgendaScreen
+      handleClose(); // Cierra el modal
+      return;
     }
+    
+    // Solo lanzamos error si no hay respuesta o el mensaje no es el esperado
+    throw new Error(response.data?.mensaje || 'Error al crear la cita');
   } catch (error) {
     console.error('Error al crear cita:', {
       message: error.message,
       response: error.response?.data,
-      request: error.request,
+      stack: error.stack
     });
     
-    let mensajeError = 'Error al crear la cita';
-    if (error.response?.data?.mensaje) {
-      mensajeError = error.response.data.mensaje;
-    } else if (error.message) {
-      mensajeError = error.message;
-    } else if (error.code === 'ECONNABORTED') {
-      mensajeError = 'El servidor no respondió a tiempo';
+    // Mostramos alerta solo si no es el mensaje de éxito
+    if (error.message !== 'Cita creada exitosamente') {
+      let mensajeError = 'Error al crear la cita';
+      if (error.response?.data?.mensaje) {
+        mensajeError = error.response.data.mensaje;
+      } else if (error.message) {
+        mensajeError = error.message;
+      }
+      Alert.alert('Error', mensajeError);
     }
-    
-    Alert.alert('Error', mensajeError);
   } finally {
     setIsLoading(false);
   }
 };
 
-  // Componente para el paso 1 (Selección de servicio)
   const Paso1 = () => (
     <View style={styles.stepContainer}>
       <Text style={styles.subtitle}>Selecciona el servicio que se realizará en la cita</Text>
@@ -246,7 +227,6 @@ const handleCrear = async () => {
     </View>
   );
 
-  // Componente para el paso 2 (Selección de cliente)
   const Paso2 = () => {
     const filtrados = clientes.filter(c =>
       c.nombre.toLowerCase().includes(busqueda.toLowerCase())
@@ -355,7 +335,6 @@ const handleCrear = async () => {
     );
   };
 
-  // Componente para el paso 3 (Confirmación)
   const Paso3 = () => {
     const duracionMinutos = convertirDuracionAMinutos(servicioSel?.duracionMaxima || "01:00:00");
     const horasCompletas = Math.floor(duracionMinutos / 60);
@@ -436,7 +415,6 @@ const handleCrear = async () => {
     );
   };
 
-  // Renderizar el paso actual
   const renderStep = () => {
     switch (step) {
       case 1: return <Paso1 />;
@@ -469,7 +447,6 @@ const handleCrear = async () => {
   );
 };
 
-// Estilos
 const styles = StyleSheet.create({
   blur: {
     flex: 1,

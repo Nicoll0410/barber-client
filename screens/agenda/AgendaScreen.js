@@ -471,16 +471,30 @@ const AgendaScreen = () => {
     }
   };
 
-  const onCitaCreada = () => {
-    setRefreshKey(prev => prev + 1);
-    setShowCrearCita(false);
-    setSelectedSlot(null);
-  };
+  const handleCitaCreada = useCallback(async () => {
+    console.log("Actualizando agenda después de crear cita...");
+    try {
+      setShowCrearCita(false);
+      setSelectedSlot(null);
+      await fetchCitas();
+      setRefreshKey(prev => prev + 1);
+    } catch (error) {
+      console.error("Error al actualizar agenda:", error);
+      Alert.alert("Error", "No se pudo actualizar la agenda");
+    }
+  }, [fetchCitas]);
 
-  const onCitaActualizada = () => {
-    setRefreshKey(prev => prev + 1);
-    setShowDetalleCita(false);
-  };
+  const handleCitaActualizada = useCallback(async () => {
+    console.log("Actualizando agenda después de modificar cita...");
+    try {
+      setShowDetalleCita(false);
+      await fetchCitas();
+      setRefreshKey(prev => prev + 1);
+    } catch (error) {
+      console.error("Error al actualizar agenda:", error);
+      Alert.alert("Error", "No se pudo actualizar la agenda");
+    }
+  }, [fetchCitas]);
 
   const getDisabledDates = () => {
     const disabled = {};
@@ -528,10 +542,8 @@ const AgendaScreen = () => {
     const estaEnCita = isSlotInCita(slot, b);
     const disp = disponibilidadBarberos[b.id] || {};
     
-    // Determinar si este slot es el primero de una cita multi-slot
     const isFirstSlot = cita && cita.hora.split(':').slice(0, 2).join(':') === slot.startTime;
     
-    // Determinar si el slot anterior está ocupado por la misma cita
     const slots = generateTimeSlots();
     const currentIndex = slots.findIndex(s => s.key === slot.key);
     const previousSlot = currentIndex > 0 ? slots[currentIndex - 1] : null;
@@ -542,7 +554,6 @@ const AgendaScreen = () => {
     if (cita && isFirstSlot) {
       cellState = 'ocupado';
     } else if (estaEnCita || esContinuacion) {
-      // No renderizar nada para slots intermedios de una cita
       return (
         <View key={`${slot.key}-${b.id}`} style={styles.slotContainer}>
           <View style={[styles.slot, styles.slotOcupadoSecundario]} />
@@ -765,8 +776,11 @@ const AgendaScreen = () => {
 
       <CrearCita
         visible={showCrearCita}
-        onClose={()=>setShowCrearCita(false)}
-        onCreate={onCitaCreada}
+        onClose={()=>{
+          setShowCrearCita(false);
+          setSelectedSlot(null);
+        }}
+        onCreate={handleCitaCreada}
         barbero={selectedSlot?.barbero}
         fecha={selectedDate}
         slot={selectedSlot}
@@ -778,8 +792,8 @@ const AgendaScreen = () => {
         visible={showDetalleCita}
         onClose={() => setShowDetalleCita(false)}
         cita={selectedCita}
-        onDelete={onCitaActualizada}
-        onUpdate={onCitaActualizada}
+        onDelete={handleCitaActualizada}
+        onUpdate={handleCitaActualizada}
       />
 
       <View style={styles.footerContainer}>

@@ -14,6 +14,7 @@ import {
   ActivityIndicator,
   Image,
   RefreshControl,
+  Platform
 } from 'react-native';
 import {
   MaterialIcons,
@@ -39,6 +40,11 @@ import axios from 'axios';
 const { width } = Dimensions.get('window');
 const isMobile = width < 768;
 
+// Definir BASE_URL
+const BASE_URL = Platform.OS === 'android' 
+  ? 'http://10.0.2.2:8082' 
+  : 'http://localhost:8080';
+
 /* ╔══════════════╗
    ║  Sub‑componentes  ║
    ╚══════════════╝ */
@@ -46,26 +52,28 @@ const Avatar = ({ nombre, avatar }) => {
   const colors = ['#9BA6AE', '#8F9AA2', '#A2ADB4', '#90979F', '#9CA5AD'];
   const color = colors[nombre?.length % colors.length] || '#9BA6AE';
 
-  // Verificación robusta de imagen base64
-  const isBase64Image = avatar && (
-    avatar.startsWith('data:image/png;base64,') || 
-    avatar.startsWith('data:image/jpeg;base64,') ||
-    avatar.startsWith('data:image/jpg;base64,')
-  );
+  // Verificación mejorada del avatar
+  const hasValidAvatar = avatar && 
+    typeof avatar === 'string' && 
+    avatar.length > 100 && // Asegurar que no sea un string vacío o muy corto
+    (avatar.startsWith('data:image/') || 
+     avatar.startsWith('/9j/') ||  // JPEG
+     avatar.startsWith('iVBORw')); // PNG
 
-  if (isBase64Image) {
+  if (hasValidAvatar) {
+    // Asegurar que tenga el prefijo data:image si es base64 puro
+    const uri = avatar.startsWith('data:image/') ? avatar : `data:image/jpeg;base64,${avatar}`;
+    
     return (
       <Image
-        source={{ uri: avatar }}
+        source={{ uri }}
         style={styles.avatarImage}
-        onError={(e) => {
-          console.log('Error cargando avatar:', e.nativeEvent.error);
-          console.log('Avatar problemático:', avatar?.substring(0, 50));
-        }}
+        onError={(e) => console.log('Error cargando avatar:', e.nativeEvent.error)}
       />
     );
   }
 
+  // Mostrar iniciales si no hay avatar válido
   return (
     <View style={[styles.avatarContainer, { backgroundColor: color }]}>
       <Text style={styles.avatarText}>
@@ -74,8 +82,6 @@ const Avatar = ({ nombre, avatar }) => {
     </View>
   );
 };
-
-
 const EstadoVerificacion = ({ verificado }) => (
   <View
     style={[
@@ -207,19 +213,22 @@ const fetchClientes = async () => {
   try {
     if (!refreshing) setLoading(true);
     const token = await AsyncStorage.getItem('token');
-    const { data } = await axios.get('http://localhost:8080/clientes', {
+    const { data } = await axios.get(`${BASE_URL}/clientes`, {
       headers: { Authorization: `Bearer ${token}` },
-      params: { 
+      params: {  // Usar params para query parameters
         all: true,
         search: busqueda 
-      },
+      }
     });
-    
-          console.log('Datos recibidos del backend:', data.clientes.map(c => ({
-        id: c.id,
-        nombre: c.nombre,
-        avatarLength: c.avatar?.length || 0
-      })));
+    // En ClientesScreen.js, justo después de recibir los datos del backend
+console.log('Datos recibidos del backend:', JSON.stringify(data, null, 2));
+console.log('Avatar del primer cliente:', data.clientes[0]?.avatar?.substring(0, 100) + '...');
+
+    console.log('Datos recibidos del backend:', data.clientes.map(c => ({
+      id: c.id,
+      nombre: c.nombre,
+      avatarLength: c.avatar?.length || 0
+    })));
     
     const listaClientes = data.clientes || data;
     const clientesFinales = Array.isArray(listaClientes) ? 
@@ -229,7 +238,7 @@ const fetchClientes = async () => {
     console.log('Clientes con avatares:', clientesFinales.map(c => ({
       id: c.id,
       nombre: c.nombre,
-      avatar: c.avatar // Verifica que esto no sea null/undefined
+      avatar: c.avatar
     })));
     
     const list = clientesFinales.map(c => ({
@@ -237,7 +246,7 @@ const fetchClientes = async () => {
       estaVerificado: c.usuario?.estaVerificado || false,
       email: c.usuario?.email || '',
       usuarioID: c.usuario?.id || null,
-      avatar: c.avatar // Asegúrate de incluir el avatar
+      avatar: c.avatar || null // Asegurar que avatar sea null si no existe
     }));
     
     setClientes(list);
@@ -298,32 +307,34 @@ const fetchClientes = async () => {
   const crearCliente = () => setModalCrearVisible(true);
   const handleSearchChange = t => setBusqueda(t);
 
-const handleCreateCliente = async (nuevo) => {
+const handleCreateCliente = async (nuevoCliente) => {
   try {
     const token = await AsyncStorage.getItem('token');
     const { data } = await axios.post(
-      'http://localhost:8080/clientes',
+      `${BASE_URL}/clientes`,
       {
-        nombre: nuevo.nombre,
-        telefono: nuevo.telefono,
-        fecha_nacimiento: nuevo.fechaNacimiento?.toISOString().split('T')[0],
-        email: nuevo.email,
-        password: nuevo.password,
-        avatarBase64: nuevo.avatar, // Asegúrate de enviar el avatar como avatarBase64
+        nombre: nuevoCliente.nombre,
+        telefono: nuevoCliente.telefono,
+        fecha_nacimiento: nuevoCliente.fecha_nacimiento,
+        email: nuevoCliente.email,
+        password: nuevoCliente.password,
+        avatarBase64: nuevoCliente.avatarBase64 || null,
       },
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
-    const clienteCon = {
+    // Asegurar que el avatar se incluya en el cliente creado
+    const clienteConAvatar = {
       ...data.cliente,
-      avatar: nuevo.avatar, // Incluye el avatar en el estado local
+      avatar: nuevoCliente.avatarBase64, // Usar el avatar original en base64
       estaVerificado: false,
-      email: nuevo.email,
+      email: nuevoCliente.email,
       usuarioID: data.cliente.usuarioID,
     };
+
+    setClientes(prev => [...prev, clienteConAvatar]);
+    setClientesFiltrados(prev => [...prev, clienteConAvatar]);
     
-    setClientes(prev => [...prev, clienteCon]);
-    setClientesFiltrados(prev => [...prev, clienteCon]);
     setModalCrearVisible(false);
     showInfo('🎉 ¡Cliente creado!', 'Email de verificación enviado', 'success');
   } catch (error) {
@@ -341,7 +352,7 @@ const handleCreateCliente = async (nuevo) => {
     try {
       const token = await AsyncStorage.getItem('token');
       const { data } = await axios.get(
-        `http://localhost:8080/clientes/by-id/${id}`,
+        `${BASE_URL}/clientes/by-id/${id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const c = data.cliente;
@@ -367,7 +378,7 @@ const handleCreateCliente = async (nuevo) => {
     try {
       const token = await AsyncStorage.getItem('token');
       const { data } = await axios.get(
-        `http://localhost:8080/clientes/by-id/${id}`,
+        `${BASE_URL}/clientes/by-id/${id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const c = data.cliente;
@@ -389,53 +400,53 @@ const handleCreateCliente = async (nuevo) => {
     }
   };
 
-const handleUpdateCliente = async (updated) => {
-  try {
-    const token = await AsyncStorage.getItem('token');
-    const { data } = await axios.put(
-      `http://localhost:8080/clientes/${updated.id}`,
-      {
-        nombre: updated.nombre,
-        telefono: updated.telefono,
-        fecha_nacimiento: updated.fechaNacimiento?.toISOString().split('T')[0],
-        email: updated.email,
-        avatarBase64: updated.avatar, // Envía el avatar actualizado
-      },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+  const handleUpdateCliente = async (clienteActualizado) => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const { data } = await axios.put(
+        `${BASE_URL}/clientes/${clienteActualizado.id}`,
+        {
+          nombre: clienteActualizado.nombre,
+          telefono: clienteActualizado.telefono,
+          fecha_nacimiento: clienteActualizado.fechaNacimiento?.toISOString().split('T')[0],
+          email: clienteActualizado.email,
+          avatarBase64: clienteActualizado.avatar,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-    const nuevos = clientes.map(c =>
-      c.id === updated.id
-        ? {
-            ...data.cliente,
-            avatar: updated.avatar, // Mantén el avatar en el estado local
-            estaVerificado: updated.estaVerificado,
-            email: updated.email,
-            usuarioID: updated.usuarioID,
-          }
-        : c
-    );
-    
-    setClientes(nuevos);
-    setClientesFiltrados(nuevos);
-    setModalEditarVisible(false);
-    showInfo('✅ Cliente actualizado', 'Datos modificados correctamente', 'success');
-  } catch (error) {
-    console.error('Error al actualizar cliente:', error);
-    showInfo(
-      'Error',
-      error.response?.data?.mensaje || 'Error al actualizar',
-      'error'
-    );
-  }
-};
+      const nuevosClientes = clientes.map(c =>
+        c.id === clienteActualizado.id
+          ? {
+              ...data.cliente,
+              avatar: clienteActualizado.avatar,
+              estaVerificado: clienteActualizado.estaVerificado,
+              email: clienteActualizado.email,
+              usuarioID: clienteActualizado.usuarioID,
+            }
+          : c
+      );
+
+      setClientes(nuevosClientes);
+      setClientesFiltrados(nuevosClientes);
+      setModalEditarVisible(false);
+      showInfo('✅ Cliente actualizado', 'Datos modificados correctamente', 'success');
+    } catch (error) {
+      console.error('Error al actualizar cliente:', error);
+      showInfo(
+        'Error',
+        error.response?.data?.mensaje || 'Error al actualizar',
+        'error'
+      );
+    }
+  };
 
   const reenviarEmailVerificacion = async (id, email) => {
     try {
       setSendingEmail(true);
       const token = await AsyncStorage.getItem('token');
       await axios.post(
-        `http://localhost:8080/clientes/${id}/reenviar-verificacion`,
+        `${BASE_URL}/clientes/${id}/reenviar-verificacion`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -466,7 +477,7 @@ const handleUpdateCliente = async (updated) => {
     try {
       const token = await AsyncStorage.getItem('token');
       await axios.delete(
-        `http://localhost:8080/clientes/${idAEliminar}`,
+        `${BASE_URL}/clientes/${idAEliminar}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const nuevos = clientes.filter(c => c.id !== idAEliminar);
@@ -828,7 +839,7 @@ const styles = StyleSheet.create({
   /* Avatar */
   avatarContainer: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
   avatarText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-    avatarImage: {
+  avatarImage: {
     width: 40,
     height: 40,
     borderRadius: 20,

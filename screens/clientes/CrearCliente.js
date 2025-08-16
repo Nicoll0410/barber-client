@@ -12,13 +12,14 @@ import {
   Dimensions, 
   Keyboard,
   Platform,
-  ActivityIndicator // 👈 ¡Añade esto!
+  ActivityIndicator
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { BlurView } from 'expo-blur';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Configuración de localización en español
 LocaleConfig.locales['es'] = {
@@ -44,7 +45,7 @@ const BASE_URL = Platform.OS === 'android'
   ? 'http://10.0.2.2:8080'
   : 'http://localhost:8080';
 
-const CrearCliente = ({ visible, onClose }) => {
+const CrearCliente = ({ visible, onClose, onCreate }) => {
   const [formData, setFormData] = useState({
     nombre: '',
     telefono: '',
@@ -223,28 +224,33 @@ const CrearCliente = ({ visible, onClose }) => {
     }
   };
 
-  const pickImage = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.7,
-        base64: true
-      });
-
-      if (!result.canceled && result.assets[0].base64) {
-        const base64String = `data:image/jpeg;base64,${result.assets[0].base64}`;
-        console.log('Imagen seleccionada (tamaño):', base64String.length);
-        setFormData({ ...formData, avatar: base64String });
-      }
-    } catch (error) {
-      console.error('Error al seleccionar imagen:', error);
-      Alert.alert('Error', 'No se pudo seleccionar la imagen');
+const pickImage = async () => {
+  try {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permisos requeridos', 'Necesitamos acceso a tus fotos para seleccionar un avatar');
+      return;
     }
-  };
 
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+      base64: true // Asegúrate de incluir esta línea
+    });
 
+    if (!result.cancelled) {
+      // Crear URI base64 completa
+      const base64Image = `data:image/jpeg;base64,${result.base64}`;
+      setAvatar(base64Image);
+      console.log('Imagen seleccionada (tamaño):', result.base64.length);
+    }
+  } catch (error) {
+    console.error('Error al seleccionar imagen:', error);
+    Alert.alert('Error', 'No se pudo seleccionar la imagen');
+  }
+};
 
   const validateForm = () => {
     let isValid = true;
@@ -263,28 +269,43 @@ const CrearCliente = ({ visible, onClose }) => {
 
     setLoading(true);
     try {
+      const token = await AsyncStorage.getItem('token');
       const payload = {
         nombre: formData.nombre,
         telefono: formData.telefono,
         fecha_nacimiento: formatDateString(formData.fechaNacimiento),
-        avatarBase64: formData.avatar, // Envía el string base64
+        avatarBase64: formData.avatar,
         email: formData.email,
-        password: formData.password,
-        rolID: 3 // ID del rol Cliente
+        password: formData.password
       };
-          console.log('Enviando avatar (primeros 50 caracteres):', formData.avatar?.substring(0, 50)); // Para depuración
 
-      const response = await axios.post(`${BASE_URL}/auth/signup`, payload);
-      
-      if (response.data.success) {
-        setShowSuccess(true);
-        resetForm();
-      } else {
-        throw new Error(response.data.mensaje || 'Error al crear el cliente');
+      console.log('Enviando datos:', {
+        ...payload,
+        avatarBase64: payload.avatarBase64 ? '[...imagen base64...]' : null
+      });
+
+      const response = await axios.post(`${BASE_URL}/clientes`, payload, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      // Llamar a la función onCreate pasada como prop
+      if (onCreate) {
+        onCreate({
+          ...response.data.cliente,
+          avatar: formData.avatar,
+          estaVerificado: false,
+          email: formData.email
+        });
       }
+
+      setShowSuccess(true);
+      resetForm();
     } catch (error) {
       console.error('Error al crear cliente:', error);
-      Alert.alert('Error', error.message || 'No se pudo crear el cliente');
+      Alert.alert(
+        'Error', 
+        error.response?.data?.mensaje || 'No se pudo crear el cliente'
+      );
     } finally {
       setLoading(false);
     }
@@ -303,6 +324,14 @@ const CrearCliente = ({ visible, onClose }) => {
       month: '2-digit',
       year: 'numeric'
     });
+  };
+
+  const formatDateString = (date) => {
+    if (!date) return null;
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   const getDisabledDates = () => {
@@ -328,13 +357,6 @@ const CrearCliente = ({ visible, onClose }) => {
     return disabledDates;
   };
 
-  const formatDateString = (date) => {
-    if (!date) return null;
-    const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
 
   return (
     <Modal

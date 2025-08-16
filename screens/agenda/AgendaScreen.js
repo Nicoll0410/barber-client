@@ -546,17 +546,25 @@ const AgendaScreen = () => {
     
     const slots = generateTimeSlots();
     const currentIndex = slots.findIndex(s => s.key === slot.key);
-    const previousSlot = currentIndex > 0 ? slots[currentIndex - 1] : null;
-    const citaAnterior = previousSlot ? getCitaForSlot(previousSlot, b) : null;
-    const esContinuacion = citaAnterior && citaAnterior.id === cita?.id;
+    const nextSlot = currentIndex < slots.length - 1 ? slots[currentIndex + 1] : null;
+    const isLastSlotOfCita = cita && nextSlot && 
+      !citas.some(c => 
+        c.id === cita.id && 
+        c.horaFin.split(':').slice(0, 2).join(':') === nextSlot.startTime
+      );
     
     let cellState = 'disponible';
     if (cita && isFirstSlot) {
       cellState = 'ocupado';
-    } else if (estaEnCita || esContinuacion) {
+    } else if (estaEnCita) {
+      // Para slots intermedios de una cita larga
       return (
         <View key={`${slot.key}-${b.id}`} style={styles.slotContainer}>
-          <View style={[styles.slot, styles.slotOcupadoSecundario]} />
+          <View style={[
+            styles.slot, 
+            styles.slotOcupadoSecundario,
+            isLastSlotOfCita && styles.lastSlotOfCita
+          ]} />
         </View>
       );
     } else if (!disp.esDiaLaboral || disp.tieneExcepcion) {
@@ -597,6 +605,7 @@ const AgendaScreen = () => {
             styles[`slot-${cellState}`],
             selectedSlot?.key === slot.key && selectedSlot?.barbero.id === b.id && styles.selectedSlot,
             cita && isFirstSlot && styles.multiSlotFirst,
+            isLastSlotOfCita && styles.lastSlotOfCita,
           ]}
           onPress={() => cellState === 'disponible' ? handleSlotPress(slot, b) : null}
           disabled={cellState !== 'disponible'}
@@ -891,7 +900,7 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderRightColor: '#000',
     justifyContent: 'center',
-    height: 60, // Altura fija para cada intervalo
+    height: 60,
   },
   slot: {
     flex: 1,
@@ -911,11 +920,16 @@ const styles = StyleSheet.create({
     opacity: 0.6
   },
   'slot-ocupado': {
-    backgroundColor: '#E0E0E0'
+    backgroundColor: '#E0E0E0',
+    borderBottomWidth: 0
   },
   slotOcupadoSecundario: {
     backgroundColor: '#E0E0E0',
-    borderBottomWidth: 0
+    borderBottomWidth: 0,
+    borderTopWidth: 0
+  },
+  lastSlotOfCita: {
+    borderBottomWidth: 1
   },
   'slot-disponible': {
     backgroundColor: '#E8F5E9'
@@ -924,7 +938,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#D9D9D9'
   },
   multiSlotFirst: {
-    borderBottomWidth: 0, // Elimina el borde inferior para unificar visualmente con el siguiente slot
+    borderBottomWidth: 0,
   },
   slotNoLaboralText: {
     fontSize: 10,

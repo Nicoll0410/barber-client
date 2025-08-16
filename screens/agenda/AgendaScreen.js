@@ -255,95 +255,124 @@ const AgendaScreen = () => {
     return `${h12}:${`${m}`.padStart(2, '0')} ${period}`;
   };
 
-  const calcularDisponibilidad = useCallback(() => {
-    const nuevaDisponibilidad = {};
-    
-    barberos.forEach(barbero => {
-      const disponibilidad = barbero.disponibilidad || {};
-      const diaActual = selectedDate.getDay();
-      const diaSemanaTexto = diasSemanaTexto[diaActual];
-      const fechaStr = formatDateString(selectedDate);
-      
-      const esDiaLaboral = disponibilidad.diasLaborales?.[diaSemanaTexto]?.activo || false;
-      
-      const tieneExcepcion = disponibilidad.excepciones?.some(ex => 
-        ex.fecha === fechaStr && ex.activo === false
-      );
-      
-      const horasDisponibles = generateTimeSlots().filter(slot => {
-        return isBarberoDisponible(barbero, selectedDate, slot.startTime);
-      }).length;
-
-      const citasBarbero = citas.filter(c => c.barbero.id === barbero.id);
-      const estaCompleto = horasDisponibles <= citasBarbero.length;
-
-      nuevaDisponibilidad[barbero.id] = {
-        esDiaLaboral,
-        tieneExcepcion,
-        estaCompleto,
-        horasDisponibles
-      };
-    });
-
-    setDisponibilidadBarberos(nuevaDisponibilidad);
-  }, [barberos, selectedDate, citas]);
-
-  useEffect(() => {
-    if (barberos.length > 0 && citas) {
-      calcularDisponibilidad();
-    }
-  }, [barberos, selectedDate, citas, calcularDisponibilidad]);
-
-  const isBarberoDisponible = (barbero, fecha, hora) => {
+const calcularDisponibilidad = useCallback(() => {
+  const nuevaDisponibilidad = {};
+  
+  barberos.forEach(barbero => {
     const disponibilidad = barbero.disponibilidad || {};
-    const diaSemana = fecha.getDay();
-    const diaSemanaTexto = diasSemanaTexto[diaSemana];
-    const fechaStr = formatDateString(fecha);
+    const diaActual = selectedDate.getDay();
+    const diaSemanaTexto = diasSemanaTexto[diaActual];
+    const fechaStr = formatDateString(selectedDate);
     
+    // Verificar si el día es laboral
+    const esDiaLaboral = disponibilidad.diasLaborales?.[diaSemanaTexto]?.activo || false;
+    
+    // Verificar si hay excepción para esta fecha
     const tieneExcepcion = disponibilidad.excepciones?.some(ex => 
       ex.fecha === fechaStr && ex.activo === false
     );
-    if (tieneExcepcion) return false;
     
-    const diaConfig = disponibilidad.diasLaborales?.[diaSemanaTexto];
-    if (!diaConfig?.activo) {
-      return false;
-    }
+    // Generar todos los slots posibles para el día
+    const slots = generateTimeSlots();
     
+    // Filtrar slots realmente disponibles (considerando horario laboral, almuerzo, etc.)
+    const slotsDisponibles = slots.filter(slot => 
+      isBarberoDisponible(barbero, selectedDate, slot.startTime)
+    );
+    
+    // Obtener citas del barbero para este día
+    const citasBarbero = citas.filter(c => c.barbero.id === barbero.id);
+    
+    // Calcular disponibilidad
+    const tieneDisponibilidad = esDiaLaboral && 
+                              !tieneExcepcion && 
+                              slotsDisponibles.length > 0;
+    
+    // Verificar si la agenda está completamente llena
+    const agendaLlena = tieneDisponibilidad && 
+                       slotsDisponibles.length <= citasBarbero.length;
+
+    nuevaDisponibilidad[barbero.id] = {
+      esDiaLaboral,
+      tieneExcepcion,
+      tieneDisponibilidad: tieneDisponibilidad && !agendaLlena,
+      slotsDisponibles: slotsDisponibles.length,
+      slotsTotales: slots.length,
+      citasCount: citasBarbero.length,
+      agendaLlena
+    };
+  });
+
+  setDisponibilidadBarberos(nuevaDisponibilidad);
+}, [barberos, selectedDate, citas]);
+
+  useEffect(() => {
+  if (barberos.length > 0) {
+    calcularDisponibilidad();
+  }
+}, [barberos, selectedDate, citas, calcularDisponibilidad]);
+
+const isBarberoDisponible = (barbero, fecha, hora) => {
+  const disponibilidad = barbero.disponibilidad || {};
+  const diaSemana = fecha.getDay();
+  const diaSemanaTexto = diasSemanaTexto[diaSemana];
+  const fechaStr = formatDateString(fecha);
+  
+  // 1. Verificar excepciones
+  const excepcion = disponibilidad.excepciones?.find(ex => ex.fecha === fechaStr);
+  if (excepcion) {
+    return excepcion.activo !== false; // Si hay excepción y está inactivo, no disponible
+  }
+  
+  // 2. Verificar si el día es laboral
+  const diaConfig = disponibilidad.diasLaborales?.[diaSemanaTexto];
+  if (!diaConfig?.activo) {
+    return false;
+  }
+  
+  // 3. Verificar horas específicas si están configuradas
+  if (diaConfig.horas?.length > 0) {
+    const horaFormateada = hora.length === 4 ? `0${hora}` : hora; // Asegurar formato HH:MM
+    const horaDisponible = diaConfig.horas.some(h => h === horaFormateada);
+    if (!horaDisponible) return false;
+  }
+  
+  // 4. Verificar horario de almuerzo
+  if (disponibilidad.horarioAlmuerzo?.activo !== false) {
     const [horaActual, minActual] = hora.split(':').map(Number);
     const horaActualMinutos = horaActual * 60 + minActual;
     
-    if (diaConfig.horas && diaConfig.horas.length > 0) {
-      const horaDisponible = diaConfig.horas.some(h => {
-        const [horaDisp, minDisp] = h.split(':').map(Number);
-        return horaDisp === horaActual && minDisp === minActual;
-      });
-      if (!horaDisponible) return false;
+    const almuerzoInicio = disponibilidad.horarioAlmuerzo?.inicio || '13:00';
+    const almuerzoFin = disponibilidad.horarioAlmuerzo?.fin || '14:00';
+    
+    const [almuerzoHInicio, almuerzoMInicio] = almuerzoInicio.split(':').map(Number);
+    const [almuerzoHFin, almuerzoMFin] = almuerzoFin.split(':').map(Number);
+    
+    const almuerzoInicioMinutos = almuerzoHInicio * 60 + almuerzoMInicio;
+    const almuerzoFinMinutos = almuerzoHFin * 60 + almuerzoMFin;
+    
+    if (horaActualMinutos >= almuerzoInicioMinutos && horaActualMinutos < almuerzoFinMinutos) {
+      return false;
     }
+  }
+  
+  // 5. Verificar si ya hay una cita en este horario
+  const citaExistente = citas.find(c => {
+    if (c.barbero.id !== barbero.id) return false;
+    if (c.fecha.toDateString() !== fecha.toDateString()) return false;
     
-    if (disponibilidad.horarioAlmuerzo?.activo !== false) {
-      const almuerzoInicio = disponibilidad.horarioAlmuerzo?.inicio || '13:00';
-      const almuerzoFin = disponibilidad.horarioAlmuerzo?.fin || '14:00';
-      
-      const [almuerzoHInicio, almuerzoMInicio] = almuerzoInicio.split(':').map(Number);
-      const [almuerzoHFin, almuerzoMFin] = almuerzoFin.split(':').map(Number);
-      
-      const almuerzoInicioMinutos = almuerzoHInicio * 60 + almuerzoMInicio;
-      const almuerzoFinMinutos = almuerzoHFin * 60 + almuerzoMFin;
-      
-      if (horaActualMinutos >= almuerzoInicioMinutos && horaActualMinutos < almuerzoFinMinutos) {
-        return false;
-      }
-    }
+    const [citaHora, citaMinuto] = c.hora.split(':').slice(0, 2).map(Number);
+    const [citaHoraFin, citaMinutoFin] = c.horaFin.split(':').slice(0, 2).map(Number);
     
-    const citaExistente = citas.find(c => 
-      c.barbero.id === barbero.id && 
-      c.fecha.toDateString() === fecha.toDateString() && 
-      c.hora === `${hora}:00`
-    );
+    const citaInicioMinutos = citaHora * 60 + citaMinuto;
+    const citaFinMinutos = citaHoraFin * 60 + citaMinutoFin;
+    const slotMinutos = parseInt(hora.split(':')[0]) * 60 + parseInt(hora.split(':')[1]);
     
-    return !citaExistente;
-  };
+    return slotMinutos >= citaInicioMinutos && slotMinutos < citaFinMinutos;
+  });
+  
+  return !citaExistente;
+};
 
   const generateTimeSlots = () => {
     const day = selectedDate.getDay();
@@ -512,30 +541,30 @@ const AgendaScreen = () => {
     return disabled;
   };
 
-  const renderBarberoHeader = (b) => {
-    const disp = disponibilidadBarberos[b.id] || {};
-    const estaDisponible = disp.esDiaLaboral && !disp.tieneExcepcion && !disp.estaCompleto;
-    
-    return (
-      <View key={b.id} style={styles.barberoHeader}>
-        <Image source={b.avatar} style={styles.avatar} />
-        <Text style={styles.barberoNombre}>{b.nombre}</Text>
-        <Text style={styles.subItem}>Barbero</Text>
-        <View style={styles.disponibilidadContainer}>
-          <View style={[
-            styles.disponibilidadPunto,
-            estaDisponible ? styles.disponible : styles.noDisponible
-          ]} />
-          <Text style={[
-            styles.disponibilidadTexto,
-            estaDisponible ? styles.disponible : styles.noDisponible
-          ]}>
-            {estaDisponible ? 'Disponible' : 'No disponible'}
-          </Text>
-        </View>
+const renderBarberoHeader = (b) => {
+  const disp = disponibilidadBarberos[b.id] || {};
+  const estaDisponible = disp.tieneDisponibilidad && !disp.agendaLlena;
+
+  return (
+    <View key={b.id} style={styles.barberoHeader}>
+      <Image source={b.avatar} style={styles.avatar} />
+      <Text style={styles.barberoNombre}>{b.nombre}</Text>
+      <Text style={styles.subItem}>Barbero</Text>
+      <View style={styles.disponibilidadContainer}>
+        <View style={[
+          styles.disponibilidadPunto,
+          estaDisponible ? styles.disponible : styles.noDisponible
+        ]} />
+        <Text style={[
+          styles.disponibilidadTexto,
+          estaDisponible ? styles.disponible : styles.noDisponible
+        ]}>
+          {estaDisponible ? 'Disponible' : 'No disponible'}
+        </Text>
       </View>
-    );
-  };
+    </View>
+  );
+};
 
   const renderBarberoSlot = (slot, b) => {
     const cita = getCitaForSlot(slot, b);

@@ -1,63 +1,68 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { View, TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
+import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { Icon } from 'react-native-elements';
 import { AuthContext } from '../contexts/AuthContext';
+import * as Notifications from 'expo-notifications';
 
 const NotificationBell = ({ navigation }) => {
-    const { 
-        unreadCount,
-        playNotificationSound,
-        fetchNotifications
-    } = useContext(AuthContext);
+  const { 
+    authState,
+    unreadCount,
+    playNotificationSound,
+    fetchNotifications
+  } = useContext(AuthContext);
+  
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    // Configurar el listener de notificaciones
+    const subscription = Notifications.addNotificationReceivedListener(notification => {
+      console.log('Nueva notificación recibida:', notification);
+      fetchNotifications(); // Actualizar el contador cuando llega una nueva notificación
+    });
+
+    // Cargar notificaciones al montar
+    fetchNotifications();
     
-    const [loading, setLoading] = useState(false);
-
-    useEffect(() => {
-        // Cargar notificaciones al montar
-        fetchNotifications();
-        
-        // Configurar intervalo de actualización
-        const interval = setInterval(() => {
-            fetchNotifications();
-        }, 30000); // Actualizar cada 30 segundos
-
-        return () => clearInterval(interval);
-    }, [fetchNotifications]);
-
-    const handlePress = async () => {
-        try {
-            setLoading(true);
-            await playNotificationSound();
-            navigation.navigate('Notificaciones');
-        } catch (error) {
-            Alert.alert('Error', 'No se pudo abrir las notificaciones');
-        } finally {
-            setLoading(false);
-        }
+    return () => {
+      subscription.remove();
     };
+  }, [fetchNotifications]);
 
-    return (
-        <TouchableOpacity 
-            onPress={handlePress} 
-            style={styles.container}
-            disabled={loading}
-        >
-            <Icon 
-                name="bell" 
-                type="font-awesome" 
-                size={24} 
-                color="#fff" 
-            />
-            
-            {unreadCount > 0 && (
-                <View style={styles.badge}>
-                    <Text style={styles.badgeText}>
-                        {unreadCount > 9 ? '9+' : unreadCount}
-                    </Text>
-                </View>
-            )}
-        </TouchableOpacity>
-    );
+  const handlePress = async () => {
+    try {
+      setLoading(true);
+      await playNotificationSound();
+      navigation.navigate('Notificaciones');
+    } catch (error) {
+      console.error('Error al manejar notificación:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <TouchableOpacity 
+      onPress={handlePress} 
+      style={styles.container}
+      disabled={loading}
+    >
+      <Icon 
+        name="bell" 
+        type="font-awesome" 
+        size={24} 
+        color="#fff" 
+      />
+      
+      {unreadCount > 0 && (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </Text>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
 };
 
 const styles = StyleSheet.create({
@@ -75,10 +80,12 @@ const styles = StyleSheet.create({
         height: 20,
         justifyContent: 'center',
         alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#fff',
     },
     badgeText: {
         color: 'white',
-        fontSize: 12,
+        fontSize: 10,
         fontWeight: 'bold',
     },
 });

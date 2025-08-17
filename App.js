@@ -1,12 +1,13 @@
 import React, { useEffect, useRef } from "react";
-import { Platform, Alert, LogBox } from "react-native";
+import { Platform, Alert, LogBox, AppState } from "react-native";
 import * as Notifications from "expo-notifications";
+import * as Device from 'expo-device';
 import Constants from "expo-constants";
 import AppNavigator from "./navigation/AppNavigator";
 import { AuthProvider } from "./contexts/AuthContext";
 import { NavigationContainer } from "@react-navigation/native";
 
-// Configuración de notificaciones
+// Configuración completa de notificaciones
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -15,89 +16,143 @@ Notifications.setNotificationHandler({
   }),
 });
 
+// Configurar el canal de notificaciones para Android (canal "default")
+async function setupNotificationChannel() {
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('default', {
+      name: 'Notificaciones de Barbería',
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#FF231F7C',
+      sound: 'default',
+      showBadge: true,
+      enableLights: true,
+      enableVibrate: true,
+    });
+  }
+}
+
 // Ignorar advertencias específicas
 LogBox.ignoreLogs([
-  "AsyncStorage has been extracted from react-native core",
-  "Setting a timer for a long period of time",
+  "AsyncStorage has been extracted",
+  "Setting a timer",
+  "Remote debugger",
+  "Require cycle:"
 ]);
-
-// Configuración de deep linking
-const config = {
-  screens: {
-    VerifyEmail: {
-      path: "verify-email",
-      parse: {
-        email: (email) => `${email}`,
-        code: (code) => `${code}`,
-      },
-    },
-    AppointmentDetails: {
-      path: "appointment/:id",
-      parse: {
-        id: (id) => `${id}`,
-      },
-    },
-  },
-};
-
-const linking = {
-  prefixes: ["http://localhost:8080"],
-  config,
-};
 
 function MainApp() {
   const notificationListener = useRef();
   const responseListener = useRef();
+  const appState = useRef(AppState.currentState);
 
-  useEffect(() => {
-    // Configurar canal de notificaciones para Android
-    const setupNotifications = async () => {
-      if (Platform.OS === 'android') {
-        await Notifications.setNotificationChannelAsync('default', {
-          name: 'default',
-          importance: Notifications.AndroidImportance.MAX,
-          vibrationPattern: [0, 250, 250, 250],
-          lightColor: '#FF231F7C',
-        });
+  // Función para registrar el token push
+  const registerForPushNotifications = async () => {
+    try {
+      // Verificar si estamos en un dispositivo físico
+      if (!Device.isDevice) {
+        console.warn('Debes usar un dispositivo físico para recibir notificaciones push');
+        return;
       }
 
       // Verificar permisos
-      const { status } = await Notifications.requestPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permisos requeridos', 'Las notificaciones no funcionarán sin permisos');
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
       }
-    };
 
-    setupNotifications();
+      if (finalStatus !== 'granted') {
+        Alert.alert(
+          'Permisos requeridos',
+          'Las notificaciones no funcionarán sin los permisos necesarios'
+        );
+        return;
+      }
 
-    // Escuchar notificaciones recibidas
+      // Obtener el token push
+      const token = (await Notifications.getExpoPushTokenAsync({
+        projectId: Constants.expoConfig.extra.eas.projectId,
+      })).data;
+
+      console.log('Expo Push Token:', token);
+
+      // Aquí deberías enviar este token a tu backend para guardarlo
+      // Ejemplo: await api.post('/notifications/save-token', { token });
+
+    } catch (error) {
+      console.error('Error al registrar notificaciones push:', error);
+      Alert.alert('Error', 'No se pudo configurar las notificaciones push');
+    }
+  };
+
+  // Manejar cambios en el estado de la app
+  const handleAppStateChange = async (nextAppState) => {
+    if (
+      appState.current.match(/inactive|background/) &&
+      nextAppState === 'active'
+    ) {
+      // La app acaba de entrar en primer plano
+      // Actualizar el badge count
+      try {
+        const currentCount = await Notifications.getBadgeCountAsync();
+        console.log('Current badge count:', currentCount);
+        
+        // Aquí podrías sincronizar con tu backend
+        // Ejemplo: await fetchNotifications();
+        
+      } catch (error) {
+        console.error('Error al actualizar badge count:', error);
+      }
+    }
+
+    appState.current = nextAppState;
+  };
+
+  useEffect(() => {
+    // Configurar el canal de notificaciones
+    setupNotificationChannel();
+
+    // Registrar el token push
+    registerForPushNotifications();
+
+    // Configurar listeners de notificaciones
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-      console.log('Notificación recibida:', notification);
+      console.log('Notificación recibida en primer plano:', notification);
+      
+      // Aquí puedes actualizar el estado de tu app
+      // Ejemplo: incrementar el contador de notificaciones no leídas
     });
 
-    // Escuchar interacción con notificaciones
     responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-      const { screen, appointmentId } = response.notification.request.content.data;
-      if (screen && appointmentId) {
-        // Navegar a la pantalla correspondiente
-        // Esto requiere que tengas acceso a navigation en este componente
-        // Puedes usar navigationRef si usas NavigationContainer
-        console.log(`Navegar a ${screen} con ID: ${appointmentId}`);
-      }
+      const data = response.notification.request.content.data;
+      console.log('Usuario interactuó con notificación:', data);
+      
+      // Navegar a pantallas específicas basadas en los datos de la notificación
+      // Ejemplo:
+      // if (data.screen === 'DetalleCita') {
+      //   navigation.navigate('DetalleCita', { id: data.citaId });
+      // }
     });
+
+    // Escuchar cambios en el estado de la app
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
 
     return () => {
-      if (notificationListener.current) {
-        Notifications.removeNotificationSubscription(notificationListener.current);
-      }
-      if (responseListener.current) {
-        Notifications.removeNotificationSubscription(responseListener.current);
-      }
+      // Limpiar listeners
+     if (notificationListener.current) {
+  notificationListener.current.remove();
+}
+if (responseListener.current) {
+  responseListener.current.remove();
+}
+      subscription.remove();
     };
   }, []);
 
   return (
-    <NavigationContainer linking={linking}>
+    <NavigationContainer>
       <AppNavigator />
     </NavigationContainer>
   );

@@ -95,67 +95,68 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+// Modifica el fetchNotifications para manejar mejor el estado
 const fetchNotifications = useCallback(async () => {
-    try {
-        if (!authState.token || !authState.user?.userId) return;
-        
-        console.log('Obteniendo notificaciones...');
-        const response = await axios.get(`${BASE_URL}/notifications`, {
-            headers: {
-                Authorization: `Bearer ${authState.token}`
-            }
-        });
-        
-        // Ordenar por fecha descendente
-        const notifications = (response.data.notificaciones || [])
-            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        
-        const unread = notifications.filter(n => !n.leido).length;
-        
-        console.log(`Notificaciones obtenidas: ${notifications.length}, No leídas: ${unread}`);
-        
-        setAuthState(prev => ({
-            ...prev,
-            notifications,
-            unreadCount: unread
-        }));
-        
-        return notifications;
-    } catch (error) {
-        console.error('Error obteniendo notificaciones:', {
-            message: error.message,
-            response: error.response?.data,
-            config: error.config
-        });
-        return [];
-    }
+  try {
+    if (!authState.token || !authState.user?.userId) return;
+    
+    console.log('Obteniendo notificaciones...');
+    const response = await axios.get(`${BASE_URL}/notifications`, {
+      headers: {
+        Authorization: `Bearer ${authState.token}`
+      }
+    });
+    
+    // Ordenar por fecha descendente y asegurar que sean objetos válidos
+    const notifications = (response.data.notificaciones || [])
+      .filter(n => n && n.id && n.titulo) // Filtra notificaciones inválidas
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    
+    const unread = notifications.filter(n => !n.leido).length;
+    
+    console.log(`Notificaciones obtenidas: ${notifications.length}, No leídas: ${unread}`);
+    
+    // Actualizar el badge en el icono de la app
+    await Notifications.setBadgeCountAsync(unread);
+    
+    setAuthState(prev => ({
+      ...prev,
+      notifications,
+      unreadCount: unread
+    }));
+    
+    return notifications;
+  } catch (error) {
+    console.error('Error obteniendo notificaciones:', error);
+    return [];
+  }
 }, [authState.token, authState.user?.userId]);
 
+// Modifica markNotificationsAsRead para actualizar el badge
 const markNotificationsAsRead = useCallback(async () => {
-    try {
-        if (!authState.token) return;
-        
-        console.log('Marcando notificaciones como leídas...');
-        await axios.put(`${BASE_URL}/notifications/mark-all-read`, {}, {
-            headers: {
-                Authorization: `Bearer ${authState.token}`
-            }
-        });
-        
-        setAuthState(prev => ({
-            ...prev,
-            unreadCount: 0,
-            notifications: prev.notifications.map(n => ({ ...n, leido: true }))
-        }));
-        
-        console.log('Notificaciones marcadas como leídas');
-    } catch (error) {
-        console.error('Error marcando notificaciones como leídas:', {
-            message: error.message,
-            response: error.response?.data,
-            config: error.config
-        });
-    }
+  try {
+    if (!authState.token) return;
+    
+    console.log('Marcando notificaciones como leídas...');
+    await axios.put(`${BASE_URL}/notifications/mark-all-read`, {}, {
+      headers: {
+        Authorization: `Bearer ${authState.token}`
+      }
+    });
+    
+    // Resetear el badge
+    await Notifications.setBadgeCountAsync(0);
+    
+    setAuthState(prev => ({
+      ...prev,
+      unreadCount: 0,
+      notifications: prev.notifications.map(n => ({ ...n, leido: true }))
+    }));
+    
+    console.log('Notificaciones marcadas como leídas');
+  } catch (error) {
+    console.error('Error marcando notificaciones como leídas:', error);
+  }
 }, [authState.token]);
 
   const registerPushToken = useCallback(async (userId) => {

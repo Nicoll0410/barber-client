@@ -1,156 +1,169 @@
 import React, { useContext, useEffect, useState } from 'react';
 import {
-    View,
-    Text,
-    FlatList,
-    StyleSheet,
-    RefreshControl,
-    ActivityIndicator,
-    Alert
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  RefreshControl,
+  ActivityIndicator
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { AuthContext } from '../../contexts/AuthContext';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 const NotificacionesScreen = () => {
-    const {
-        notifications,
-        fetchNotifications,
-        markNotificationsAsRead,
-        unreadCount
-    } = useContext(AuthContext);
+  const {
+    authState = {}, // Valor por defecto para evitar undefined
+    notifications = [],
+    fetchNotifications,
+    markNotificationsAsRead
+  } = useContext(AuthContext) || {}; // Protección contra contexto no disponible
 
-    const [refreshing, setRefreshing] = useState(false);
-    const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', async () => {
+  useFocusEffect(
+    React.useCallback(() => {
+      const loadData = async () => {
         try {
-            console.log('Pantalla de notificaciones enfocada, actualizando...');
-            await fetchNotifications();
-            if (authState.unreadCount > 0) {
-                await markNotificationsAsRead();
-            }
+          setLoading(true);
+          await fetchNotifications();
+          
+          // Verificar si authState existe antes de acceder a unreadCount
+          if (authState?.unreadCount > 0) {
+            await markNotificationsAsRead();
+          }
         } catch (error) {
-            console.error("Error al cargar notificaciones:", error);
-        }
-    });
-
-    // Cargar notificaciones al montar
-    const loadInitialData = async () => {
-        try {
-            setLoading(true);
-            await fetchNotifications();
-        } catch (error) {
-            console.error("Error inicial al cargar notificaciones:", error);
+          console.error("Error al cargar notificaciones:", error);
         } finally {
-            setLoading(false);
+          setLoading(false);
         }
-    };
+      };
 
-    loadInitialData();
+      loadData();
+      
+      return () => {
+        // Limpieza si es necesaria
+      };
+    }, [fetchNotifications, markNotificationsAsRead, authState?.unreadCount]) // Uso opcional chaining
+  );
 
-    return unsubscribe;
-}, [navigation, fetchNotifications, markNotificationsAsRead, authState.unreadCount]);
-
-    const onRefresh = async () => {
-        setRefreshing(true);
-        try {
-            await fetchNotifications();
-        } catch (error) {
-            Alert.alert(
-                "Error",
-                error.response?.data?.message || "Error al actualizar notificaciones"
-            );
-        } finally {
-            setRefreshing(false);
-        }
-    };
-
-    if (loading) {
-        return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" />
-            </View>
-        );
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchNotifications();
+    } catch (error) {
+      console.error("Error al actualizar:", error);
+    } finally {
+      setRefreshing(false);
     }
+  };
 
-    const renderItem = ({ item }) => (
-        <View style={styles.notificationItem}>
-            <Text style={styles.title}>{item.titulo}</Text>
-            <Text style={styles.body}>{item.cuerpo}</Text>
-            <Text style={styles.date}>
-                {format(new Date(item.createdAt), 'PPpp', { locale: es })}
-            </Text>
-        </View>
-    );
+  const renderItem = ({ item }) => (
+    <View style={styles.notificationItem}>
+      <Text style={styles.title}>{item.titulo}</Text>
+      <Text style={styles.body}>{item.cuerpo}</Text>
+      <Text style={styles.date}>
+        {format(new Date(item.createdAt), 'PPpp', { locale: es })}
+      </Text>
+      {!item.leido && <View style={styles.unreadDot} />}
+    </View>
+  );
 
+  if (loading) {
     return (
-        <View style={styles.container}>
-            <FlatList
-                data={notifications}
-                renderItem={renderItem}
-                keyExtractor={(item) => item.id}
-                ListEmptyComponent={
-                    <Text style={styles.emptyText}>No hay notificaciones</Text>
-                }
-                refreshControl={
-                    <RefreshControl
-                        refreshing={refreshing}
-                        onRefresh={onRefresh}
-                    />
-                }
-            />
-        </View>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" />
+      </View>
     );
+  }
+
+  return (
+    <View style={styles.container}>
+      <FlatList
+        data={notifications}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.id?.toString() || Math.random().toString()} // Protección contra id undefined
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No hay notificaciones</Text>
+          </View>
+        }
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#FF6B6B']}
+            tintColor="#FF6B6B"
+          />
+        }
+      />
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        padding: 15,
-        backgroundColor: '#f5f5f5',
-    },
-    notificationItem: {
-        backgroundColor: 'white',
-        padding: 15,
-        borderRadius: 8,
-        marginBottom: 10,
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 1,
-        },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 2,
-    },
-    title: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        marginBottom: 5,
-    },
-    body: {
-        fontSize: 14,
-        marginBottom: 5,
-        color: '#555',
-    },
-    date: {
-        fontSize: 12,
-        color: '#888',
-        textAlign: 'right',
-    },
-    emptyText: {
-        textAlign: 'center',
-        marginTop: 20,
-        fontSize: 16,
-        color: '#888',
-    },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
+  container: {
+    flex: 1,
+    padding: 15,
+    backgroundColor: '#f5f5f5',
+  },
+  notificationItem: {
+    backgroundColor: 'white',
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+    position: 'relative',
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 5,
+    color: '#333',
+  },
+  body: {
+    fontSize: 14,
+    marginBottom: 5,
+    color: '#555',
+    lineHeight: 20,
+  },
+  date: {
+    fontSize: 12,
+    color: '#888',
+    textAlign: 'right',
+    fontStyle: 'italic',
+  },
+  unreadDot: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'red',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 50,
+  },
+  emptyText: {
+    textAlign: 'center',
+    fontSize: 16,
+    color: '#888',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });
 
 export default NotificacionesScreen;

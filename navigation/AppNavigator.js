@@ -2,7 +2,9 @@
 import React, { useContext } from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createDrawerNavigator } from "@react-navigation/drawer";
-import { ActivityIndicator, View, Image, useWindowDimensions } from "react-native";
+import { ActivityIndicator, View, Image, useWindowDimensions, TouchableOpacity, Text } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import NotificacionesScreen from "../screens/agenda/NotificacionesScreen";
 
 /* Screens públicas */
 import LoginScreen        from "../screens/login/LoginScreen";
@@ -34,15 +36,47 @@ import ControlInsumos     from "../screens/insumos/ControlInsumos";
 /* Logo */
 import LogoImg from "../assets/images/barberApp 1.png";
 
+
 const Stack  = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
 
-/* Componente del logo pequeño a la derecha */
+/* Icono campana con badge */
+const NotificationBell = ({ navigation }) => {
+  const { unreadCount } = useContext(AuthContext);
+  
+  return (
+    <TouchableOpacity
+      style={{ marginRight: 15 }}
+      onPress={() => navigation.navigate('Notificaciones')}
+    >
+      <Ionicons name="notifications-outline" size={26} color="black" />
+      {unreadCount > 0 && (
+        <View
+          style={{
+            position: 'absolute',
+            right: 5,
+            top: -2,
+            backgroundColor: 'red',
+            borderRadius: 10,
+            width: 18,
+            height: 18,
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}
+        >
+          <Text style={{ color: 'white', fontSize: 11, fontWeight: 'bold' }}>
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </Text>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+};
+
+/* Logo a la derecha */
 const HeaderLogo = () => {
   const { width } = useWindowDimensions();
-
-  // Definir tamaño dinámico: más grande en pantallas anchas (laptop/desktop)
-  const isLargeScreen = width >= 1024; // 1024px suele ser punto de quiebre de desktop
+  const isLargeScreen = width >= 1024;
   const logoSize = isLargeScreen ? 140 : 100;
 
   return (
@@ -64,14 +98,21 @@ const screenWithLogo = (Component, title) => ({
   headerRight: () => <HeaderLogo />
 });
 
-/* Helper: qué pantallas mostrar en el Drawer según el rol del usuario */
+/* Drawer dinámico */
 const renderDrawerScreens = (userRole) => {
   switch (userRole) {
     case "Cliente":
       return (
         <>
-          <Drawer.Screen name="Agenda" component={AgendaScreen} />
-          <Drawer.Screen name="Citas"  component={CitasScreen} options={screenWithLogo(CitasScreen, "Citas")} />
+          <Drawer.Screen 
+            name="Agenda" 
+            component={AgendaScreen} 
+            options={({ navigation }) => ({
+              headerTitle: "Agenda",
+              headerRight: () => <NotificationBell navigation={navigation} />
+            })}
+          />
+          <Drawer.Screen name="Citas" component={CitasScreen} options={screenWithLogo(CitasScreen, "Citas")} />
         </>
       );
 
@@ -81,12 +122,18 @@ const renderDrawerScreens = (userRole) => {
           <Drawer.Screen name="Clientes"    component={ClientesScreen} options={screenWithLogo(ClientesScreen, "Clientes")} />
           <Drawer.Screen name="Insumos"     component={InsumosScreen} options={screenWithLogo(InsumosScreen, "Insumos")} />
           <Drawer.Screen name="Movimientos" component={MovimientosScreen} options={screenWithLogo(MovimientosScreen, "Movimientos")} />
-          <Drawer.Screen name="Agenda"      component={AgendaScreen} />
-          <Drawer.Screen name="Citas"       component={CitasScreen} options={screenWithLogo(CitasScreen, "Citas")} />
+          <Drawer.Screen 
+            name="Agenda" 
+            component={AgendaScreen} 
+            options={({ navigation }) => ({
+              headerTitle: "Agenda",
+              headerRight: () => <NotificationBell navigation={navigation} />
+            })}
+          />
+          <Drawer.Screen name="Citas" component={CitasScreen} options={screenWithLogo(CitasScreen, "Citas")} />
         </>
       );
 
-    /* Rol Admin: muestra todo */
     default:
       return (
         <>
@@ -98,7 +145,14 @@ const renderDrawerScreens = (userRole) => {
           <Drawer.Screen name="Proveedores"      component={ProveedoresScreen} options={screenWithLogo(ProveedoresScreen, "Proveedores")} />
           <Drawer.Screen name="Insumos"          component={InsumosScreen} options={screenWithLogo(InsumosScreen, "Insumos")} />
           <Drawer.Screen name="CategoriaInsumos" component={CategoriaInsumosScreen} options={screenWithLogo(CategoriaInsumosScreen, "Categoría de Insumos")} />
-          <Drawer.Screen name="Agenda"           component={AgendaScreen} />
+          <Drawer.Screen 
+            name="Agenda" 
+            component={AgendaScreen} 
+            options={({ navigation }) => ({
+              headerTitle: "Agenda",
+              headerRight: () => <NotificationBell navigation={navigation} />
+            })}
+          />
           <Drawer.Screen name="Citas"            component={CitasScreen} options={screenWithLogo(CitasScreen, "Citas")} />
           <Drawer.Screen name="Servicios"        component={ServiciosScreen} options={screenWithLogo(ServiciosScreen, "Servicios")} />
           <Drawer.Screen name="Movimientos"      component={MovimientosScreen} options={screenWithLogo(MovimientosScreen, "Movimientos")} />
@@ -121,6 +175,12 @@ const DrawerNavigator = () => {
     </Drawer.Navigator>
   );
 };
+
+<Drawer.Screen
+  name="Notificaciones"
+  component={NotificacionesScreen}
+  options={{ drawerLabel: "Notificaciones" }}
+/>
 
 /* Stack principal */
 const AppNavigator = () => {
@@ -145,12 +205,9 @@ const AppNavigator = () => {
       ) : (
         <>
           <Stack.Screen name="MainDrawer" component={DrawerNavigator} />
-          <Stack.Screen
-            name="ControlInsumos"
-            component={ControlInsumos}
-            options={{ headerShown: true, title: "Control de Insumos" }}
-          />
+          <Stack.Screen name="ControlInsumos" component={ControlInsumos} options={{ headerShown: true, title: "Control de Insumos" }} />
           <Stack.Screen name="VerifyEmail" component={VerifyEmailScreen} />
+          <Stack.Screen name="Notificaciones" component={NotificacionesScreen} options={{ headerShown: true, title: "Notificaciones" }} />
         </>
       )}
     </Stack.Navigator>

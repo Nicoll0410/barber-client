@@ -1,12 +1,15 @@
-import React, { createContext, useState, useEffect, useCallback } from "react";
-import { Platform, ActivityIndicator, View } from "react-native";
+// src/contexts/AuthContext.js
+import React, { createContext, useState, useEffect, useCallback, useContext } from "react";
+import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { jwtDecode } from "jwt-decode";
 import axios from "axios";
+import * as Notifications from 'expo-notifications';
+import { Audio } from 'expo-av';
 
-const BASE_URL = Platform.OS === 'android' 
-  ? 'http://10.0.2.2:8080' 
-  : 'http://localhost:8080';
+const BASE_URL = Platform.OS === "android"
+  ? "http://10.0.2.2:8080"
+  : "http://localhost:8080";
 
 export const AuthContext = createContext();
 
@@ -18,8 +21,43 @@ export const AuthProvider = ({ children }) => {
     user: null,
     userRole: null,
     clientData: null,
-    barberData: null
+    barberData: null,
+    notifications: [],
+    unreadCount: 0,
   });
+
+  const [notificationSound, setNotificationSound] = useState(null);
+
+  // Cargar sonido de notificación
+  const loadNotificationSound = async () => {
+    try {
+      const { sound } = await Audio.Sound.createAsync(
+        require('../assets/sound/notification.mp3')
+      );
+      setNotificationSound(sound);
+    } catch (error) {
+      console.error('Error cargando sonido:', error);
+    }
+  };
+
+  useEffect(() => {
+    loadNotificationSound();
+    return () => {
+      if (notificationSound) {
+        notificationSound.unloadAsync();
+      }
+    };
+  }, []);
+
+  const playNotificationSound = async () => {
+    try {
+      if (notificationSound) {
+        await notificationSound.replayAsync();
+      }
+    } catch (error) {
+      console.error('Error reproduciendo sonido:', error);
+    }
+  };
 
   const normalizeRole = (rawRole) => {
     if (!rawRole) return null;
@@ -43,10 +81,10 @@ export const AuthProvider = ({ children }) => {
 
   const loadUserData = useCallback(async (userId, userRole) => {
     try {
-      if (userRole === 'Cliente') {
+      if (userRole === "Cliente") {
         const { data } = await axios.get(`${BASE_URL}/clientes/usuario/${userId}`);
         return { clientData: data };
-      } else if (userRole === 'Barbero') {
+      } else if (userRole === "Barbero") {
         const { data } = await axios.get(`${BASE_URL}/barberos/usuario/${userId}`);
         return { barberData: data };
       }
@@ -57,37 +95,151 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+const fetchNotifications = useCallback(async () => {
+    try {
+        if (!authState.token || !authState.user?.userId) return;
+        
+        console.log('Obteniendo notificaciones...');
+        const response = await axios.get(`${BASE_URL}/notifications`, {
+            headers: {
+                Authorization: `Bearer ${authState.token}`
+            }
+        });
+        
+        // Ordenar por fecha descendente
+        const notifications = (response.data.notificaciones || [])
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        
+        const unread = notifications.filter(n => !n.leido).length;
+        
+        console.log(`Notificaciones obtenidas: ${notifications.length}, No leídas: ${unread}`);
+        
+        setAuthState(prev => ({
+            ...prev,
+            notifications,
+            unreadCount: unread
+        }));
+        
+        return notifications;
+    } catch (error) {
+        console.error('Error obteniendo notificaciones:', {
+            message: error.message,
+            response: error.response?.data,
+            config: error.config
+        });
+        return [];
+    }
+}, [authState.token, authState.user?.userId]);
+
+const markNotificationsAsRead = useCallback(async () => {
+    try {
+        if (!authState.token) return;
+        
+        console.log('Marcando notificaciones como leídas...');
+        await axios.put(`${BASE_URL}/notifications/mark-all-read`, {}, {
+            headers: {
+                Authorization: `Bearer ${authState.token}`
+            }
+        });
+        
+        setAuthState(prev => ({
+            ...prev,
+            unreadCount: 0,
+            notifications: prev.notifications.map(n => ({ ...n, leido: true }))
+        }));
+        
+        console.log('Notificaciones marcadas como leídas');
+    } catch (error) {
+        console.error('Error marcando notificaciones como leídas:', {
+            message: error.message,
+            response: error.response?.data,
+            config: error.config
+        });
+    }
+}, [authState.token]);
+
+  const registerPushToken = useCallback(async (userId) => {
+    try {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      
+      if (finalStatus !== 'granted') {
+        console.log('Permiso para notificaciones denegado');
+        return;
+      }
+      
+      const token = (await Notifications.getExpoPushTokenAsync()).data;
+      
+      await axios.post(`${BASE_URL}/notifications/save-token`, {
+        userId,
+        token
+      }, {
+        headers: {
+          Authorization: `Bearer ${authState.token}`
+        }
+      });
+    } catch (error) {
+      console.error('Error registrando token push:', error);
+    }
+  }, [authState.token]);
+
   const initializeAuth = useCallback(async () => {
     try {
       const savedToken = await AsyncStorage.getItem("token");
       if (!savedToken) {
-        setAuthState(prev => ({ ...prev, isLoading: false }));
+        setAuthState((prev) => ({ ...prev, isLoading: false }));
         return;
       }
 
       const { valid, decoded } = await checkTokenValidity(savedToken);
       if (!valid) {
         await AsyncStorage.removeItem("token");
-        setAuthState(prev => ({ ...prev, isLoading: false }));
+        setAuthState((prev) => ({ ...prev, isLoading: false }));
         return;
       }
 
       const userRole = normalizeRole(decoded?.rol?.nombre);
       const additionalData = await loadUserData(decoded.userId, userRole);
 
-      setAuthState({
+      const newState = {
         isLoading: false,
         isLoggedIn: true,
         token: savedToken,
         user: decoded,
         userRole,
-        ...additionalData
+        ...additionalData,
+        notifications: [],
+        unreadCount: 0
+      };
+
+      setAuthState(newState);
+
+      // Configurar notificaciones
+      Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowAlert: true,
+          shouldPlaySound: true,
+          shouldSetBadge: true,
+        }),
       });
+
+      // Registrar token push
+      if (decoded.userId) {
+        await registerPushToken(decoded.userId);
+      }
+
+      // Obtener notificaciones
+      await fetchNotifications();
     } catch (err) {
       console.error("Error inicializando auth:", err);
-      setAuthState(prev => ({ ...prev, isLoading: false }));
+      setAuthState((prev) => ({ ...prev, isLoading: false }));
     }
-  }, [checkTokenValidity, loadUserData]);
+  }, [checkTokenValidity, loadUserData, fetchNotifications, registerPushToken]);
 
   useEffect(() => {
     initializeAuth();
@@ -102,15 +254,27 @@ export const AuthProvider = ({ children }) => {
       const userRole = normalizeRole(decoded?.rol?.nombre);
       const userData = await loadUserData(decoded.userId, userRole);
 
-      setAuthState({
+      const newState = {
         isLoading: false,
         isLoggedIn: true,
         token,
         user: decoded,
         userRole,
         ...userData,
-        ...additionalData
-      });
+        ...additionalData,
+        notifications: [],
+        unreadCount: 0
+      };
+
+      setAuthState(newState);
+
+      // Registrar token push
+      if (decoded.userId) {
+        await registerPushToken(decoded.userId);
+      }
+
+      // Obtener notificaciones
+      await fetchNotifications();
 
       return true;
     } catch (err) {
@@ -129,7 +293,9 @@ export const AuthProvider = ({ children }) => {
         user: null,
         userRole: null,
         clientData: null,
-        barberData: null
+        barberData: null,
+        notifications: [],
+        unreadCount: 0
       });
     } catch (err) {
       console.error("Logout error:", err);
@@ -140,40 +306,49 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await axios.post(`${BASE_URL}/auth/verify-account`, {
         email,
-        codigo: code
+        codigo: code,
       });
 
       if (response.data.token) {
-        // Guardamos el token en AsyncStorage
         await AsyncStorage.setItem("token", response.data.token);
-        
-        // Decodificamos el token para obtener la información del usuario
+
         const decoded = jwtDecode(response.data.token);
         const userRole = normalizeRole(decoded?.rol?.nombre);
-        
-        // Actualizamos el estado de autenticación
-        setAuthState({
+
+        const newState = {
           isLoading: false,
           isLoggedIn: true,
           token: response.data.token,
           user: decoded,
           userRole,
           clientData: response.data.cliente || null,
-          barberData: response.data.barbero || null
-        });
+          barberData: response.data.barbero || null,
+          notifications: [],
+          unreadCount: 0
+        };
 
-        return { 
+        setAuthState(newState);
+
+        // Registrar token push
+        if (decoded.userId) {
+          await registerPushToken(decoded.userId);
+        }
+
+        // Obtener notificaciones
+        await fetchNotifications();
+
+        return {
           success: true,
-          message: 'Cuenta verificada exitosamente',
-          rol: userRole
+          message: "Cuenta verificada exitosamente",
+          rol: userRole,
         };
       }
-      return { success: false, message: 'No se recibió token' };
+      return { success: false, message: "No se recibió token" };
     } catch (error) {
       console.error("Error en verifyAccount:", error);
-      return { 
-        success: false, 
-        message: error.response?.data?.mensaje || 'Error al verificar la cuenta' 
+      return {
+        success: false,
+        message: error.response?.data?.mensaje || "Error al verificar la cuenta",
       };
     }
   };
@@ -184,7 +359,7 @@ export const AuthProvider = ({ children }) => {
       return response.data;
     } catch (error) {
       console.error("Error en resendVerificationCode:", error);
-      throw new Error(error.response?.data?.mensaje || 'Error al reenviar el código');
+      throw new Error(error.response?.data?.mensaje || "Error al reenviar el código");
     }
   };
 
@@ -193,7 +368,10 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     verifyAccount,
-    resendVerificationCode
+    resendVerificationCode,
+    fetchNotifications,
+    markNotificationsAsRead,
+    playNotificationSound
   };
 
   return (
@@ -201,4 +379,8 @@ export const AuthProvider = ({ children }) => {
       {children}
     </AuthContext.Provider>
   );
+};
+
+export const useAuth = () => {
+  return useContext(AuthContext);
 };

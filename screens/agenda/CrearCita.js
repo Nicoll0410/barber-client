@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { AuthContext } from '../../contexts/AuthContext';
 
 const CrearCita = ({
   visible,
@@ -27,6 +28,7 @@ const CrearCita = ({
   servicios,
   clientes,
 }) => {
+  const authContext = useContext(AuthContext);
   const [step, setStep] = useState(1);
   const [servicioSel, setServicioSel] = useState(null);
   const [clienteSel, setClienteSel] = useState(null);
@@ -101,92 +103,113 @@ const CrearCita = ({
     return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
   };
 
-const handleCrear = async () => {
-  console.log("Iniciando creación de cita...");
-  try {
-    setIsLoading(true);
-    
-    if (!servicioSel || !barbero) {
-      throw new Error('Falta información del servicio o barbero');
+  const handleCrear = async () => {
+    console.log("Iniciando creación de cita...");
+    try {
+        setIsLoading(true);
+        
+        if (!servicioSel || !barbero) {
+            throw new Error('Falta información del servicio o barbero');
+        }
+
+        // Validar datos del cliente
+        if (!isTemporal && !clienteSel) {
+            throw new Error('Debes seleccionar un cliente');
+        }
+        if (isTemporal && !temporalNombre.trim()) {
+            throw new Error('El nombre del cliente temporal es requerido');
+        }
+
+        const fechaFormateada = `${fecha.getFullYear()}-${(fecha.getMonth() + 1)
+            .toString().padStart(2, '0')}-${fecha.getDate().toString().padStart(2, '0')}`;
+        
+        // Formatear hora correctamente
+        let horaInicio24 = convertirHora24(slot.displayTime);
+        if (!horaInicio24.includes(':')) {
+            horaInicio24 = `${horaInicio24}:00`;
+        } else if (horaInicio24.split(':').length === 2) {
+            horaInicio24 = `${horaInicio24}:00`;
+        }
+
+        const duracionMinutos = convertirDuracionAMinutos(servicioSel.duracionMaxima);
+        const horaFin24 = calcularHoraFin(horaInicio24, duracionMinutos);
+
+        const citaData = {
+            barberoID: barbero.id,
+            servicioID: servicioSel.id,
+            fecha: fechaFormateada,
+            hora: horaInicio24,
+            horaFin: `${horaFin24}:00`,
+            direccion: "En barbería",
+            estado: "Pendiente",
+            duracionReal: servicioSel.duracionMaxima || "00:30:00",
+            duracionRedondeada: `${Math.floor(duracionMinutos / 60)}:${(duracionMinutos % 60).toString().padStart(2, '0')}:00`
+        };
+
+        // Asignar cliente
+        if (isTemporal) {
+            citaData.pacienteTemporalNombre = temporalNombre.trim();
+            if (temporalTelefono.trim()) {
+                citaData.pacienteTemporalTelefono = temporalTelefono.trim();
+            }
+        } else {
+            citaData.pacienteID = clienteSel.id;
+        }
+
+        const token = await AsyncStorage.getItem('token');
+        if (!token) {
+            throw new Error('No se encontró el token de autenticación');
+        }
+
+        console.log("Enviando datos al servidor:", JSON.stringify(citaData, null, 2));
+        const response = await axios.post('http://localhost:8080/citas', citaData, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            timeout: 15000
+        });
+
+        console.log("Respuesta del servidor:", response.data);
+        
+        if (response.data && response.data.mensaje === 'Cita creada exitosamente') {
+            Alert.alert('Éxito', 'Cita creada correctamente');
+            
+            // Actualizar notificaciones en el contexto de autenticación
+            if (authContext?.fetchNotifications) {
+                await authContext.fetchNotifications();
+            }
+            if (authContext?.playNotificationSound) {
+                authContext.playNotificationSound();
+            }
+            
+            handleClose();
+            if (onCreate) onCreate();
+            return;
+        }
+        
+        throw new Error(response.data?.mensaje || 'Error al crear la cita');
+    } catch (error) {
+        console.error('Error completo al crear cita:', {
+            message: error.message,
+            response: error.response?.data,
+            stack: error.stack
+        });
+        
+        let mensajeError = 'Error al crear la cita';
+        if (error.response?.data?.mensaje) {
+            mensajeError = error.response.data.mensaje;
+        } else if (error.response?.data?.error) {
+            mensajeError = error.response.data.error;
+        } else if (error.message) {
+            mensajeError = error.message;
+        }
+        
+        Alert.alert('Error', mensajeError);
+    } finally {
+        setIsLoading(false);
     }
-
-    const fechaFormateada = `${fecha.getFullYear()}-${(fecha.getMonth() + 1)
-      .toString().padStart(2, '0')}-${fecha.getDate().toString().padStart(2, '0')}`;
-    
-    const horaInicio24 = convertirHora24(slot.displayTime);
-    
-    const duracionMinutos = convertirDuracionAMinutos(servicioSel.duracionMaxima);
-    
-    const horaFin24 = calcularHoraFin(horaInicio24, duracionMinutos);
-
-    const citaData = {
-      barberoID: barbero.id,
-      servicioID: servicioSel.id,
-      fecha: fechaFormateada,
-      hora: `${horaInicio24}:00`,
-      horaFin: `${horaFin24}:00`,
-      direccion: "En barbería",
-      estado: "Pendiente",
-      duracionReal: servicioSel.duracionMaxima || "00:30:00",
-      duracionRedondeada: `${Math.floor(duracionMinutos / 60)}:${(duracionMinutos % 60).toString().padStart(2, '0')}:00`
-    };
-
-    if (isTemporal) {
-      citaData.pacienteTemporalNombre = temporalNombre.trim();
-      if (temporalTelefono.trim()) {
-        citaData.pacienteTemporalTelefono = temporalTelefono.trim();
-      }
-    } else {
-      citaData.pacienteID = clienteSel.id;
-    }
-
-    const token = await AsyncStorage.getItem('token');
-    if (!token) {
-      throw new Error('No se encontró el token de autenticación');
-    }
-
-    console.log("Enviando datos al servidor:", citaData);
-    const response = await axios.post('http://localhost:8080/citas', citaData, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      timeout: 10000
-    });
-
-    console.log("Respuesta del servidor:", response.data);
-    
-    // Modificación clave aquí - Verificamos la respuesta correctamente
-    if (response.data && response.data.mensaje === 'Cita creada exitosamente') {
-      console.log("Cita creada exitosamente, ejecutando onCreate...");
-      onCreate(); // Esto ejecutará handleCitaCreada en AgendaScreen
-      handleClose(); // Cierra el modal
-      return;
-    }
-    
-    // Solo lanzamos error si no hay respuesta o el mensaje no es el esperado
-    throw new Error(response.data?.mensaje || 'Error al crear la cita');
-  } catch (error) {
-    console.error('Error al crear cita:', {
-      message: error.message,
-      response: error.response?.data,
-      stack: error.stack
-    });
-    
-    // Mostramos alerta solo si no es el mensaje de éxito
-    if (error.message !== 'Cita creada exitosamente') {
-      let mensajeError = 'Error al crear la cita';
-      if (error.response?.data?.mensaje) {
-        mensajeError = error.response.data.mensaje;
-      } else if (error.message) {
-        mensajeError = error.message;
-      }
-      Alert.alert('Error', mensajeError);
-    }
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   const Paso1 = () => (
     <View style={styles.stepContainer}>

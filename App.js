@@ -113,6 +113,12 @@ function MainApp() {
   useEffect(() => {
     // Configurar el canal de notificaciones
     setupNotificationChannel();
+      if (Platform.OS === 'web') {
+    const link = document.createElement('link');
+    link.rel = 'icon';
+    link.href = '/favicon.ico';
+    document.head.appendChild(link);
+  }
 
     // Registrar el token push
     registerForPushNotifications();

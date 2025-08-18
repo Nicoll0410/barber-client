@@ -1,63 +1,65 @@
-import React, { useContext, useEffect, useState } from 'react';
-import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
-import { Icon } from 'react-native-elements';
-import { AuthContext } from '../contexts/AuthContext';
-import * as Notifications from 'expo-notifications';
+import React, { useContext, useEffect, useState } from "react";
+import { View, TouchableOpacity, Text, StyleSheet } from "react-native";
+import { Icon } from "react-native-elements";
+import { AuthContext } from "../contexts/AuthContext";
+import { getUnreadCount, playNotificationSound } from "../utils/notifications";
 
 const NotificationBell = ({ navigation }) => {
-  const { 
-    authState,
-    unreadCount,
-    playNotificationSound,
-    fetchNotifications
-  } = useContext(AuthContext);
-  
-  const [loading, setLoading] = useState(false);
+  const { isLoggedIn, user } = useContext(AuthContext);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Configurar el listener de notificaciones
-    const subscription = Notifications.addNotificationReceivedListener(notification => {
-      console.log('Nueva notificación recibida:', notification);
-      fetchNotifications(); // Actualizar el contador cuando llega una nueva notificación
-    });
+  const fetchUnreadCount = async () => {
+    if (!isLoggedIn || !user?.token) {
+      setUnreadCount(0);
+      setLoading(false);
+      return;
+    }
 
-    // Cargar notificaciones al montar
-    fetchNotifications();
-    
-    return () => {
-      subscription.remove();
-    };
-  }, [fetchNotifications]);
-
-  const handlePress = async () => {
     try {
       setLoading(true);
-      await playNotificationSound();
-      navigation.navigate('Notificaciones');
+      const count = await getUnreadCount(user.token);
+      setUnreadCount(count);
     } catch (error) {
-      console.error('Error al manejar notificación:', error);
+      console.error("Error fetching unread count:", error);
+      setUnreadCount(0);
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    fetchUnreadCount();
+    
+    // Actualizar cada 30 segundos
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, [isLoggedIn, user?.token]);
+
+  const handlePress = async () => {
+    try {
+      await playNotificationSound();
+      navigation.navigate("Notificaciones");
+    } catch (error) {
+      console.error("Error handling bell press:", error);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <Icon name="bell" type="font-awesome" size={24} color="#fff" />
+      </View>
+    );
+  }
+
   return (
-    <TouchableOpacity 
-      onPress={handlePress} 
-      style={styles.container}
-      disabled={loading}
-    >
-      <Icon 
-        name="bell" 
-        type="font-awesome" 
-        size={24} 
-        color="#fff" 
-      />
-      
+    <TouchableOpacity onPress={handlePress} style={styles.container}>
+      <Icon name="bell" type="font-awesome" size={24} color="#fff" />
       {unreadCount > 0 && (
         <View style={styles.badge}>
           <Text style={styles.badgeText}>
-            {unreadCount > 9 ? '9+' : unreadCount}
+            {unreadCount > 9 ? "9+" : unreadCount}
           </Text>
         </View>
       )}
@@ -66,28 +68,28 @@ const NotificationBell = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-    container: {
-        marginRight: 15,
-        position: 'relative',
-    },
-    badge: {
-        position: 'absolute',
-        top: -5,
-        right: -5,
-        backgroundColor: 'red',
-        borderRadius: 10,
-        width: 20,
-        height: 20,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#fff',
-    },
-    badgeText: {
-        color: 'white',
-        fontSize: 10,
-        fontWeight: 'bold',
-    },
+  container: {
+    marginRight: 15,
+    position: "relative",
+  },
+  badge: {
+    position: "absolute",
+    top: -5,
+    right: -5,
+    backgroundColor: "red",
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#fff",
+  },
+  badgeText: {
+    color: "white",
+    fontSize: 10,
+    fontWeight: "bold",
+  },
 });
 
 export default NotificationBell;

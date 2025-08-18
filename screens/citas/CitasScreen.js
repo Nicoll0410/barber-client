@@ -262,10 +262,10 @@
               <Text style={styles.contadorTexto}>{filtradas.length}</Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.addButton} onPress={() => setShowCrear(true)}>
+          {/* <TouchableOpacity style={styles.addButton} onPress={() => setShowCrear(true)}>
             <MaterialIcons name="add-circle" size={20} color="#fff" />
             <Text style={styles.addButtonText}>Crear</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
 
         <Buscador

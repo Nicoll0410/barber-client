@@ -95,69 +95,86 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-// Modifica el fetchNotifications para manejar mejor el estado
-const fetchNotifications = useCallback(async () => {
-  try {
-    if (!authState.token || !authState.user?.userId) return;
-    
-    console.log('Obteniendo notificaciones...');
-    const response = await axios.get(`${BASE_URL}/notifications`, {
-      headers: {
-        Authorization: `Bearer ${authState.token}`
+  const fetchNotifications = useCallback(async () => {
+    try {
+      if (!authState.token || !authState.user?.userId) {
+        console.log('No hay token o userId, abortando fetch');
+        return [];
       }
-    });
-    
-    // Ordenar por fecha descendente y asegurar que sean objetos válidos
-    const notifications = (response.data.notificaciones || [])
-      .filter(n => n && n.id && n.titulo) // Filtra notificaciones inválidas
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    
-    const unread = notifications.filter(n => !n.leido).length;
-    
-    console.log(`Notificaciones obtenidas: ${notifications.length}, No leídas: ${unread}`);
-    
-    // Actualizar el badge en el icono de la app
-    await Notifications.setBadgeCountAsync(unread);
-    
-    setAuthState(prev => ({
-      ...prev,
-      notifications,
-      unreadCount: unread
-    }));
-    
-    return notifications;
-  } catch (error) {
-    console.error('Error obteniendo notificaciones:', error);
-    return [];
-  }
-}, [authState.token, authState.user?.userId]);
 
-// Modifica markNotificationsAsRead para actualizar el badge
-const markNotificationsAsRead = useCallback(async () => {
-  try {
-    if (!authState.token) return;
-    
-    console.log('Marcando notificaciones como leídas...');
-    await axios.put(`${BASE_URL}/notifications/mark-all-read`, {}, {
-      headers: {
-        Authorization: `Bearer ${authState.token}`
+      console.log('Obteniendo notificaciones...');
+      const response = await axios.get(`${BASE_URL}/notifications`, {
+        headers: {
+          Authorization: `Bearer ${authState.token}`
+        }
+      });
+
+      let notificationsData = [];
+      let unreadCount = 0;
+
+      // Manejar diferentes estructuras de respuesta
+      if (response.data.data) {
+        notificationsData = response.data.data.notifications || [];
+        unreadCount = response.data.data.unreadCount || 0;
+      } else {
+        notificationsData = response.data.notifications || [];
+        unreadCount = response.data.unreadCount || 0;
       }
-    });
-    
-    // Resetear el badge
-    await Notifications.setBadgeCountAsync(0);
-    
-    setAuthState(prev => ({
-      ...prev,
-      unreadCount: 0,
-      notifications: prev.notifications.map(n => ({ ...n, leido: true }))
-    }));
-    
-    console.log('Notificaciones marcadas como leídas');
-  } catch (error) {
-    console.error('Error marcando notificaciones como leídas:', error);
-  }
-}, [authState.token]);
+
+      console.log('Notificaciones obtenidas:', notificationsData.length);
+      console.log('No leídas:', unreadCount);
+
+      // Actualizar badge en el dispositivo
+      await Notifications.setBadgeCountAsync(unreadCount);
+
+      // Actualizar estado
+      setAuthState(prev => ({
+        ...prev,
+        notifications: notificationsData,
+        unreadCount
+      }));
+
+      return notificationsData;
+    } catch (error) {
+      console.error('Error obteniendo notificaciones:', {
+        message: error.message,
+        response: error.response?.data,
+        config: error.config
+      });
+      return [];
+    }
+  }, [authState.token, authState.user?.userId]);
+
+  const markNotificationsAsRead = useCallback(async () => {
+    try {
+      if (!authState.token) return;
+      
+      console.log('Marcando notificaciones como leídas...');
+      await axios.put(
+        `${BASE_URL}/notifications/mark-as-read`, 
+        {}, 
+        {
+          headers: {
+            Authorization: `Bearer ${authState.token}`
+          }
+        }
+      );
+      
+      // Actualizar el estado local
+      setAuthState(prev => ({
+        ...prev,
+        unreadCount: 0,
+        notifications: prev.notifications.map(n => ({ ...n, leido: true }))
+      }));
+      
+      // Resetear el badge
+      await Notifications.setBadgeCountAsync(0);
+      
+      console.log('Notificaciones marcadas como leídas');
+    } catch (error) {
+      console.error('Error marcando notificaciones como leídas:', error);
+    }
+  }, [authState.token]);
 
   const registerPushToken = useCallback(async (userId) => {
     try {
@@ -175,17 +192,36 @@ const markNotificationsAsRead = useCallback(async () => {
       }
       
       const token = (await Notifications.getExpoPushTokenAsync()).data;
+      console.log('Token push obtenido:', token);
       
-      await axios.post(`${BASE_URL}/notifications/save-token`, {
-        userId,
-        token
-      }, {
-        headers: {
-          Authorization: `Bearer ${authState.token}`
+      await axios.post(
+        `${BASE_URL}/notifications/save-token`, 
+        { userId, token }, 
+        {
+          headers: {
+            Authorization: `Bearer ${authState.token}`
+          }
         }
+      );
+
+      // Configurar el listener para notificaciones recibidas
+      Notifications.addNotificationReceivedListener(notification => {
+        console.log('Notificación recibida:', notification);
+        // Incrementar el contador de notificaciones no leídas
+        setAuthState(prev => ({
+          ...prev,
+          unreadCount: prev.unreadCount + 1
+        }));
+        // Actualizar el badge
+        Notifications.setBadgeCountAsync(prev => (prev || 0) + 1);
+        // Reproducir sonido
+        playNotificationSound();
       });
+
+      return token;
     } catch (error) {
       console.error('Error registrando token push:', error);
+      return null;
     }
   }, [authState.token]);
 
@@ -193,14 +229,14 @@ const markNotificationsAsRead = useCallback(async () => {
     try {
       const savedToken = await AsyncStorage.getItem("token");
       if (!savedToken) {
-        setAuthState((prev) => ({ ...prev, isLoading: false }));
+        setAuthState(prev => ({ ...prev, isLoading: false }));
         return;
       }
 
       const { valid, decoded } = await checkTokenValidity(savedToken);
       if (!valid) {
         await AsyncStorage.removeItem("token");
-        setAuthState((prev) => ({ ...prev, isLoading: false }));
+        setAuthState(prev => ({ ...prev, isLoading: false }));
         return;
       }
 
@@ -220,7 +256,7 @@ const markNotificationsAsRead = useCallback(async () => {
 
       setAuthState(newState);
 
-      // Configurar notificaciones
+      // Configurar notificaciones push
       Notifications.setNotificationHandler({
         handleNotification: async () => ({
           shouldShowAlert: true,
@@ -234,11 +270,11 @@ const markNotificationsAsRead = useCallback(async () => {
         await registerPushToken(decoded.userId);
       }
 
-      // Obtener notificaciones
+      // Obtener notificaciones iniciales
       await fetchNotifications();
     } catch (err) {
       console.error("Error inicializando auth:", err);
-      setAuthState((prev) => ({ ...prev, isLoading: false }));
+      setAuthState(prev => ({ ...prev, isLoading: false }));
     }
   }, [checkTokenValidity, loadUserData, fetchNotifications, registerPushToken]);
 

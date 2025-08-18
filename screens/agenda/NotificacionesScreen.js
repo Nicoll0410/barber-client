@@ -1,80 +1,88 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useState, useCallback } from "react";
 import {
   View,
   Text,
   FlatList,
   StyleSheet,
   RefreshControl,
-  ActivityIndicator
-} from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
-import { AuthContext } from '../../contexts/AuthContext';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+  ActivityIndicator,
+} from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
+import { AuthContext } from "../../contexts/AuthContext";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { getNotifications, markAllAsRead } from "../../utils/notifications";
 
-const NotificacionesScreen = () => {
-  const {
-    authState = {}, // Valor por defecto para evitar undefined
-    notifications = [],
-    fetchNotifications,
-    markNotificationsAsRead
-  } = useContext(AuthContext) || {}; // Protección contra contexto no disponible
-
+const NotificacionesScreen = ({ navigation }) => {
+  const { user, isLoggedIn } = useContext(AuthContext);
+  const [notifications, setNotifications] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const loadNotifications = useCallback(async () => {
+    if (!isLoggedIn || !user?.token) {
+      setNotifications([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getNotifications(user.token);
+      setNotifications(data);
+      
+      // Marcar como leídas solo si hay notificaciones no leídas
+      if (data.some(n => !n.leido)) {
+        await markAllAsRead(user.token);
+      }
+    } catch (err) {
+      console.error("Error loading notifications:", err);
+      setError("No se pudieron cargar las notificaciones");
+      setNotifications([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [isLoggedIn, user?.token]);
 
   useFocusEffect(
-    React.useCallback(() => {
-      const loadData = async () => {
-        try {
-          setLoading(true);
-          await fetchNotifications();
-          
-          // Verificar si authState existe antes de acceder a unreadCount
-          if (authState?.unreadCount > 0) {
-            await markNotificationsAsRead();
-          }
-        } catch (error) {
-          console.error("Error al cargar notificaciones:", error);
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      loadData();
-      
-      return () => {
-        // Limpieza si es necesaria
-      };
-    }, [fetchNotifications, markNotificationsAsRead, authState?.unreadCount]) // Uso opcional chaining
+    useCallback(() => {
+      loadNotifications();
+    }, [loadNotifications])
   );
 
   const onRefresh = async () => {
     setRefreshing(true);
-    try {
-      await fetchNotifications();
-    } catch (error) {
-      console.error("Error al actualizar:", error);
-    } finally {
-      setRefreshing(false);
-    }
+    await loadNotifications();
+    setRefreshing(false);
   };
 
   const renderItem = ({ item }) => (
-    <View style={styles.notificationItem}>
+    <View style={[
+      styles.notificationItem,
+      !item.leido && styles.unreadNotification
+    ]}>
       <Text style={styles.title}>{item.titulo}</Text>
       <Text style={styles.body}>{item.cuerpo}</Text>
       <Text style={styles.date}>
-        {format(new Date(item.createdAt), 'PPpp', { locale: es })}
+        {format(new Date(item.createdAt), "PPpp", { locale: es })}
       </Text>
-      {!item.leido && <View style={styles.unreadDot} />}
     </View>
   );
 
-  if (loading) {
+  if (loading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>{error}</Text>
       </View>
     );
   }
@@ -84,7 +92,7 @@ const NotificacionesScreen = () => {
       <FlatList
         data={notifications}
         renderItem={renderItem}
-        keyExtractor={(item) => item.id?.toString() || Math.random().toString()} // Protección contra id undefined
+        keyExtractor={(item) => item.id}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>No hay notificaciones</Text>
@@ -94,7 +102,7 @@ const NotificacionesScreen = () => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={['#FF6B6B']}
+            colors={["#FF6B6B"]}
             tintColor="#FF6B6B"
           />
         }
@@ -107,62 +115,67 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 15,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
   },
   notificationItem: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     padding: 15,
     borderRadius: 8,
     marginBottom: 10,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
-    position: 'relative',
+  },
+  unreadNotification: {
+    borderLeftWidth: 4,
+    borderLeftColor: "red",
   },
   title: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 5,
-    color: '#333',
+    color: "#333",
   },
   body: {
     fontSize: 14,
     marginBottom: 5,
-    color: '#555',
+    color: "#555",
     lineHeight: 20,
   },
   date: {
     fontSize: 12,
-    color: '#888',
-    textAlign: 'right',
-    fontStyle: 'italic',
-  },
-  unreadDot: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'red',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 50,
-  },
-  emptyText: {
-    textAlign: 'center',
-    fontSize: 16,
-    color: '#888',
+    color: "#888",
+    textAlign: "right",
+    fontStyle: "italic",
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  errorText: {
+    color: "red",
+    fontSize: 16,
+    textAlign: "center",
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 50,
+  },
+  emptyText: {
+    textAlign: "center",
+    fontSize: 16,
+    color: "#888",
   },
 });
 

@@ -5,6 +5,7 @@ import { createDrawerNavigator } from "@react-navigation/drawer";
 import { ActivityIndicator, View, Image, useWindowDimensions, TouchableOpacity, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import NotificacionesScreen from "../screens/agenda/NotificacionesScreen";
+import ForgotPasswordScreen from '../screens/login/ForgotPasswordScreen';
 
 /* Screens públicas */
 import LoginScreen        from "../screens/login/LoginScreen";
@@ -35,7 +36,6 @@ import ControlInsumos     from "../screens/insumos/ControlInsumos";
 
 /* Logo */
 import LogoImg from "../assets/images/barberApp 1.png";
-
 
 const Stack  = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
@@ -201,6 +201,7 @@ const AppNavigator = () => {
           <Stack.Screen name="Login"       component={LoginScreen} />
           <Stack.Screen name="Register"    component={RegisterScreen} />
           <Stack.Screen name="VerifyEmail" component={VerifyEmailScreen} />
+          <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
         </>
       ) : (
         <>

@@ -150,57 +150,60 @@ export const AuthProvider = ({ children }) => {
         }
     }, [authState.token]);
 
-    const fetchNotifications = useCallback(async () => {
-        try {
-            console.log("Obteniendo notificaciones...");
-            
-            if (!authState.token || !authState.user?.id) {
-                console.log('No hay token o userId, abortando fetch');
-                return [];
-            }
-
-            const response = await axios.get(
-                `${BASE_URL}/api/notifications`,
-                { 
-                    headers: { 
-                        Authorization: `Bearer ${authState.token}`,
-                        'Content-Type': 'application/json' 
-                    } 
-                }
-            );
-
-            console.log("Respuesta de notificaciones:", response.data);
-
-            if (!response.data?.success) {
-                throw new Error(response.data?.message || "Error al obtener notificaciones");
-            }
-
-            const notificationsData = response.data.data?.notifications || [];
-            const unreadCount = response.data.data?.unreadCount || 0;
-
-            // Actualizar badge
-            await Notifications.setBadgeCountAsync(unreadCount);
-
-            setAuthState(prev => ({
-                ...prev,
-                notifications: notificationsData,
-                unreadCount,
-                lastNotification: notificationsData[0] || null
-            }));
-
-            return notificationsData;
-        } catch (error) {
-            console.error('Error obteniendo notificaciones:', error);
-            if (error.response) {
-                console.error('Detalles del error:', {
-                    status: error.response.status,
-                    data: error.response.data,
-                    headers: error.response.headers
-                });
-            }
+const fetchNotifications = useCallback(async () => {
+    try {
+        console.log("Obteniendo notificaciones...");
+        
+        if (!authState.token || !authState.user?.id) {
+            console.log('No hay token o userId, abortando fetch');
             return [];
         }
-    }, [authState.token, authState.user?.id]);
+
+        const response = await axios.get(
+            `${BASE_URL}/api/notifications`,
+            { 
+                headers: { 
+                    Authorization: `Bearer ${authState.token}`,
+                    'Content-Type': 'application/json' 
+                },
+                timeout: 10000 // 👈 Añadir timeout para evitar esperas infinitas
+            }
+        );
+
+        console.log("Respuesta de notificaciones:", response.data);
+
+        if (!response.data?.success) {
+            throw new Error(response.data?.message || "Error al obtener notificaciones");
+        }
+
+        const notificationsData = response.data.data?.notifications || [];
+        const unreadCount = response.data.data?.unreadCount || 0;
+
+        // 👈 ACTUALIZAR: Solo actualizar badge si hay cambios
+        const currentBadgeCount = await Notifications.getBadgeCountAsync();
+        if (currentBadgeCount !== unreadCount) {
+            await Notifications.setBadgeCountAsync(unreadCount);
+        }
+
+        setAuthState(prev => ({
+            ...prev,
+            notifications: notificationsData,
+            unreadCount,
+            lastNotification: notificationsData[0] || null
+        }));
+
+        return notificationsData;
+    } catch (error) {
+        console.error('Error obteniendo notificaciones:', error);
+        if (error.code === 'ECONNABORTED') {
+            console.log('Timeout al obtener notificaciones');
+        } else if (error.response?.status === 401) {
+            console.log('Token expirado, cerrando sesión');
+        }
+        return [];
+    }
+}, [authState.token, authState.user?.id]);
+
 
     const markNotificationsAsRead = useCallback(async () => {
         try {

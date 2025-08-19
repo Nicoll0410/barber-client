@@ -10,7 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Alert
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -21,9 +21,8 @@ const { width } = Dimensions.get("window");
 const isDesktop = width >= 1024;
 const isMobile = width < 768;
 
-const BASE_URL = Platform.OS === 'android' 
-  ? 'http://10.0.2.2:8080'
-  : 'http://localhost:8080';
+const BASE_URL =
+  Platform.OS === "android" ? "http://10.0.2.2:8080" : "http://localhost:8080";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
@@ -31,7 +30,7 @@ const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const { login } = useContext(AuthContext);
   const navigation = useNavigation();
 
@@ -46,9 +45,9 @@ const LoginForm = () => {
 
     try {
       // Intenta primero el login estándar
-      const { data } = await axios.post(`${BASE_URL}/auth/login`, { 
-        email, 
-        password 
+      const { data } = await axios.post(`${BASE_URL}/auth/login`, {
+        email,
+        password,
       });
 
       if (data.success && data.token) {
@@ -63,14 +62,14 @@ const LoginForm = () => {
       if (data.reason === "UNAUTHORIZED_ROLE") {
         const resClient = await axios.post(`${BASE_URL}/auth/login-client`, {
           email,
-          password
+          password,
         });
 
         if (resClient.data.token) {
           const loginSuccess = await login(resClient.data.token, {
-            clientData: resClient.data.cliente
+            clientData: resClient.data.cliente,
           });
-          
+
           if (!loginSuccess) {
             setLoginError("Error al iniciar sesión");
           }
@@ -96,7 +95,9 @@ const LoginForm = () => {
       }
     } catch (error) {
       console.error("Login error:", error);
-      setLoginError(error.response?.data?.message || "Error al conectar con el servidor");
+      setLoginError(
+        error.response?.data?.message || "Error al conectar con el servidor"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -139,22 +140,19 @@ const LoginForm = () => {
             returnKeyType="go"
             onSubmitEditing={handleLogin}
           />
-          <TouchableOpacity 
-            style={styles.eyeIcon} 
-            onPress={togglePassword}
-          >
-            <Ionicons 
-              name={showPassword ? "eye-off" : "eye"} 
-              size={24} 
-              color="#808080" 
+          <TouchableOpacity style={styles.eyeIcon} onPress={togglePassword}>
+            <Ionicons
+              name={showPassword ? "eye-off" : "eye"}
+              size={24}
+              color="#808080"
             />
           </TouchableOpacity>
         </View>
 
         {loginError ? <Text style={styles.errorText}>{loginError}</Text> : null}
 
-        <TouchableOpacity 
-          style={styles.button} 
+        <TouchableOpacity
+          style={styles.button}
           onPress={handleLogin}
           disabled={isLoading}
         >
@@ -165,19 +163,20 @@ const LoginForm = () => {
           )}
         </TouchableOpacity>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.forgotPasswordButton}
-          onPress={() => navigation.navigate("ForgotPasswordScreen")}
+          onPress={() => navigation.navigate("ForgotPassword")} // Asegúrate que coincida con tu navegación
         >
           <Text style={styles.forgotPassword}>¿Olvidaste tu contraseña?</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.registerButton}
           onPress={() => navigation.navigate("Register")}
         >
           <Text style={styles.registerText}>
-            ¿No tienes cuenta? <Text style={styles.registerLink}>Regístrate</Text>
+            ¿No tienes cuenta?{" "}
+            <Text style={styles.registerLink}>Regístrate</Text>
           </Text>
         </TouchableOpacity>
       </View>
@@ -199,7 +198,7 @@ const styles = StyleSheet.create({
   keyboardAvoidingView: {
     flex: 1,
     justifyContent: "center",
-    backgroundColor: "#f8f9fa"
+    backgroundColor: "#f8f9fa",
   },
   formContainer: {
     width: isDesktop ? 400 : "90%",
@@ -212,27 +211,27 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 6,
-    elevation: 3
+    elevation: 3,
   },
   title: {
     fontSize: isDesktop ? 24 : 20,
     fontWeight: "bold",
     color: "#333",
     textAlign: "center",
-    marginBottom: 8
+    marginBottom: 8,
   },
   subtitle: {
     fontSize: isDesktop ? 14 : 13,
     color: "#666",
     textAlign: "center",
     marginBottom: 24,
-    lineHeight: 20
+    lineHeight: 20,
   },
   inputLabel: {
     fontSize: 14,
     color: "#444",
     marginBottom: 8,
-    fontWeight: "600"
+    fontWeight: "600",
   },
   input: {
     height: 50,
@@ -242,7 +241,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     marginBottom: 16,
     backgroundColor: "#fff",
-    fontSize: 15
+    fontSize: 15,
   },
   passwordInputContainer: {
     flexDirection: "row",
@@ -251,16 +250,16 @@ const styles = StyleSheet.create({
     borderColor: "#ddd",
     borderRadius: 8,
     marginBottom: 16,
-    backgroundColor: "#fff"
+    backgroundColor: "#fff",
   },
   passwordInput: {
     flex: 1,
     height: 50,
     paddingHorizontal: 15,
-    fontSize: 15
+    fontSize: 15,
   },
   eyeIcon: {
-    padding: 10
+    padding: 10,
   },
   button: {
     height: 50,
@@ -268,45 +267,45 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 8
+    marginTop: 8,
   },
   buttonText: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "600"
+    fontWeight: "600",
   },
   forgotPasswordButton: {
     marginTop: 16,
-    alignItems: "center"
+    alignItems: "center",
   },
   forgotPassword: {
     fontSize: 14,
     color: "#424242",
-    textDecorationLine: "underline"
+    textDecorationLine: "underline",
   },
   registerButton: {
     marginTop: 8,
-    alignItems: "center"
+    alignItems: "center",
   },
   registerText: {
     fontSize: 14,
-    color: "#666"
+    color: "#666",
   },
   registerLink: {
     color: "#424242",
-    textDecorationLine: "underline"
+    textDecorationLine: "underline",
   },
   errorText: {
     color: "#e74c3c",
     fontSize: 13,
     textAlign: "center",
-    marginVertical: 8
+    marginVertical: 8,
   },
   loadingOverlay: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.4)"
+    backgroundColor: "rgba(0,0,0,0.4)",
   },
   loadingBox: {
     backgroundColor: "#fff",
@@ -315,13 +314,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     width: "80%",
-    maxWidth: 300
+    maxWidth: 300,
   },
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: "#333"
-  }
+    color: "#333",
+  },
 });
 
 export default LoginForm;

@@ -6,6 +6,7 @@ import Constants from "expo-constants";
 import AppNavigator from "./navigation/AppNavigator";
 import { AuthProvider } from "./contexts/AuthContext";
 import { NavigationContainer } from "@react-navigation/native";
+import { configurePushNotifications } from './utils/notifications';
 
 // Configuración completa de notificaciones
 Notifications.setNotificationHandler({
@@ -119,6 +120,8 @@ function MainApp() {
     link.href = '/favicon.ico';
     document.head.appendChild(link);
   }
+  // Antes de renderizar tu app
+configurePushNotifications();
 
     // Registrar el token push
     registerForPushNotifications();

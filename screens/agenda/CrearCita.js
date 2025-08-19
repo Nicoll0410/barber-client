@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import {
   View,
   Text,
@@ -37,6 +37,13 @@ const CrearCita = ({
   const [temporalNombre, setTemporalNombre] = useState('');
   const [temporalTelefono, setTemporalTelefono] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Efecto para limpiar al desmontar
+  useEffect(() => {
+    return () => {
+      reset();
+    };
+  }, []);
 
   const reset = () => {
     setServicioSel(null);
@@ -106,108 +113,112 @@ const CrearCita = ({
   const handleCrear = async () => {
     console.log("Iniciando creación de cita...");
     try {
-        setIsLoading(true);
+      setIsLoading(true);
+      
+      if (!servicioSel || !barbero) {
+        throw new Error('Falta información del servicio o barbero');
+      }
+
+      // Validar datos del cliente
+      if (!isTemporal && !clienteSel) {
+        throw new Error('Debes seleccionar un cliente');
+      }
+      if (isTemporal && !temporalNombre.trim()) {
+        throw new Error('El nombre del cliente temporal es requerido');
+      }
+
+      const fechaFormateada = `${fecha.getFullYear()}-${(fecha.getMonth() + 1)
+        .toString().padStart(2, '0')}-${fecha.getDate().toString().padStart(2, '0')}`;
+      
+      // Formatear hora correctamente
+      let horaInicio24 = convertirHora24(slot.displayTime);
+      if (!horaInicio24.includes(':')) {
+        horaInicio24 = `${horaInicio24}:00`;
+      } else if (horaInicio24.split(':').length === 2) {
+        horaInicio24 = `${horaInicio24}:00`;
+      }
+
+      const duracionMinutos = convertirDuracionAMinutos(servicioSel.duracionMaxima);
+      const horaFin24 = calcularHoraFin(horaInicio24, duracionMinutos);
+
+      const citaData = {
+        barberoID: barbero.id,
+        servicioID: servicioSel.id,
+        fecha: fechaFormateada,
+        hora: horaInicio24,
+        horaFin: `${horaFin24}:00`,
+        direccion: "En barbería",
+        estado: "Pendiente",
+        duracionReal: servicioSel.duracionMaxima || "00:30:00",
+        duracionRedondeada: `${Math.floor(duracionMinutos / 60)}:${(duracionMinutos % 60).toString().padStart(2, '0')}:00`
+      };
+
+      // Asignar cliente
+      if (isTemporal) {
+        citaData.pacienteTemporalNombre = temporalNombre.trim();
+        if (temporalTelefono.trim()) {
+          citaData.pacienteTemporalTelefono = temporalTelefono.trim();
+        }
+      } else {
+        citaData.pacienteID = clienteSel.id;
+      }
+
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        throw new Error('No se encontró el token de autenticación');
+      }
+
+      console.log("Enviando datos al servidor:", JSON.stringify(citaData, null, 2));
+      const response = await axios.post('http://localhost:8080/citas', citaData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 15000
+      });
+
+      console.log("Respuesta del servidor:", response.data);
+      
+      if (response.data && response.data.mensaje === 'Cita creada exitosamente') {
+        Alert.alert('Éxito', 'Cita creada correctamente');
         
-        if (!servicioSel || !barbero) {
-            throw new Error('Falta información del servicio o barbero');
-        }
-
-        // Validar datos del cliente
-        if (!isTemporal && !clienteSel) {
-            throw new Error('Debes seleccionar un cliente');
-        }
-        if (isTemporal && !temporalNombre.trim()) {
-            throw new Error('El nombre del cliente temporal es requerido');
-        }
-
-        const fechaFormateada = `${fecha.getFullYear()}-${(fecha.getMonth() + 1)
-            .toString().padStart(2, '0')}-${fecha.getDate().toString().padStart(2, '0')}`;
-        
-        // Formatear hora correctamente
-        let horaInicio24 = convertirHora24(slot.displayTime);
-        if (!horaInicio24.includes(':')) {
-            horaInicio24 = `${horaInicio24}:00`;
-        } else if (horaInicio24.split(':').length === 2) {
-            horaInicio24 = `${horaInicio24}:00`;
-        }
-
-        const duracionMinutos = convertirDuracionAMinutos(servicioSel.duracionMaxima);
-        const horaFin24 = calcularHoraFin(horaInicio24, duracionMinutos);
-
-        const citaData = {
-            barberoID: barbero.id,
-            servicioID: servicioSel.id,
-            fecha: fechaFormateada,
-            hora: horaInicio24,
-            horaFin: `${horaFin24}:00`,
-            direccion: "En barbería",
-            estado: "Pendiente",
-            duracionReal: servicioSel.duracionMaxima || "00:30:00",
-            duracionRedondeada: `${Math.floor(duracionMinutos / 60)}:${(duracionMinutos % 60).toString().padStart(2, '0')}:00`
-        };
-
-        // Asignar cliente
-        if (isTemporal) {
-            citaData.pacienteTemporalNombre = temporalNombre.trim();
-            if (temporalTelefono.trim()) {
-                citaData.pacienteTemporalTelefono = temporalTelefono.trim();
-            }
-        } else {
-            citaData.pacienteID = clienteSel.id;
-        }
-
-        const token = await AsyncStorage.getItem('token');
-        if (!token) {
-            throw new Error('No se encontró el token de autenticación');
-        }
-
-        console.log("Enviando datos al servidor:", JSON.stringify(citaData, null, 2));
-        const response = await axios.post('http://localhost:8080/citas', citaData, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            timeout: 15000
-        });
-
-        console.log("Respuesta del servidor:", response.data);
-        
-        if (response.data && response.data.mensaje === 'Cita creada exitosamente') {
-            Alert.alert('Éxito', 'Cita creada correctamente');
-            
-            // Actualizar notificaciones en el contexto de autenticación
-            if (authContext?.fetchNotifications) {
-                await authContext.fetchNotifications();
-            }
-            if (authContext?.playNotificationSound) {
-                authContext.playNotificationSound();
-            }
-            
-            handleClose();
-            if (onCreate) onCreate();
-            return;
+        // Forzar actualización de notificaciones
+        if (authContext?.fetchNotifications) {
+          console.log("Actualizando notificaciones...");
+          await authContext.fetchNotifications();
         }
         
-        throw new Error(response.data?.mensaje || 'Error al crear la cita');
+        // Reproducir sonido
+        if (authContext?.playNotificationSound) {
+          console.log("Reproduciendo sonido de notificación...");
+          await authContext.playNotificationSound();
+        }
+        
+        handleClose();
+        if (onCreate) onCreate();
+        return;
+      }
+      
+      throw new Error(response.data?.mensaje || 'Error al crear la cita');
     } catch (error) {
-        console.error('Error completo al crear cita:', {
-            message: error.message,
-            response: error.response?.data,
-            stack: error.stack
-        });
-        
-        let mensajeError = 'Error al crear la cita';
-        if (error.response?.data?.mensaje) {
-            mensajeError = error.response.data.mensaje;
-        } else if (error.response?.data?.error) {
-            mensajeError = error.response.data.error;
-        } else if (error.message) {
-            mensajeError = error.message;
-        }
-        
-        Alert.alert('Error', mensajeError);
+      console.error('Error completo al crear cita:', {
+        message: error.message,
+        response: error.response?.data,
+        stack: error.stack
+      });
+      
+      let mensajeError = 'Error al crear la cita';
+      if (error.response?.data?.mensaje) {
+        mensajeError = error.response.data.mensaje;
+      } else if (error.response?.data?.error) {
+        mensajeError = error.response.data.error;
+      } else if (error.message) {
+        mensajeError = error.message;
+      }
+      
+      Alert.alert('Error', mensajeError);
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
   };
 

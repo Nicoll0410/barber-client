@@ -1,65 +1,30 @@
-import React, { useContext, useEffect, useState } from "react";
-import { View, TouchableOpacity, Text, StyleSheet } from "react-native";
-import { Icon } from "react-native-elements";
-import { AuthContext } from "../contexts/AuthContext";
-import { getUnreadCount, playNotificationSound } from "../utils/notifications";
+import React, { useEffect } from 'react';
+import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../contexts/AuthContext';
 
 const NotificationBell = ({ navigation }) => {
-  const { isLoggedIn, user } = useContext(AuthContext);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-
-  const fetchUnreadCount = async () => {
-    if (!isLoggedIn || !user?.token) {
-      setUnreadCount(0);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const count = await getUnreadCount(user.token);
-      setUnreadCount(count);
-    } catch (error) {
-      console.error("Error fetching unread count:", error);
-      setUnreadCount(0);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { unreadCount = 0, fetchNotifications } = useAuth();
 
   useEffect(() => {
-    fetchUnreadCount();
-    
-    // Actualizar cada 30 segundos
-    const interval = setInterval(fetchUnreadCount, 30000);
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
-  }, [isLoggedIn, user?.token]);
-
-  const handlePress = async () => {
-    try {
-      await playNotificationSound();
-      navigation.navigate("Notificaciones");
-    } catch (error) {
-      console.error("Error handling bell press:", error);
-    }
-  };
-
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <Icon name="bell" type="font-awesome" size={24} color="#fff" />
-      </View>
-    );
-  }
+  }, [fetchNotifications]);
 
   return (
-    <TouchableOpacity onPress={handlePress} style={styles.container}>
-      <Icon name="bell" type="font-awesome" size={24} color="#fff" />
+    <TouchableOpacity 
+      onPress={() => {
+        navigation.navigate('Notificaciones');
+        fetchNotifications();
+      }}
+      style={styles.container}
+    >
+      <Ionicons name="notifications-outline" size={26} color="black" />
       {unreadCount > 0 && (
         <View style={styles.badge}>
           <Text style={styles.badgeText}>
-            {unreadCount > 9 ? "9+" : unreadCount}
+            {unreadCount > 9 ? '9+' : unreadCount}
           </Text>
         </View>
       )}
@@ -68,28 +33,19 @@ const NotificationBell = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    marginRight: 15,
-    position: "relative",
-  },
+  container: { marginRight: 15, position: 'relative' },
   badge: {
-    position: "absolute",
-    top: -5,
+    position: 'absolute',
     right: -5,
-    backgroundColor: "red",
+    top: -5,
+    backgroundColor: 'red',
     borderRadius: 10,
     width: 20,
     height: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#fff",
+    justifyContent: 'center',
+    alignItems: 'center'
   },
-  badgeText: {
-    color: "white",
-    fontSize: 10,
-    fontWeight: "bold",
-  },
+  badgeText: { color: 'white', fontSize: 12, fontWeight: 'bold' }
 });
 
 export default NotificationBell;

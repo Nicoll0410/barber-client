@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
-import InfoModal from '../../components/InfoModal'; // Ajusta la ruta según tu estructura
+import InfoModal from '../../components/InfoModal';
 
 const BASE_URL = Platform.OS === 'android' 
   ? 'http://10.0.2.2:8082'
@@ -26,11 +26,10 @@ const ForgotPasswordScreen = ({ navigation }) => {
   const [paso, setPaso] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   
-  // Estados para el InfoModal
   const [modalVisible, setModalVisible] = useState(false);
   const [modalTitle, setModalTitle] = useState('');
   const [modalMessage, setModalMessage] = useState('');
-  const [modalType, setModalType] = useState('info'); // 'info', 'success', 'error'
+  const [modalType, setModalType] = useState('info');
   const [modalAction, setModalAction] = useState(null);
 
   const showModal = (title, message, type = 'info', action = null) => {
@@ -56,7 +55,13 @@ const ForgotPasswordScreen = ({ navigation }) => {
 
     setIsLoading(true);
     try {
-      const response = await axios.post(`${BASE_URL}/usuarios/solicitar-recuperacion`, { email });
+      const response = await axios.post(`${BASE_URL}/usuarios/solicitar-recuperacion`, { 
+        email 
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
       
       if (response.data.success) {
         setPaso(2);
@@ -70,7 +75,11 @@ const ForgotPasswordScreen = ({ navigation }) => {
       }
     } catch (error) {
       console.error('Error:', error);
-      showModal('Error', 'No se pudo procesar la solicitud', 'error');
+      if (error.response?.data?.message) {
+        showModal('Error', error.response.data.message, 'error');
+      } else {
+        showModal('Error', 'No se pudo procesar la solicitud', 'error');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -87,6 +96,10 @@ const ForgotPasswordScreen = ({ navigation }) => {
       const response = await axios.post(`${BASE_URL}/usuarios/verificar-codigo`, { 
         email, 
         codigo 
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
       
       if (response.data.success) {
@@ -129,6 +142,10 @@ const ForgotPasswordScreen = ({ navigation }) => {
         email, 
         codigo, 
         nuevaPassword 
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
       
       if (response.data.success) {
@@ -167,6 +184,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
             <TextInput
               style={styles.input}
               placeholder="tu@email.com"
+              placeholderTextColor="#A0A0A0" // Gris claro
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -206,6 +224,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
             <TextInput
               style={styles.input}
               placeholder="123456"
+              placeholderTextColor="#A0A0A0" // Gris claro
               value={codigo}
               onChangeText={setCodigo}
               keyboardType="numeric"
@@ -252,6 +271,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
             <TextInput
               style={styles.input}
               placeholder="Mínimo 6 caracteres"
+              placeholderTextColor="#A0A0A0" // Gris claro
               value={nuevaPassword}
               onChangeText={setNuevaPassword}
               secureTextEntry
@@ -261,6 +281,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
             <TextInput
               style={styles.input}
               placeholder="Repite tu contraseña"
+              placeholderTextColor="#A0A0A0" // Gris claro
               value={confirmarPassword}
               onChangeText={setConfirmarPassword}
               secureTextEntry
@@ -362,6 +383,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     backgroundColor: '#fff',
     fontSize: 15,
+    color: '#333', // Color del texto ingresado
   },
   botonPrincipal: {
     height: 50,

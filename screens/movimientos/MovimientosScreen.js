@@ -30,7 +30,7 @@ const isMobile = width < 768;
 
 /*  Soluciona localhost en emulador Android  */
 const API_BASE = Platform.select({
-  android : "http://10.0.2.2:8080",
+  android : "http://10.0.2.2:8082",
   ios     : "http://localhost:8080",
   default : "http://localhost:8080",
 });

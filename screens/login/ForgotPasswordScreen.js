@@ -15,7 +15,7 @@ import axios from 'axios';
 import InfoModal from '../../components/InfoModal'; // Ajusta la ruta según tu estructura
 
 const BASE_URL = Platform.OS === 'android' 
-  ? 'http://10.0.2.2:8080'
+  ? 'http://10.0.2.2:8082'
   : 'http://localhost:8080';
 
 const ForgotPasswordScreen = ({ navigation }) => {

@@ -18,7 +18,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import axios from 'axios';
 
 const BASE_URL = Platform.OS === 'android'
-  ? 'http://10.0.2.2:8080'
+  ? 'http://10.0.2.2:8082'
   : 'http://localhost:8080';
 
 const VerifyEmailScreen = () => {
@@ -29,56 +29,50 @@ const VerifyEmailScreen = () => {
   const [code, setCode] = useState(route.params?.code || '');
   const [loading, setLoading] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
+  const [autoVerifyAttempted, setAutoVerifyAttempted] = useState(false);
+
+  // Manejar parámetros de URL para verificación automática
+  useEffect(() => {
+    const checkParams = async () => {
+      const { params } = route;
+      
+      // Si llegamos con parámetros de auto-verificación
+      if (params?.autoVerify === 'true' && params?.email && params?.code) {
+        setEmail(params.email);
+        setCode(params.code);
+        setAutoVerifyAttempted(true);
+        await handleVerify(true); // Auto-verificar
+      }
+      
+      // Si llegamos con éxito desde verificación por email
+      if (params?.success === 'true' && params?.verified === 'true') {
+        setIsVerified(true);
+        setEmail(params.email || '');
+      }
+    };
+
+    checkParams();
+  }, [route.params]);
 
   // Redirigir después de verificación exitosa
   useEffect(() => {
     if (isVerified) {
       const timer = setTimeout(() => {
         setIsVerified(false);
-        navigation.navigate('Login', { verifiedEmail: email });
+        navigation.navigate('Login', { 
+          verifiedEmail: email,
+          message: '¡Cuenta verificada exitosamente! Ya puedes iniciar sesión.' 
+        });
       }, 3000);
       return () => clearTimeout(timer);
     }
   }, [isVerified, navigation, email]);
 
-  // Manejo de deep linking
-  useEffect(() => {
-    const handleDeepLink = (event) => {
-      try {
-        const url = new URL(event.url);
-        const params = Object.fromEntries(url.searchParams.entries());
-        if (params.email && params.code) {
-          setEmail(params.email);
-          setCode(params.code);
-        }
-      } catch (error) {
-        console.warn('Error procesando URL:', error);
-      }
-    };
-
-    const getInitialUrl = async () => {
-      const url = await Linking.getInitialURL();
-      if (url) handleDeepLink({ url });
-    };
-
-    const listener = Linking.addEventListener('url', handleDeepLink);
-    getInitialUrl();
-
-    return () => {
-      listener.remove();
-    };
-  }, []);
-
-  // Verificación automática si vienen parámetros
-  useEffect(() => {
-    if (email && code && code.length === 6) {
-      handleVerify();
-    }
-  }, [email, code]);
-
-  const handleVerify = async () => {
+  const handleVerify = async (isAutoVerify = false) => {
     if (!code || code.length !== 6) {
-      Alert.alert('Error', 'Por favor ingresa un código válido de 6 dígitos');
+      if (!isAutoVerify) {
+        Alert.alert('Error', 'Por favor ingresa un código válido de 6 dígitos');
+      }
       return;
     }
 
@@ -91,6 +85,11 @@ const VerifyEmailScreen = () => {
 
       if (response.data.success) {
         setIsVerified(true);
+        
+        if (isAutoVerify) {
+          // Si es auto-verificación, mostrar mensaje de éxito
+          Alert.alert('¡Éxito!', 'Tu cuenta ha sido verificada correctamente.');
+        }
       } else {
         Alert.alert('Error', response.data.mensaje || 'Error al verificar la cuenta');
       }
@@ -106,7 +105,27 @@ const VerifyEmailScreen = () => {
         }
       }
       
-      Alert.alert('Error', errorMessage);
+      // No mostrar alerta en auto-verificación silenciosa
+      if (!isAutoVerify) {
+        Alert.alert('Error', errorMessage);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resendCode = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.post(`${BASE_URL}/auth/resend-verification`, { email });
+      
+      if (response.data.success) {
+        Alert.alert('Éxito', 'Se ha enviado un nuevo código de verificación a tu email.');
+      } else {
+        Alert.alert('Error', response.data.mensaje || 'Error al reenviar el código');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo reenviar el código de verificación');
     } finally {
       setLoading(false);
     }
@@ -128,57 +147,59 @@ const VerifyEmailScreen = () => {
             resizeMode="contain"
           />
           
-          <Text style={styles.title}>Verifica tu correo electrónico</Text>
-          
-          <Text style={styles.subtitle}>
-            Hemos enviado un código de 6 dígitos a:
-          </Text>
-          
-          <Text style={styles.emailText}>{email || 'correo@ejemplo.com'}</Text>
+          {isVerified ? (
+            <>
+              <Text style={styles.title}>¡Verificación Exitosa!</Text>
+              <Text style={styles.subtitle}>
+                Tu cuenta ha sido verificada correctamente.
+              </Text>
+              <ActivityIndicator size="large" color="#424242" style={styles.loader} />
+            </>
+          ) : (
+            <>
+              <Text style={styles.title}>Verifica tu correo electrónico</Text>
+              
+              <Text style={styles.subtitle}>
+                Hemos enviado un código de 6 dígitos a:
+              </Text>
+              
+              <Text style={styles.emailText}>{email || 'correo@ejemplo.com'}</Text>
 
-          <TextInput
-            style={styles.input}
-            placeholder="Código de verificación"
-            placeholderTextColor="#999"
-            value={code}
-            onChangeText={setCode}
-            keyboardType="number-pad"
-            maxLength={6}
-            autoFocus={true}
-            editable={!loading}
-          />
+              <TextInput
+                style={styles.input}
+                placeholder="Código de verificación"
+                placeholderTextColor="#999"
+                value={code}
+                onChangeText={setCode}
+                keyboardType="number-pad"
+                maxLength={6}
+                autoFocus={!autoVerifyAttempted}
+                editable={!loading}
+              />
 
-          <TouchableOpacity
-            style={[styles.button, (loading || code.length !== 6) && styles.buttonDisabled]}
-            onPress={handleVerify}
-            disabled={loading || code.length !== 6}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Verificar Cuenta</Text>
-            )}
-          </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, (loading || code.length !== 6) && styles.buttonDisabled]}
+                onPress={() => handleVerify(false)}
+                disabled={loading || code.length !== 6}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.buttonText}>Verificar Cuenta</Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.resendButton}
+                onPress={resendCode}
+                disabled={loading}
+              >
+                <Text style={styles.resendText}>Reenviar código</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </ScrollView>
-
-      {/* Modal de verificación exitosa */}
-      <Modal visible={isVerified} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Image 
-              source={require('../../assets/images/newYorkBarber.jpeg')}
-              style={styles.modalLogo}
-              resizeMode="contain"
-            />
-            <Text style={styles.modalTitle}>¡Verificación exitosa!</Text>
-            <Text style={styles.modalText}>
-              Tu cuenta ha sido verificada correctamente.
-            </Text>
-            <ActivityIndicator size="small" color="#424242" style={styles.modalLoader} />
-          </View>
-        </View>
-      </Modal>
     </KeyboardAvoidingView>
   );
 };
@@ -200,11 +221,6 @@ const styles = StyleSheet.create({
     width: 200,
     height: 100,
     marginBottom: 30,
-  },
-  modalLogo: {
-    width: 150,
-    height: 75,
-    marginBottom: 15,
   },
   title: {
     fontSize: 24,
@@ -255,41 +271,15 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+  resendButton: {
+    padding: 10,
   },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 15,
-    padding: 30,
-    width: '85%',
-    maxWidth: 350,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginVertical: 15,
+  resendText: {
     color: '#424242',
-    textAlign: 'center',
+    textDecorationLine: 'underline',
   },
-  modalText: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 22,
-  },
-  modalLoader: {
-    marginTop: 10,
+  loader: {
+    marginTop: 20,
   },
 });
 

@@ -22,7 +22,7 @@ const isDesktop = width >= 1024;
 const isMobile = width < 768;
 
 const BASE_URL =
-  Platform.OS === "android" ? "http://10.0.2.2:8080" : "http://localhost:8080";
+  Platform.OS === "android" ? "http://10.0.2.2:8082" : "http://localhost:8080";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
@@ -121,7 +121,7 @@ const LoginForm = () => {
         <TextInput
           style={styles.input}
           placeholder="nombre@dominio.com"
-          placeholderTextColor="#808080"
+          placeholderTextColor="#808280"
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -133,7 +133,7 @@ const LoginForm = () => {
           <TextInput
             style={styles.passwordInput}
             placeholder="●●●●●●●●"
-            placeholderTextColor="#808080"
+            placeholderTextColor="#808280"
             secureTextEntry={!showPassword}
             value={password}
             onChangeText={setPassword}
@@ -144,7 +144,7 @@ const LoginForm = () => {
             <Ionicons
               name={showPassword ? "eye-off" : "eye"}
               size={24}
-              color="#808080"
+              color="#808280"
             />
           </TouchableOpacity>
         </View>

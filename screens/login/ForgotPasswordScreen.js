@@ -8,11 +8,18 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator
+  ActivityIndicator,
+  Image,
+  Dimensions
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import InfoModal from '../../components/InfoModal';
+import Footer from '../../components/Footer';
+
+const { width } = Dimensions.get('window');
+const isDesktop = width >= 1024;
+const isMobile = width < 768;
 
 const BASE_URL = Platform.OS === 'android' 
   ? 'http://10.0.2.2:8082'
@@ -175,6 +182,11 @@ const ForgotPasswordScreen = ({ navigation }) => {
       case 1:
         return (
           <View style={styles.pasoContainer}>
+            <Image 
+              source={require('../../assets/images/newYorkBarber.jpeg')} 
+              style={styles.logo}
+              resizeMode="contain"
+            />
             <Text style={styles.titulo}>Recuperar Contraseña</Text>
             <Text style={styles.subtitulo}>
               Ingresa tu email para recibir un código de verificación
@@ -184,7 +196,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
             <TextInput
               style={styles.input}
               placeholder="tu@email.com"
-              placeholderTextColor="#A0A0A0" // Gris claro
+              placeholderTextColor="#A0A0A0"
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -215,6 +227,11 @@ const ForgotPasswordScreen = ({ navigation }) => {
       case 2:
         return (
           <View style={styles.pasoContainer}>
+            <Image 
+              source={require('../../assets/images/newYorkBarber.jpeg')} 
+              style={styles.logo}
+              resizeMode="contain"
+            />
             <Text style={styles.titulo}>Verificar Código</Text>
             <Text style={styles.subtitulo}>
               Ingresa el código de 6 dígitos que recibiste en: {email}
@@ -224,7 +241,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
             <TextInput
               style={styles.input}
               placeholder="123456"
-              placeholderTextColor="#A0A0A0" // Gris claro
+              placeholderTextColor="#A0A0A0"
               value={codigo}
               onChangeText={setCodigo}
               keyboardType="numeric"
@@ -262,6 +279,11 @@ const ForgotPasswordScreen = ({ navigation }) => {
       case 3:
         return (
           <View style={styles.pasoContainer}>
+            <Image 
+              source={require('../../assets/images/newYorkBarber.jpeg')} 
+              style={styles.logo}
+              resizeMode="contain"
+            />
             <Text style={styles.titulo}>Nueva Contraseña</Text>
             <Text style={styles.subtitulo}>
               Ingresa tu nueva contraseña
@@ -271,7 +293,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
             <TextInput
               style={styles.input}
               placeholder="Mínimo 6 caracteres"
-              placeholderTextColor="#A0A0A0" // Gris claro
+              placeholderTextColor="#A0A0A0"
               value={nuevaPassword}
               onChangeText={setNuevaPassword}
               secureTextEntry
@@ -281,7 +303,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
             <TextInput
               style={styles.input}
               placeholder="Repite tu contraseña"
-              placeholderTextColor="#A0A0A0" // Gris claro
+              placeholderTextColor="#A0A0A0"
               value={confirmarPassword}
               onChangeText={setConfirmarPassword}
               secureTextEntry
@@ -311,15 +333,22 @@ const ForgotPasswordScreen = ({ navigation }) => {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.content}>
-          {renderPaso()}
-        </View>
-      </ScrollView>
+    <View style={styles.container}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.keyboardAvoidingView}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <View style={styles.content}>
+            {renderPaso()}
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+
+      {/* Footer agregado */}
+      <View style={isMobile ? styles.mobileFooter : styles.desktopFooter}>
+        <Footer />
+      </View>
 
       <InfoModal
         visible={modalVisible}
@@ -328,7 +357,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
         type={modalType}
         onClose={handleModalClose}
       />
-    </KeyboardAvoidingView>
+    </View>
   );
 };
 
@@ -336,6 +365,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f9fa',
+  },
+  keyboardAvoidingView: {
+    flex: 1,
   },
   scrollContainer: {
     flexGrow: 1,
@@ -353,6 +385,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 3,
+    alignItems: 'center',
+  },
+  logo: {
+    width: 120,
+    height: 120,
+    marginBottom: 20,
   },
   titulo: {
     fontSize: 24,
@@ -373,6 +411,7 @@ const styles = StyleSheet.create({
     color: '#444',
     marginBottom: 8,
     fontWeight: '600',
+    alignSelf: 'stretch',
   },
   input: {
     height: 50,
@@ -383,7 +422,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     backgroundColor: '#fff',
     fontSize: 15,
-    color: '#333', // Color del texto ingresado
+    color: '#333',
+    alignSelf: 'stretch',
   },
   botonPrincipal: {
     height: 50,
@@ -393,6 +433,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
     marginBottom: 16,
+    alignSelf: 'stretch',
   },
   botonTexto: {
     color: '#fff',
@@ -402,6 +443,7 @@ const styles = StyleSheet.create({
   botonSecundario: {
     alignItems: 'center',
     marginBottom: 8,
+    alignSelf: 'stretch',
   },
   botonSecundarioTexto: {
     fontSize: 14,
@@ -410,11 +452,22 @@ const styles = StyleSheet.create({
   },
   botonTerciario: {
     alignItems: 'center',
+    alignSelf: 'stretch',
   },
   botonTerciarioTexto: {
     fontSize: 14,
     color: '#666',
   },
+  mobileFooter: {
+    width: '100%',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  desktopFooter: {
+    width: '100%',
+    paddingHorizontal: 40,
+    paddingBottom: 40,
+  }
 });
 
 export default ForgotPasswordScreen;

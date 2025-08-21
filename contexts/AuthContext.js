@@ -26,7 +26,6 @@ export const AuthProvider = ({ children }) => {
 
     const [notificationSound, setNotificationSound] = useState(null);
 
-    // 1. Configuración inicial de sonido
     const loadNotificationSound = async () => {
         try {
             console.log("Cargando sonido de notificación...");
@@ -39,11 +38,9 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    // 2. Configuración de notificaciones push
     const setupNotifications = useCallback(async () => {
         console.log("Configurando notificaciones...");
         try {
-            // Configurar handler
             await Notifications.setNotificationHandler({
                 handleNotification: async () => ({
                     shouldShowAlert: true,
@@ -52,13 +49,11 @@ export const AuthProvider = ({ children }) => {
                 }),
             });
 
-            // Obtener permisos
             const { status } = await Notifications.getPermissionsAsync();
             if (status !== 'granted') {
                 await Notifications.requestPermissionsAsync();
             }
 
-            // Configurar listeners
             const notificationListener = Notifications.addNotificationReceivedListener(handleNotificationReceived);
             const responseListener = Notifications.addNotificationResponseReceivedListener(handleNotificationResponse);
 
@@ -68,35 +63,21 @@ export const AuthProvider = ({ children }) => {
             };
         } catch (error) {
             console.error("Error configurando notificaciones:", error);
+            return null;
         }
     }, []);
 
-    // 3. Manejar notificación recibida
     const handleNotificationReceived = (notification) => {
         console.log("Notificación recibida:", notification);
         playNotificationSound();
-        updateUnreadCount();
         fetchNotifications();
     };
 
-    // 4. Manejar respuesta a notificación
     const handleNotificationResponse = (response) => {
         console.log("Usuario interactuó con notificación:", response);
         fetchNotifications();
     };
 
-    // 5. Actualizar contador no leídas
-    const updateUnreadCount = async () => {
-        try {
-            const newCount = authState.unreadCount + 1;
-            await Notifications.setBadgeCountAsync(newCount);
-            setAuthState(prev => ({ ...prev, unreadCount: newCount }));
-        } catch (error) {
-            console.error("Error actualizando badge:", error);
-        }
-    };
-
-    // 6. Reproducir sonido
     const playNotificationSound = async () => {
         try {
             console.log("Reproduciendo sonido de notificación...");
@@ -128,18 +109,18 @@ export const AuthProvider = ({ children }) => {
         }
     }, []);
 
-    const loadUserData = useCallback(async (userId, userRole) => {
+    const loadUserData = useCallback(async (userId, userRole, token) => {
         try {
             if (userRole === "Cliente") {
                 const { data } = await axios.get(
                     `${BASE_URL}/clientes/usuario/${userId}`,
-                    { headers: { Authorization: `Bearer ${authState.token}` } }
+                    { headers: { Authorization: `Bearer ${token}` } }
                 );
                 return { clientData: data };
             } else if (userRole === "Barbero") {
                 const { data } = await axios.get(
                     `${BASE_URL}/barberos/usuario/${userId}`,
-                    { headers: { Authorization: `Bearer ${authState.token}` } }
+                    { headers: { Authorization: `Bearer ${token}` } }
                 );
                 return { barberData: data };
             }
@@ -148,74 +129,91 @@ export const AuthProvider = ({ children }) => {
             console.error("Error cargando datos adicionales:", error);
             return {};
         }
-    }, [authState.token]);
+    }, []);
 
-const fetchNotifications = useCallback(async () => {
-    try {
-        console.log("Obteniendo notificaciones...");
-        
-        if (!authState.token || !authState.user?.id) {
-            console.log('No hay token o userId, abortando fetch');
+    const fetchNotifications = useCallback(async () => {
+        try {
+            console.log("Obteniendo notificaciones...");
+            
+            const token = await AsyncStorage.getItem('token');
+            if (!token) {
+                console.log('No hay token en AsyncStorage, abortando fetch');
+                setAuthState(prev => ({ ...prev, notifications: [], unreadCount: 0 }));
+                return [];
+            }
+
+            const response = await axios.get(
+                `${BASE_URL}/notifications`,
+                { 
+                    headers: { 
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json' 
+                    },
+                    timeout: 10000
+                }
+            );
+
+            console.log("Respuesta de notificaciones:", response.data);
+
+            if (!response.data?.success) {
+                throw new Error(response.data?.message || "Error al obtener notificaciones");
+            }
+
+            const notificationsData = response.data.data?.notifications || [];
+            const unreadCount = response.data.data?.unreadCount || 0;
+
+            // Actualizar badge count
+            await Notifications.setBadgeCountAsync(unreadCount);
+
+            // Obtener email del token para mantener consistencia en el estado
+            let userEmail = null;
+            try {
+                const decoded = jwtDecode(token);
+                userEmail = decoded.email;
+            } catch (decodeError) {
+                console.log('Error decodificando token para email:', decodeError);
+            }
+
+            setAuthState(prev => ({
+                ...prev,
+                notifications: notificationsData,
+                unreadCount,
+                lastNotification: notificationsData[0] || null,
+                token: token,
+                user: userEmail ? { ...prev.user, email: userEmail } : prev.user
+            }));
+
+            console.log('Notificaciones obtenidas:', notificationsData.length);
+            return notificationsData;
+            
+        } catch (error) {
+            console.error('Error obteniendo notificaciones:', error);
+            if (error.response?.status === 401) {
+                console.log('Token expirado, cerrando sesión');
+                await AsyncStorage.removeItem('token');
+                setAuthState(prev => ({ 
+                    ...prev, 
+                    token: null, 
+                    user: null,
+                    notifications: [],
+                    unreadCount: 0 
+                }));
+            }
             return [];
         }
-
-        const response = await axios.get(
-            `${BASE_URL}/api/notifications`,
-            { 
-                headers: { 
-                    Authorization: `Bearer ${authState.token}`,
-                    'Content-Type': 'application/json' 
-                },
-                timeout: 10000 // 👈 Añadir timeout para evitar esperas infinitas
-            }
-        );
-
-        console.log("Respuesta de notificaciones:", response.data);
-
-        if (!response.data?.success) {
-            throw new Error(response.data?.message || "Error al obtener notificaciones");
-        }
-
-        const notificationsData = response.data.data?.notifications || [];
-        const unreadCount = response.data.data?.unreadCount || 0;
-
-        // 👈 ACTUALIZAR: Solo actualizar badge si hay cambios
-        const currentBadgeCount = await Notifications.getBadgeCountAsync();
-        if (currentBadgeCount !== unreadCount) {
-            await Notifications.setBadgeCountAsync(unreadCount);
-        }
-
-        setAuthState(prev => ({
-            ...prev,
-            notifications: notificationsData,
-            unreadCount,
-            lastNotification: notificationsData[0] || null
-        }));
-
-        return notificationsData;
-    } catch (error) {
-        console.error('Error obteniendo notificaciones:', error);
-        if (error.code === 'ECONNABORTED') {
-            console.log('Timeout al obtener notificaciones');
-        } else if (error.response?.status === 401) {
-            console.log('Token expirado, cerrando sesión');
-        }
-        return [];
-    }
-}, [authState.token, authState.user?.id]);
-
+    }, []);
 
     const markNotificationsAsRead = useCallback(async () => {
         try {
-            if (!authState.token) return;
+            const token = await AsyncStorage.getItem('token');
+            if (!token) return;
 
-            // Cambiado de PUT a POST para coincidir con la ruta del backend
             const response = await axios.post(
-                `${BASE_URL}/api/notifications/mark-read`,
+                `${BASE_URL}/notifications/mark-read`,
                 {},
                 { 
                     headers: { 
-                        Authorization: `Bearer ${authState.token}`,
+                        Authorization: `Bearer ${token}`,
                         'Content-Type': 'application/json' 
                     } 
                 }
@@ -231,15 +229,10 @@ const fetchNotifications = useCallback(async () => {
             }
         } catch (error) {
             console.error('Error marcando notificaciones como leídas:', error);
-            if (error.response) {
-                console.error('Detalles del error:', error.response.data);
-            }
         }
-    }, [authState.token]);
+    }, []);
 
-
-    // 9. Registrar token push
-    const registerPushToken = useCallback(async (userId) => {
+    const registerPushToken = useCallback(async (userId, token) => {
         try {
             console.log("Registrando token push...");
             const { status: existingStatus } = await Notifications.getPermissionsAsync();
@@ -255,28 +248,31 @@ const fetchNotifications = useCallback(async () => {
                 return;
             }
 
-            const token = (await Notifications.getExpoPushTokenAsync()).data;
-            console.log('Token push obtenido:', token);
+            const pushToken = (await Notifications.getExpoPushTokenAsync()).data;
+            console.log('Token push obtenido:', pushToken);
 
             await axios.post(
-                `${BASE_URL}/api/notifications/save-token`,
-                { userId, token },
+                `${BASE_URL}/notifications/save-token`,
+                { 
+                    token: pushToken, 
+                    dispositivo: Platform.OS, 
+                    sistemaOperativo: Platform.Version 
+                },
                 { 
                     headers: { 
-                        Authorization: `Bearer ${authState.token}`,
+                        Authorization: `Bearer ${token}`,
                         'Content-Type': 'application/json' 
                     } 
                 }
             );
 
-            return token;
+            return pushToken;
         } catch (error) {
             console.error('Error registrando token push:', error);
             return null;
         }
-    }, [authState.token]);
+    }, []);
 
-    // 10. Inicialización de autenticación
     const initializeAuth = useCallback(async () => {
         try {
             console.log("Inicializando autenticación...");
@@ -284,7 +280,7 @@ const fetchNotifications = useCallback(async () => {
 
             if (!savedToken) {
                 setAuthState(prev => ({ ...prev, isLoading: false }));
-                return;
+                return null;
             }
 
             const { valid, decoded } = await checkTokenValidity(savedToken);
@@ -292,11 +288,11 @@ const fetchNotifications = useCallback(async () => {
             if (!valid) {
                 await AsyncStorage.removeItem("token");
                 setAuthState(prev => ({ ...prev, isLoading: false }));
-                return;
+                return null;
             }
 
             const userRole = normalizeRole(decoded?.rol?.nombre);
-            const additionalData = await loadUserData(decoded.userId, userRole);
+            const additionalData = await loadUserData(decoded.userId, userRole, savedToken);
 
             const newState = {
                 isLoading: false,
@@ -317,30 +313,49 @@ const fetchNotifications = useCallback(async () => {
 
             // Registrar token push
             if (decoded.userId) {
-                await registerPushToken(decoded.userId);
+                await registerPushToken(decoded.userId, savedToken);
             }
 
             // Obtener notificaciones iniciales
             await fetchNotifications();
 
-            return () => {
-                cleanupNotifications?.();
-            };
+            return cleanupNotifications;
         } catch (err) {
             console.error("Error inicializando auth:", err);
             setAuthState(prev => ({ ...prev, isLoading: false }));
+            return null;
         }
     }, [checkTokenValidity, loadUserData, fetchNotifications, registerPushToken, setupNotifications]);
 
     useEffect(() => {
-        loadNotificationSound();
-        const cleanupAuth = initializeAuth();
+        let isMounted = true;
+        let cleanupFunction = null;
+
+        const initialize = async () => {
+            try {
+                await loadNotificationSound();
+                
+                if (isMounted) {
+                    cleanupFunction = await initializeAuth();
+                }
+            } catch (error) {
+                console.error("Error en inicialización:", error);
+                if (isMounted) {
+                    setAuthState(prev => ({ ...prev, isLoading: false }));
+                }
+            }
+        };
+
+        initialize();
 
         return () => {
+            isMounted = false;
             if (notificationSound) {
                 notificationSound.unloadAsync();
             }
-            cleanupAuth?.();
+            if (cleanupFunction && typeof cleanupFunction === 'function') {
+                cleanupFunction();
+            }
         };
     }, []);
 
@@ -351,7 +366,7 @@ const fetchNotifications = useCallback(async () => {
 
             await AsyncStorage.setItem("token", token);
             const userRole = normalizeRole(decoded?.rol?.nombre);
-            const userData = await loadUserData(decoded.userId, userRole);
+            const userData = await loadUserData(decoded.userId, userRole, token);
 
             const newState = {
                 isLoading: false,
@@ -368,12 +383,10 @@ const fetchNotifications = useCallback(async () => {
 
             setAuthState(newState);
 
-            // Registrar token push
             if (decoded.userId) {
-                await registerPushToken(decoded.userId);
+                await registerPushToken(decoded.userId, token);
             }
 
-            // Obtener notificaciones
             await fetchNotifications();
 
             return true;
@@ -398,6 +411,7 @@ const fetchNotifications = useCallback(async () => {
                 unreadCount: 0,
                 lastNotification: null
             });
+            await Notifications.setBadgeCountAsync(0);
         } catch (err) {
             console.error("Logout error:", err);
         }
@@ -430,12 +444,10 @@ const fetchNotifications = useCallback(async () => {
 
                 setAuthState(newState);
 
-                // Registrar token push
                 if (decoded.userId) {
-                    await registerPushToken(decoded.userId);
+                    await registerPushToken(decoded.userId, response.data.token);
                 }
 
-                // Obtener notificaciones
                 await fetchNotifications();
 
                 return {

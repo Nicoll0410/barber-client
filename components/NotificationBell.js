@@ -7,17 +7,19 @@ const NotificationBell = ({ navigation }) => {
   const { unreadCount = 0, fetchNotifications } = useAuth();
 
   useEffect(() => {
+    // Cargar notificaciones al montar el componente
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
   }, [fetchNotifications]);
+
+  const handlePress = async () => {
+    // Forzar actualización antes de navegar
+    await fetchNotifications();
+    navigation.navigate('Notificaciones');
+  };
 
   return (
     <TouchableOpacity 
-      onPress={() => {
-        navigation.navigate('Notificaciones');
-        fetchNotifications();
-      }}
+      onPress={handlePress}
       style={styles.container}
     >
       <Ionicons name="notifications-outline" size={26} color="black" />
@@ -33,19 +35,30 @@ const NotificationBell = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { marginRight: 15, position: 'relative' },
+  container: { 
+    marginRight: 15, 
+    position: 'relative',
+    padding: 5
+  },
   badge: {
     position: 'absolute',
-    right: -5,
-    top: -5,
+    right: -2,
+    top: -2,
     backgroundColor: 'red',
     borderRadius: 10,
-    width: 20,
-    height: 20,
+    minWidth: 18,
+    height: 18,
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'white'
   },
-  badgeText: { color: 'white', fontSize: 12, fontWeight: 'bold' }
+  badgeText: { 
+    color: 'white', 
+    fontSize: 10, 
+    fontWeight: 'bold',
+    paddingHorizontal: 4
+  }
 });
 
 export default NotificationBell;

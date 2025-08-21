@@ -244,6 +244,7 @@ const CrearCita = ({
           citaData.pacienteTemporalTelefono = temporalTelefono.trim();
         }
       } else {
+        // CORREGIDO: Enviar como pacienteID en lugar de clienteID
         citaData.pacienteID = clienteSel.id;
       }
 
@@ -516,97 +517,97 @@ const CrearCita = ({
     );
   };
 
-  const Paso3 = () => {
-    const duracionMinutos = convertirDuracionAMinutos(
-      servicioSel?.duracionMaxima || "01:00:00"
-    );
-    const horasCompletas = Math.floor(duracionMinutos / 60);
-    const minutosRestantes = duracionMinutos % 60;
-    const duracionFormateada = `${
-      horasCompletas > 0
-        ? `${horasCompletas} hora${horasCompletas > 1 ? "s" : ""}`
-        : ""
-    } ${minutosRestantes > 0 ? `${minutosRestantes} minutos` : ""}`.trim();
+const Paso3 = () => {
+  const duracionMinutos = convertirDuracionAMinutos(
+    servicioSel?.duracionMaxima || "01:00:00"
+  );
+  const horasCompletas = Math.floor(duracionMinutos / 60);
+  const minutosRestantes = duracionMinutos % 60;
+  const duracionFormateada = `${
+    horasCompletas > 0
+      ? `${horasCompletas} hora${horasCompletas > 1 ? "s" : ""}`
+      : ""
+  } ${minutosRestantes > 0 ? `${minutosRestantes} minutos` : ""}`.trim();
 
-    const horaInicio24 = convertirHora24(slot.displayTime);
-    const horaFin24 = calcularHoraFin(horaInicio24, duracionMinutos);
+  const horaInicio24 = convertirHora24(slot.displayTime);
+  const horaFin24 = calcularHoraFin(horaInicio24, duracionMinutos);
 
-    return (
-      <View style={styles.stepContainer}>
-        <Text style={styles.subtitle}>Revisa y confirma la información</Text>
-        <View style={styles.infoBox}>
-          <Text style={styles.infoLabel}>Servicio</Text>
-          <Text style={styles.infoText}>{servicioSel.nombre}</Text>
+  return (
+    <View style={styles.stepContainer}>
+      <Text style={styles.subtitle}>Revisa y confirma la información</Text>
+      <View style={styles.infoBox}>
+        <Text style={styles.infoLabel}>Servicio</Text>
+        <Text style={styles.infoText}>{servicioSel.nombre}</Text>
 
-          <Text style={styles.infoLabel}>Barbero</Text>
-          <Text style={styles.infoText}>{barbero.nombre}</Text>
+        <Text style={styles.infoLabel}>Barbero</Text>
+        <Text style={styles.infoText}>{barbero.nombre}</Text>
 
-          <Text style={styles.infoLabel}>Cliente</Text>
-          <Text style={styles.infoText}>
-            {isTemporal ? temporalNombre : clienteSel?.nombre}
-            {isTemporal && " (Temporal)"}
-          </Text>
+        <Text style={styles.infoLabel}>Cliente</Text>
+        <Text style={styles.infoText}>
+          {isTemporal ? temporalNombre : clienteSel?.nombre}
+          {isTemporal && " (Temporal)"}
+        </Text>
 
-          {isTemporal && (
-            <>
-              <Text style={styles.infoLabel}>Teléfono</Text>
-              <Text style={styles.infoText}>
-                {temporalTelefono || "No especificado"}
-              </Text>
-            </>
-          )}
+        {isTemporal && (
+          <>
+            <Text style={styles.infoLabel}>Teléfono</Text>
+            <Text style={styles.infoText}>
+              {temporalTelefono || "No especificado"}
+            </Text>
+          </>
+        )}
 
-          <Text style={styles.infoLabel}>Fecha</Text>
-          <Text style={styles.infoText}>
-            {fecha.toLocaleDateString("es-ES", {
-              weekday: "long",
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
-          </Text>
+        <Text style={styles.infoLabel}>Fecha</Text>
+        <Text style={styles.infoText}>
+          {fecha.toLocaleDateString("es-ES", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })}
+        </Text>
 
-          <Text style={styles.infoLabel}>Hora de inicio</Text>
-          <Text style={styles.infoText}>
-            {formatearHoraParaMostrar(horaInicio24)}
-          </Text>
+        <Text style={styles.infoLabel}>Hora de inicio</Text>
+        <Text style={styles.infoText}>
+          {formatearHoraParaMostrar(horaInicio24)}
+        </Text>
 
-          <Text style={styles.infoLabel}>Hora de finalización</Text>
-          <Text style={styles.infoText}>
-            {formatearHoraParaMostrar(horaFin24)}
-          </Text>
+        <Text style={styles.infoLabel}>Hora de finalización</Text>
+        <Text style={styles.infoText}>
+          {formatearHoraParaMostrar(horaFin24)}
+        </Text>
 
-          <Text style={styles.infoLabel}>Duración total</Text>
-          <Text style={styles.infoText}>{duracionFormateada}</Text>
+        <Text style={styles.infoLabel}>Duración total</Text>
+        <Text style={styles.infoText}>{duracionFormateada}</Text>
 
-          <Text style={[styles.infoLabel, { color: "#E53935", marginTop: 20 }]}>
-            ¡Todo este horario será reservado!
-          </Text>
-        </View>
-
-        <View style={styles.navBtns}>
-          <TouchableOpacity
-            style={styles.btnSecondary}
-            onPress={() => setStep(2)}
-            disabled={isLoading}
-          >
-            <Text style={styles.btnSecondaryText}>Volver</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.btnPrimary, isLoading && styles.btnDisabled]}
-            onPress={handleCrear}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.btnPrimaryText}>Confirmar cita</Text>
-            )}
-          </TouchableOpacity>
-        </View>
+        <Text style={[styles.infoLabel, { color: "#E53935", marginTop: 20 }]}>
+          ¡Todo este horario será reservado!
+        </Text>
       </View>
-    );
-  };
+
+      <View style={styles.navBtns}>
+        <TouchableOpacity
+          style={styles.btnSecondary}
+          onPress={() => setStep(2)}
+          disabled={isLoading}
+        >
+          <Text style={styles.btnSecondaryText}>Volver</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.btnPrimary, isLoading && styles.btnDisabled]}
+          onPress={handleCrear}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.btnPrimaryText}>Confirmar cita</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
 
   const renderStep = () => {
     switch (step) {

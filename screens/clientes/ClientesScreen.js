@@ -58,28 +58,33 @@ const Avatar = ({ nombre, avatar }) => {
   const colors = ['#9BA6AE', '#8F9AA2', '#A2ADB4', '#90979F', '#9CA5AD'];
   const color = colors[nombre?.length % colors.length] || '#9BA6AE';
 
-  if (avatar && typeof avatar === 'string') {
-    // Si ya viene con prefijo lo dejamos, si no lo agregamos
-    const uri = avatar.startsWith('data:image')
-      ? avatar
-      : `data:image/jpeg;base64,${avatar}`;
+  // Mejor detección de avatares truncados
+  const isAvatarValid = avatar && 
+                       typeof avatar === 'string' && 
+                       avatar.length > 500 && // Mínimo razonable para una imagen
+                       avatar.startsWith('data:image/') &&
+                       !avatar.includes('undefined') &&
+                       !avatar.endsWith('//CABEIAgACUQMBIgACEQEDEQH/');
 
+  if (isAvatarValid) {
     return (
       <Image
-        source={{ uri }}
+        source={{ uri: avatar }}
         style={styles.avatarImage}
-        onError={(e) =>
-          console.log('❌ Error cargando avatar:', e.nativeEvent.error)
-        }
+        onError={(e) => {
+          console.log('❌ Error cargando avatar (posiblemente truncado):', nombre);
+          console.log('Longitud:', avatar.length);
+          console.log('Preview:', avatar.substring(0, 100) + '...');
+        }}
       />
     );
   }
 
-  // Si no hay avatar → mostramos iniciales
+  // Mostrar iniciales si el avatar no es válido
   return (
     <View style={[styles.avatarContainer, { backgroundColor: color }]}>
       <Text style={styles.avatarText}>
-        {nombre?.split(' ').map(p => p[0]).join('').toUpperCase()}
+        {nombre?.split(' ').map(p => p[0]).join('').toUpperCase().substring(0, 2)}
       </Text>
     </View>
   );
@@ -395,48 +400,70 @@ const handleCreateCliente = async () => {
   };
 
 
-  const handleUpdateCliente = async (clienteActualizado) => {
-    try {
-      const token = await AsyncStorage.getItem('token');
-      const { data } = await axios.put(
-        `${BASE_URL}/clientes/${clienteActualizado.id}`,
-        {
-          nombre: clienteActualizado.nombre,
-          telefono: clienteActualizado.telefono,
-          fecha_nacimiento: clienteActualizado.fechaNacimiento?.toISOString().split('T')[0],
-          email: clienteActualizado.email,
-          avatarBase64: clienteActualizado.avatar,
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+const handleUpdateCliente = async (clienteActualizado) => {
+  try {
+    const token = await AsyncStorage.getItem('token');
+    
+    // Preparar los datos para enviar al backend
+    const datosActualizacion = {
+      nombre: clienteActualizado.nombre,
+      telefono: clienteActualizado.telefono,
+      fecha_nacimiento: clienteActualizado.fechaNacimiento?.toISOString().split('T')[0],
+      email: clienteActualizado.email,
+    };
 
-
-      const nuevosClientes = clientes.map(c =>
-        c.id === clienteActualizado.id
-          ? {
-              ...data.cliente,
-              avatar: clienteActualizado.avatar,
-              estaVerificado: clienteActualizado.estaVerificado,
-              email: clienteActualizado.email,
-              usuarioID: clienteActualizado.usuarioID,
-            }
-          : c
-      );
-
-
-      setClientes(nuevosClientes);
-      setClientesFiltrados(nuevosClientes);
-      setModalEditarVisible(false);
-      showInfo('✅ Cliente actualizado', 'Datos modificados correctamente', 'success');
-    } catch (error) {
-      console.error('Error al actualizar cliente:', error);
-      showInfo(
-        'Error',
-        error.response?.data?.mensaje || 'Error al actualizar',
-        'error'
-      );
+    // Solo agregar avatarBase64 si existe y es válido
+    if (clienteActualizado.avatar && 
+        typeof clienteActualizado.avatar === 'string' && 
+        clienteActualizado.avatar.startsWith('data:image/')) {
+      datosActualizacion.avatarBase64 = clienteActualizado.avatar;
     }
-  };
+
+    console.log('Enviando datos de actualización:', {
+      ...datosActualizacion,
+      avatarBase64: datosActualizacion.avatarBase64 ? '[...imagen base64...]' : null
+    });
+
+    // Hacer la petición PUT
+    await axios.put(
+      `${BASE_URL}/clientes/${clienteActualizado.id}`,
+      datosActualizacion,
+      { 
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 30000 // Aumentar timeout para imágenes grandes
+      }
+    );
+
+    // Actualizar el estado local con los nuevos datos
+    const nuevosClientes = clientes.map(c =>
+      c.id === clienteActualizado.id
+        ? {
+            ...c,
+            nombre: clienteActualizado.nombre,
+            telefono: clienteActualizado.telefono,
+            fecha_nacimiento: clienteActualizado.fechaNacimiento?.toISOString().split('T')[0],
+            email: clienteActualizado.email,
+            avatar: clienteActualizado.avatar || c.avatar, // Mantener el avatar anterior si no hay nuevo
+          }
+        : c
+    );
+
+    setClientes(nuevosClientes);
+    setClientesFiltrados(nuevosClientes);
+    setModalEditarVisible(false);
+    
+    showInfo('✅ Cliente actualizado', 'Datos modificados correctamente', 'success');
+  } catch (error) {
+    console.error('Error al actualizar cliente:', error);
+    console.error('Respuesta del error:', error.response?.data);
+    
+    showInfo(
+      'Error',
+      error.response?.data?.mensaje || 'Error al actualizar',
+      'error'
+    );
+  }
+};
 
 
   const reenviarEmailVerificacion = async (id, email) => {

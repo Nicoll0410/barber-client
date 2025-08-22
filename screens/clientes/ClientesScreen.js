@@ -58,31 +58,24 @@ const Avatar = ({ nombre, avatar }) => {
   const colors = ['#9BA6AE', '#8F9AA2', '#A2ADB4', '#90979F', '#9CA5AD'];
   const color = colors[nombre?.length % colors.length] || '#9BA6AE';
 
+  if (avatar && typeof avatar === 'string') {
+    // Si ya viene con prefijo lo dejamos, si no lo agregamos
+    const uri = avatar.startsWith('data:image')
+      ? avatar
+      : `data:image/jpeg;base64,${avatar}`;
 
-  // Verificación mejorada del avatar
-  const hasValidAvatar = avatar &&
-    typeof avatar === 'string' &&
-    avatar.length > 100 && // Asegurar que no sea un string vacío o muy corto
-    (avatar.startsWith('data:image/') ||
-     avatar.startsWith('/9j/') ||  // JPEG
-     avatar.startsWith('iVBORw')); // PNG
-
-
-  if (hasValidAvatar) {
-    // Asegurar que tenga el prefijo data:image si es base64 puro
-    const uri = avatar.startsWith('data:image/') ? avatar : `data:image/jpeg;base64,${avatar}`;
-   
     return (
       <Image
         source={{ uri }}
         style={styles.avatarImage}
-        onError={(e) => console.log('Error cargando avatar:', e.nativeEvent.error)}
+        onError={(e) =>
+          console.log('❌ Error cargando avatar:', e.nativeEvent.error)
+        }
       />
     );
   }
 
-
-  // Mostrar iniciales si no hay avatar válido
+  // Si no hay avatar → mostramos iniciales
   return (
     <View style={[styles.avatarContainer, { backgroundColor: color }]}>
       <Text style={styles.avatarText}>
@@ -91,6 +84,8 @@ const Avatar = ({ nombre, avatar }) => {
     </View>
   );
 };
+
+
 const EstadoVerificacion = ({ verificado }) => (
   <View
     style={[
@@ -332,45 +327,15 @@ console.log('Avatar del primer cliente:', data.clientes[0]?.avatar?.substring(0,
   const handleSearchChange = t => setBusqueda(t);
 
 
-const handleCreateCliente = async (nuevoCliente) => {
+const handleCreateCliente = async () => {
   try {
-    const token = await AsyncStorage.getItem('token');
-    const { data } = await axios.post(
-      `${BASE_URL}/clientes`,
-      {
-        nombre: nuevoCliente.nombre,
-        telefono: nuevoCliente.telefono,
-        fecha_nacimiento: nuevoCliente.fecha_nacimiento,
-        email: nuevoCliente.email,
-        password: nuevoCliente.password,
-        avatarBase64: nuevoCliente.avatarBase64 || null,
-      },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-
-
-    // Asegurar que el avatar se incluya en el cliente creado
-    const clienteConAvatar = {
-      ...data.cliente,
-      avatar: nuevoCliente.avatarBase64, // Usar el avatar original en base64
-      estaVerificado: false,
-      email: nuevoCliente.email,
-      usuarioID: data.cliente.usuarioID,
-    };
-
-
-    setClientes(prev => [...prev, clienteConAvatar]);
-    setClientesFiltrados(prev => [...prev, clienteConAvatar]);
-   
+    // 🔥 En vez de hacer el POST aquí,
+    // simplemente refrescamos desde el backend
+    await fetchClientes();
     setModalCrearVisible(false);
-    showInfo('🎉 ¡Cliente creado!', 'Email de verificación enviado', 'success');
   } catch (error) {
-    console.error('Error al crear cliente:', error);
-    showInfo(
-      'Error',
-      error.response?.data?.mensaje || 'Error al crear cliente',
-      'error'
-    );
+    console.error("Error al refrescar clientes:", error);
+    showInfo("Error", "No se pudo refrescar la lista de clientes", "error");
   }
 };
 

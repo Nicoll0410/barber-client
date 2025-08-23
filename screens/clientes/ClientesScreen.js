@@ -58,13 +58,13 @@ const Avatar = ({ nombre, avatar }) => {
   const colors = ['#9BA6AE', '#8F9AA2', '#A2ADB4', '#90979F', '#9CA5AD'];
   const color = colors[nombre?.length % colors.length] || '#9BA6AE';
 
-  // Mejor detección de avatares truncados
+  // Mejor detección de avatares válidos
   const isAvatarValid = avatar && 
-                       typeof avatar === 'string' && 
-                       avatar.length > 500 && // Mínimo razonable para una imagen
-                       avatar.startsWith('data:image/') &&
-                       !avatar.includes('undefined') &&
-                       !avatar.endsWith('//CABEIAgACUQMBIgACEQEDEQH/');
+                      typeof avatar === 'string' && 
+                      avatar.length > 500 &&
+                      avatar.startsWith('data:image/') &&
+                      !avatar.includes('undefined') &&
+                      !avatar.endsWith('//CABEIAgACUQMBIgACEQEDEQH/');
 
   if (isAvatarValid) {
     return (
@@ -72,9 +72,8 @@ const Avatar = ({ nombre, avatar }) => {
         source={{ uri: avatar }}
         style={styles.avatarImage}
         onError={(e) => {
-          console.log('❌ Error cargando avatar (posiblemente truncado):', nombre);
-          console.log('Longitud:', avatar.length);
-          console.log('Preview:', avatar.substring(0, 100) + '...');
+          console.log('Error cargando avatar:', nombre);
+          // Si falla la carga, mostrar iniciales
         }}
       />
     );
@@ -259,13 +258,26 @@ console.log('Avatar del primer cliente:', data.clientes[0]?.avatar?.substring(0,
       avatar: c.avatar
     })));
    
-    const list = clientesFinales.map(c => ({
-      ...c,
-      estaVerificado: c.usuario?.estaVerificado || false,
-      email: c.usuario?.email || '',
-      usuarioID: c.usuario?.id || null,
-      avatar: c.avatar || null // Asegurar que avatar sea null si no existe
-    }));
+const list = clientesFinales.map(c => {
+  // Limpiar avatar si es inválido - mejor detección
+  let avatar = c.avatar;
+  if (avatar && (
+      typeof avatar !== 'string' || 
+      avatar.includes('undefined') ||
+      (avatar.length < 100 && !avatar.startsWith('data:image/')) ||
+      avatar.endsWith('//CABEIAgACUQMBIgACEQEDEQH/')
+  )) {
+    avatar = null;
+  }
+  
+  return {
+    ...c,
+    avatar: avatar,
+    estaVerificado: c.usuario?.estaVerificado || false,
+    email: c.usuario?.email || '',
+    usuarioID: c.usuario?.id || null,
+  };
+});
    
     setClientes(list);
     setClientesFiltrados(list);
@@ -412,10 +424,11 @@ const handleUpdateCliente = async (clienteActualizado) => {
       email: clienteActualizado.email,
     };
 
-    // Solo agregar avatarBase64 si existe y es válido
+    // Solo agregar avatarBase64 si existe y es válido (diferente del original)
     if (clienteActualizado.avatar && 
         typeof clienteActualizado.avatar === 'string' && 
-        clienteActualizado.avatar.startsWith('data:image/')) {
+        clienteActualizado.avatar.startsWith('data:image/') &&
+        clienteActualizado.avatar !== clienteSeleccionado?.avatar) {
       datosActualizacion.avatarBase64 = clienteActualizado.avatar;
     }
 
@@ -425,31 +438,32 @@ const handleUpdateCliente = async (clienteActualizado) => {
     });
 
     // Hacer la petición PUT
-    await axios.put(
+    const response = await axios.put(
       `${BASE_URL}/clientes/${clienteActualizado.id}`,
       datosActualizacion,
       { 
         headers: { Authorization: `Bearer ${token}` },
-        timeout: 30000 // Aumentar timeout para imágenes grandes
+        timeout: 30000
       }
     );
 
-    // Actualizar el estado local con los nuevos datos
-    const nuevosClientes = clientes.map(c =>
-      c.id === clienteActualizado.id
-        ? {
-            ...c,
-            nombre: clienteActualizado.nombre,
-            telefono: clienteActualizado.telefono,
-            fecha_nacimiento: clienteActualizado.fechaNacimiento?.toISOString().split('T')[0],
-            email: clienteActualizado.email,
-            avatar: clienteActualizado.avatar || c.avatar, // Mantener el avatar anterior si no hay nuevo
-          }
-        : c
-    );
+    // Actualizar el estado local con los nuevos datos del response
+    if (response.data.cliente) {
+      const nuevosClientes = clientes.map(c =>
+        c.id === clienteActualizado.id
+          ? {
+              ...c,
+              ...response.data.cliente,
+              estaVerificado: response.data.cliente.usuario?.estaVerificado || false,
+              email: response.data.cliente.usuario?.email || '',
+            }
+          : c
+      );
 
-    setClientes(nuevosClientes);
-    setClientesFiltrados(nuevosClientes);
+      setClientes(nuevosClientes);
+      setClientesFiltrados(nuevosClientes);
+    }
+
     setModalEditarVisible(false);
     
     showInfo('✅ Cliente actualizado', 'Datos modificados correctamente', 'success');
@@ -459,7 +473,7 @@ const handleUpdateCliente = async (clienteActualizado) => {
     
     showInfo(
       'Error',
-      error.response?.data?.mensaje || 'Error al actualizar',
+      error.response?.data?.mensaje || 'Error al actualizar el cliente',
       'error'
     );
   }

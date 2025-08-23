@@ -81,8 +81,11 @@ const EditarCliente = ({ visible, onClose, cliente, onUpdate }) => {
 const pickImage = async () => {
   try {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permisos requeridos', 'Necesitamos acceso a tus fotos para seleccionar un avatar');
+    if (status !== "granted") {
+      Alert.alert(
+        "Permisos requeridos",
+        "Necesitamos acceso a tus fotos para seleccionar un avatar"
+      );
       return;
     }
 
@@ -90,68 +93,23 @@ const pickImage = async () => {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.3, // REDUCIR CALIDAD a 30% (era 0.7)
-      base64: true,
+      quality: 0.7,
+      base64: true, // Asegurar que se devuelva base64
     });
 
-    if (!result.canceled && result.assets && result.assets[0].base64) {
-      const asset = result.assets[0];
-      
-      // Obtener el tipo MIME correcto de la imagen
-      let mimeType = 'image/jpeg'; // Valor por defecto
-      
-      // Determinar el tipo MIME basado en la URI o usar el tipo proporcionado
-      if (asset.type) {
-        mimeType = asset.type;
-      } else if (asset.uri) {
-        const extension = asset.uri.split('.').pop().toLowerCase();
-        const mimeTypes = {
-          jpg: 'image/jpeg',
-          jpeg: 'image/jpeg',
-          png: 'image/png',
-          gif: 'image/gif',
-          webp: 'image/webp'
-        };
-        mimeType = mimeTypes[extension] || 'image/jpeg';
-      }
-      
-      // Crear la cadena base64 con el formato correcto
-      const base64Image = `data:${mimeType};base64,${asset.base64}`;
-      
-      console.log('Imagen seleccionada - Tipo:', mimeType, 'Longitud:', base64Image.length);
-      
-      // Verificar si la imagen es demasiado grande
-      if (base64Image.length > 100000) { // Más de 100KB
-        Alert.alert(
-          'Imagen muy grande', 
-          'La imagen se redimensionará para optimizar el rendimiento',
-          [{ text: 'Entendido' }]
-        );
-      }
-      
+    if (!result.canceled) {
+      // Usar base64 para consistencia con el backend
+      const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
       setFormData({...formData, avatar: base64Image});
+      console.log("Imagen seleccionada y convertida a base64");
     }
   } catch (error) {
-    console.error('Error al seleccionar imagen:', error);
-    Alert.alert('Error', 'No se pudo seleccionar la imagen');
+    console.error("Error al seleccionar imagen:", error);
+    Alert.alert("Error", "No se pudo seleccionar la imagen");
   }
 };
 
   const handleSubmit = () => {
-    // Validar formato del avatar antes de enviar
-    if (formData.avatar && typeof formData.avatar === 'string') {
-      if (!formData.avatar.startsWith('data:image/')) {
-        Alert.alert('Formato inválido', 'La imagen debe estar en formato base64 válido');
-        return;
-      }
-      
-      // Verificar que sea una imagen base64 completa
-      if (formData.avatar.length < 100) {
-        Alert.alert('Imagen inválida', 'La imagen parece estar incompleta o corrupta');
-        return;
-      }
-    }
-
     if (formData.nombre && formData.telefono && formData.fechaNacimiento && formData.email) {
       onUpdate({
         ...cliente,
@@ -496,7 +454,6 @@ const pickImage = async () => {
     </Modal>
   );
 };
-
 
 const styles = StyleSheet.create({
   modalContainer: {

@@ -147,36 +147,15 @@ const CrearBarbero = ({ visible, onClose, onCreate }) => {
   };
 
   /* ─── imagen ─── */
-// Reemplaza la función pickImage actual por esta:
-const pickImage = async () => {
-  try {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert(
-        "Permisos requeridos",
-        "Necesitamos acceso a tus fotos para seleccionar un avatar"
-      );
-      return;
-    }
-
-    let result = await ImagePicker.launchImageLibraryAsync({
+  const pickImage = async () => {
+    const res = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.7,
-      base64: true,
+      quality: 0.5,
     });
-
-    if (!result.canceled) {
-      const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
-      handleChange("avatar", base64Image);
-      console.log("Imagen seleccionada (tamaño):", result.assets[0].base64.length);
-    }
-  } catch (error) {
-    console.error("Error al seleccionar imagen:", error);
-    Alert.alert("Error", "No se pudo seleccionar la imagen");
-  }
-};
+    if (!res.canceled) handleChange("avatar", res.assets[0].uri);
+  };
 
   /* ─── validación / envío ─── */
   const isEmail = (mail) =>

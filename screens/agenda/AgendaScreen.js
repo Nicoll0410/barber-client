@@ -143,19 +143,22 @@ const AgendaScreen = () => {
     }
   };
 
-  const fetchCitas = async () => {
-    try {
-      setLoading(true);
-      const token = await AsyncStorage.getItem('token');
-      const fecha = formatDateString(selectedDate);
+const fetchCitas = async () => {
+  try {
+    setLoading(true);
+    const token = await AsyncStorage.getItem('token');
+    const fecha = formatDateString(selectedDate);
 
-      const { data } = await axios.get(
-        `http://localhost:8080/citas/diary?fecha=${fecha}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+    const { data } = await axios.get(
+      `http://localhost:8080/citas/diary?fecha=${fecha}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
-      const transformed = data.flatMap(barbero =>
-        barbero.schedule.map(cita => {
+    // Filtrar solo citas que no estén canceladas
+    const transformed = data.flatMap(barbero =>
+      barbero.schedule
+        .filter(cita => cita.estado !== "Cancelada") // ← FILTRAR CITAS CANCELADAS
+        .map(cita => {
           const fechaCita = new Date(`${fecha}T00:00:00`);
           return {
             id: cita.id,
@@ -189,16 +192,16 @@ const AgendaScreen = () => {
             estado: cita.estado,
           };
         })
-      );
+    );
 
-      setCitas(transformed);
-    } catch (err) {
-      console.error('Error al obtener citas:', err);
-      Alert.alert('Error', 'No se pudieron cargar las citas');
-    } finally {
-      setLoading(false);
-    }
-  };
+    setCitas(transformed);
+  } catch (err) {
+    console.error('Error al obtener citas:', err);
+    Alert.alert('Error', 'No se pudieron cargar las citas');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const fetchInformationForCreate = async () => {
     try {

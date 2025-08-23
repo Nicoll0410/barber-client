@@ -178,30 +178,39 @@ const CitasScreen = () => {
   const totalPags  = Math.max(1, Math.ceil(filtradas.length / porPagina));
 
   /* ---------------- Cancelar cita ---------------------- */
-  const cancelarCita = async () => {
-    if (!citaACancelar) return;
+const cancelarCita = async () => {
+  if (!citaACancelar) return;
+  
+  try {
+    const token = await AsyncStorage.getItem('token');
+    const response = await axios.put(
+      `${API}/citas/cancelar-cita/${citaACancelar.id}`, 
+      {},
+      {
+        headers: { Authorization: `Bearer ${token}` }
+      }
+    );
     
-    try {
-      const token = await AsyncStorage.getItem('token');
-      await axios.put(
-        `${API}/citas/cancelar-cita/${citaACancelar.id}`, 
-        {},
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
-      
-      fetchCitas();
-      setShowCancelModal(false);
-      setCitaACancelar(null);
-      
-    } catch (error) {
-      Alert.alert(
-        "Error", 
-        error.response?.data?.mensaje || "Error al cancelar la cita"
-      );
-    }
-  };
+    // Actualizar lista de citas
+    await fetchCitas();
+    
+    // Mostrar mensaje de éxito
+    Alert.alert(
+      "Éxito", 
+      response.data.mensaje || "Cita cancelada correctamente"
+    );
+    
+    setShowCancelModal(false);
+    setCitaACancelar(null);
+    
+  } catch (error) {
+    console.error("Error al cancelar cita:", error);
+    Alert.alert(
+      "Error", 
+      error.response?.data?.mensaje || "Error al cancelar la cita"
+    );
+  }
+};
 
   /* -------------------- UI ------------------------------ */
   if (loading) {

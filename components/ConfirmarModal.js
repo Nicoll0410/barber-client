@@ -1,109 +1,160 @@
 import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Platform } from 'react-native';
-import { Modal } from 'react-native';
+import { 
+  StyleSheet, 
+  View, 
+  Text, 
+  TouchableOpacity, 
+  Modal,
+  Platform 
+} from 'react-native';
 import { BlurView } from 'expo-blur';
+import { MaterialIcons } from '@expo/vector-icons';
 
-const ConfirmModal = ({
+const ConfirmarModal = ({
   visible,
-  title,
-  message,
-  confirmLabel = 'Eliminar',
-  cancelLabel = 'Cancelar',
-  onCancel,
+  onClose,
   onConfirm,
-}) => (
-  <Modal
-    transparent
-    animationType="fade"
-    visible={visible}
-    onRequestClose={onCancel}
-  >
-    {/* ---------- Fondo con blur ---------- */}
-    <BlurView
-      intensity={20}
-      tint="dark"
-      style={styles.overlay}
+  titulo = "Confirmar acción",
+  mensaje = "¿Estás seguro de que quieres realizar esta acción?",
+  textoConfirmar = "Confirmar",
+  textoCancelar = "Cancelar",
+  tipo = "normal", // normal, peligro
+  icono = "question" // question, danger, warning
+}) => {
+  const getIcon = () => {
+    switch (icono) {
+      case 'danger':
+        return <MaterialIcons name="error-outline" size={32} color="#F44336" />;
+      case 'warning':
+        return <MaterialIcons name="warning" size={32} color="#FF9800" />;
+      default:
+        return <MaterialIcons name="help-outline" size={32} color="#2196F3" />;
+    }
+  };
+
+  const getConfirmButtonStyle = () => {
+    return tipo === 'peligro' 
+      ? styles.confirmButtonDanger 
+      : styles.confirmButtonNormal;
+  };
+
+  return (
+    <Modal
+      transparent
+      animationType="fade"
+      visible={visible}
+      onRequestClose={onClose}
     >
-      {/* ---------- Caja ---------- */}
-      <View style={styles.modal}>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.message}>{message}</Text>
+      <View style={styles.overlay}>
+        <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+        
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            {/* Icono */}
+            <View style={styles.iconContainer}>
+              {getIcon()}
+            </View>
 
-        <View style={styles.btnGroup}>
-          <TouchableOpacity style={styles.cancelBtn} onPress={onCancel}>
-            <Text style={styles.cancelTxt}>{cancelLabel}</Text>
-          </TouchableOpacity>
+            {/* Título */}
+            <Text style={styles.titulo}>{titulo}</Text>
+            
+            {/* Mensaje */}
+            <Text style={styles.mensaje}>{mensaje}</Text>
 
-          <TouchableOpacity style={styles.confirmBtn} onPress={onConfirm}>
-            <Text style={styles.confirmTxt}>{confirmLabel}</Text>
-          </TouchableOpacity>
+            {/* Botones */}
+            <View style={styles.botonesContainer}>
+              <TouchableOpacity 
+                style={[styles.boton, styles.cancelButton]}
+                onPress={onClose}
+              >
+                <Text style={styles.cancelButtonText}>{textoCancelar}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.boton, getConfirmButtonStyle()]}
+                onPress={onConfirm}
+              >
+                <Text style={styles.confirmButtonText}>{textoConfirmar}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       </View>
-    </BlurView>
-  </Modal>
-);
-
-export default ConfirmModal;
+    </Modal>
+  );
+};
 
 const styles = StyleSheet.create({
-  /* ---------- overlay ---------- */
   overlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
-
-  /* ---------- caja ---------- */
-  modal: {
-    width: '80%',
+  modalContainer: {
+    width: '85%',
     maxWidth: 400,
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 16,
     padding: 24,
-    elevation: 4,
+    alignItems: 'center',
   },
-
-  /* ---------- textos ---------- */
-  title: {
+  iconContainer: {
+    marginBottom: 16,
+  },
+  titulo: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#424242',
-    marginBottom: 10,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 8,
   },
-  message: {
-    fontSize: 17,
-    color: '#616161',
-    marginBottom: 28,
+  mensaje: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 22,
   },
-
-  /* ---------- botones ---------- */
-  btnGroup: {
+  botonesContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    width: '100%',
+    gap: 12,
   },
-  cancelBtn: {
+  boton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#E0E0E0',
+    borderWidth: 1,
+    borderColor: '#BDBDBD',
+  },
+  confirmButtonNormal: {
     backgroundColor: '#424242',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 6,
-    flex: 1,
-    marginRight: 10,
   },
-  cancelTxt: {
-    color: '#ffffff',
+  confirmButtonDanger: {
+    backgroundColor: '#F44336',
+  },
+  cancelButtonText: {
+    color: '#424242',
     fontWeight: '600',
-    textAlign: 'center',
+    fontSize: 16,
   },
-  confirmBtn: {
-    backgroundColor: '#d32f2f',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 6,
-    flex: 1,
-  },
-  confirmTxt: {
-    color: '#ffffff',
+  confirmButtonText: {
+    color: 'white',
     fontWeight: '600',
-    textAlign: 'center',
+    fontSize: 16,
   },
 });
+
+export default ConfirmarModal;

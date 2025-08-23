@@ -45,26 +45,41 @@
     !v ? null : v instanceof Date ? v.toISOString().split('T')[0] : v.split('T')[0];
 
   /* ╔══════════════╗  Sub‑componentes  ╚══════════════╝ */
-  const Avatar = ({ nombre, avatar }) => {
-    const colors = ['#9BA6AE', '#8F9AA2', '#A2ADB4', '#90979F', '#9CA5AD'];
-    const color = colors[nombre?.length % colors.length] || '#9BA6AE';
+const Avatar = ({ nombre, avatar }) => {
+  const colors = ['#9BA6AE', '#8F9AA2', '#A2ADB4', '#90979F', '#9CA5AD'];
+  const color = colors[nombre?.length % colors.length] || '#9BA6AE';
 
-    if (avatar)
-      return (
-        <Image
-          source={{ uri: avatar }}
-          style={[styles.avatarContainer, { backgroundColor: '#f0f0f0' }]}
-        />
-      );
+  // Mejor detección de avatares truncados (igual que en clientes)
+  const isAvatarValid = avatar && 
+                       typeof avatar === 'string' && 
+                       avatar.length > 500 && // Mínimo razonable para una imagen
+                       avatar.startsWith('data:image/') &&
+                       !avatar.includes('undefined') &&
+                       !avatar.endsWith('//CABEIAgACUQMBIgACEQEDEQH/');
 
+  if (isAvatarValid) {
     return (
-      <View style={[styles.avatarContainer, { backgroundColor: color }]}>
-        <Text style={styles.avatarText}>
-          {nombre?.split(' ').map((p) => p[0]).join('').toUpperCase()}
-        </Text>
-      </View>
+      <Image
+        source={{ uri: avatar }}
+        style={styles.avatarImage}
+        onError={(e) => {
+          console.log('❌ Error cargando avatar (posiblemente truncado):', nombre);
+          console.log('Longitud:', avatar.length);
+          console.log('Preview:', avatar.substring(0, 100) + '...');
+        }}
+      />
     );
-  };
+  }
+
+  // Mostrar iniciales si el avatar no es válido
+  return (
+    <View style={[styles.avatarContainer, { backgroundColor: color }]}>
+      <Text style={styles.avatarText}>
+        {nombre?.split(' ').map(p => p[0]).join('').toUpperCase().substring(0, 2)}
+      </Text>
+    </View>
+  );
+};
 
   const EstadoVerificacion = ({ verificado }) => (
     <View
@@ -195,7 +210,7 @@ const RolBarbero = ({ rol }) => (
     };
 
     /* —— fetch desde backend —— */
-/* —— fetch desde backend —— */
+
 const fetchBarberos = async () => {
   try {
     if (!refreshing) setLoading(true);
@@ -203,33 +218,41 @@ const fetchBarberos = async () => {
     const { data } = await axios.get('http://localhost:8080/barberos', {
       headers: { Authorization: `Bearer ${token}` },
       params: { 
-        all: true,  // Aseguramos que se envíe el parámetro all
+        all: true,
         search: busqueda 
       },
     });
 
-    console.log('Datos recibidos del backend:', data); // Log para depuración
+    console.log('Datos recibidos de barberos:', data);
     
-    // Manejar tanto la respuesta paginada como la completa
     const listaBarberos = data.barberos || data;
     const barberosFinales = Array.isArray(listaBarberos) ? 
       listaBarberos : 
       listaBarberos.barberos || [];
 
-    const list = barberosFinales.map((b) => ({
-      id: b.id,
-      nombre: b.nombre,
-      cedula: b.cedula,
-      telefono: b.telefono,
-      fecha_nacimiento: b.fecha_nacimiento,
-      fecha_de_contratacion: b.fecha_de_contratacion,
-      avatar: b.avatar,
-      usuarioID: b.usuarioID,
-      estaVerificado: b.usuario?.estaVerificado || false,
-      email: b.usuario?.email || '',
-      rol: b.usuario?.rol?.nombre || 'BARBERO',
-      rolID: b.usuario?.rol?.id || 2,
-    }));
+    // Procesar avatares como en clientes
+    const list = barberosFinales.map((b) => {
+      // Limpiar avatar si es inválido
+      let avatar = b.avatar;
+      if (avatar && (typeof avatar !== 'string' || avatar.includes('undefined'))) {
+        avatar = null;
+      }
+      
+      return {
+        id: b.id,
+        nombre: b.nombre,
+        cedula: b.cedula,
+        telefono: b.telefono,
+        fecha_nacimiento: b.fecha_nacimiento,
+        fecha_de_contratacion: b.fecha_de_contratacion,
+        avatar: avatar, // Usar el avatar procesado
+        usuarioID: b.usuarioID,
+        estaVerificado: b.usuario?.estaVerificado || false,
+        email: b.usuario?.email || '',
+        rol: b.usuario?.rol?.nombre || 'BARBERO',
+        rolID: b.usuario?.rol?.id || 2,
+      };
+    });
 
     setBarberos(list);
   } catch (err) {
@@ -378,32 +401,42 @@ const fetchBarberos = async () => {
     };
 
     /* actualizar */
-    const handleUpdateBarbero = async (u) => {
-      try {
-        const token = await AsyncStorage.getItem('token');
-        await axios.put(
-          `http://localhost:8080/barberos/${u.id}`,
-          {
-            nombre: u.nombre,
-            cedula: u.cedula,
-            telefono: u.telefono,
-            fecha_nacimiento: toYMD(u.fechaNacimiento),
-            fecha_de_contratacion: toYMD(u.fechaContratacion),
-            avatar: u.avatar,
-            email: u.email,
-            rolID: u.rolID || (u.rol === 'ADMIN' ? 1 : 2),
-          },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-
-        setModalEditarVisible(false);
-        await fetchBarberos();
-        showInfo('✅ Barbero actualizado', 'Datos modificados correctamente', 'success');
-      } catch (e) {
-        const msg = e.response?.data?.mensaje || 'Error al actualizar';
-        showInfo('Error', msg, 'error');
-      }
+const handleUpdateBarbero = async (u) => {
+  try {
+    const token = await AsyncStorage.getItem('token');
+    
+    // Preparar datos para actualización (incluyendo avatar si existe)
+    const datosActualizacion = {
+      nombre: u.nombre,
+      cedula: u.cedula,
+      telefono: u.telefono,
+      fecha_nacimiento: toYMD(u.fechaNacimiento),
+      fecha_de_contratacion: toYMD(u.fechaContratacion),
+      email: u.email,
+      rolID: u.rolID || (u.rol === 'ADMIN' ? 1 : 2),
     };
+
+    // Solo agregar avatar si existe y es válido
+    if (u.avatar && 
+        typeof u.avatar === 'string' && 
+        u.avatar.startsWith('data:image/')) {
+      datosActualizacion.avatar = u.avatar;
+    }
+
+    await axios.put(
+      `http://localhost:8080/barberos/${u.id}`,
+      datosActualizacion,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    setModalEditarVisible(false);
+    await fetchBarberos();
+    showInfo('✅ Barbero actualizado', 'Datos modificados correctamente', 'success');
+  } catch (e) {
+    const msg = e.response?.data?.mensaje || 'Error al actualizar';
+    showInfo('Error', msg, 'error');
+  }
+};
 
     /* reenviar verificación */
     const reenviarEmailVerificacion = async (id) => {
@@ -697,6 +730,12 @@ const fetchBarberos = async () => {
     /* Avatar */
     avatarContainer: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
     avatarText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+    avatarImage: {
+  width: 40,
+  height: 40,
+  borderRadius: 20,
+  resizeMode: 'cover'
+},
 
     /* Estado */
     estadoContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 4, paddingHorizontal: 8, borderRadius: 12, alignSelf: 'center' },

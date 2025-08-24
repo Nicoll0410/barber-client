@@ -189,71 +189,78 @@ const CrearCita = ({
     }
   };
 
-  const handleCrear = async () => {
+const handleCrear = async () => {
     console.log("Iniciando creación de cita...");
     
     try {
-      setIsLoading(true);
+        setIsLoading(true);
 
-      if (!servicioSel || !barbero) {
-        throw new Error("Falta información del servicio o barbero");
-      }
-
-      if (!isTemporal && !clienteSel) {
-        throw new Error("Debes seleccionar un cliente");
-      }
-      if (isTemporal && !temporalNombre.trim()) {
-        throw new Error("El nombre del cliente temporal es requerido");
-      }
-
-      const fechaFormateada = `${fecha.getFullYear()}-${(fecha.getMonth() + 1)
-        .toString()
-        .padStart(2, "0")}-${fecha.getDate().toString().padStart(2, "0")}`;
-
-      let horaInicio24 = convertirHora24(slot.displayTime);
-      if (!horaInicio24.includes(":")) {
-        horaInicio24 = `${horaInicio24}:00`;
-      } else if (horaInicio24.split(":").length === 2) {
-        horaInicio24 = `${horaInicio24}:00`;
-      }
-
-      const duracionMinutos = convertirDuracionAMinutos(
-        servicioSel.duracionMaxima
-      );
-      const horaFin24 = calcularHoraFin(horaInicio24, duracionMinutos);
-
-      const citaData = {
-        barberoID: barbero.id,
-        servicioID: servicioSel.id,
-        fecha: fechaFormateada,
-        hora: horaInicio24,
-        horaFin: `${horaFin24}:00`,
-        direccion: "En barbería",
-        estado: "Pendiente",
-        duracionReal: servicioSel.duracionMaxima || "00:30:00",
-        duracionRedondeada: `${Math.floor(duracionMinutos / 60)}:${(
-          duracionMinutos % 60
-        )
-          .toString()
-          .padStart(2, "0")}:00`,
-      };
-
-      if (isTemporal) {
-        citaData.pacienteTemporalNombre = temporalNombre.trim();
-        if (temporalTelefono.trim()) {
-          citaData.pacienteTemporalTelefono = temporalTelefono.trim();
+        if (!servicioSel || !barbero) {
+            throw new Error("Falta información del servicio o barbero");
         }
-      } else {
-        // CORREGIDO: Enviar como pacienteID en lugar de clienteID
-        citaData.pacienteID = clienteSel.id;
-      }
 
-      const token = await AsyncStorage.getItem("token");
-      if (!token) {
-        throw new Error("No se encontró el token de autenticación");
-      }
+        if (!isTemporal && !clienteSel) {
+            throw new Error("Debes seleccionar un cliente");
+        }
+        if (isTemporal && !temporalNombre.trim()) {
+            throw new Error("El nombre del cliente temporal es requerido");
+        }
 
-      console.log("Enviando datos al servidor:", JSON.stringify(citaData, null, 2));
+        const fechaFormateada = `${fecha.getFullYear()}-${(fecha.getMonth() + 1)
+            .toString()
+            .padStart(2, "0")}-${fecha.getDate().toString().padStart(2, "0")}`;
+
+        let horaInicio24 = convertirHora24(slot.displayTime);
+        if (!horaInicio24.includes(":")) {
+            horaInicio24 = `${horaInicio24}:00`;
+        } else if (horaInicio24.split(":").length === 2) {
+            horaInicio24 = `${horaInicio24}:00`;
+        }
+
+        const duracionMinutos = convertirDuracionAMinutos(
+            servicioSel.duracionMaxima
+        );
+        const horaFin24 = calcularHoraFin(horaInicio24, duracionMinutos);
+
+        const citaData = {
+            barberoID: barbero.id,
+            servicioID: servicioSel.id,
+            fecha: fechaFormateada,
+            hora: horaInicio24,
+            horaFin: `${horaFin24}:00`,
+            direccion: "En barbería",
+            estado: "Confirmada", // Cambiado de "Pendiente" a "Confirmada"
+            duracionReal: servicioSel.duracionMaxima || "00:30:00",
+            duracionRedondeada: `${Math.floor(duracionMinutos / 60)}:${(
+                duracionMinutos % 60
+            )
+                .toString()
+                .padStart(2, "0")}:00`,
+        };
+
+        // CORRECCIÓN IMPORTANTE: Manejo correcto de cliente temporal vs registrado
+        if (isTemporal) {
+            // Para cliente temporal: solo enviar campos temporales
+            citaData.pacienteTemporalNombre = temporalNombre.trim();
+            if (temporalTelefono.trim()) {
+                citaData.pacienteTemporalTelefono = temporalTelefono.trim();
+            }
+            // Asegurar que pacienteID no se envíe para clientes temporales
+            delete citaData.pacienteID;
+        } else {
+            // Para cliente registrado: solo enviar pacienteID
+            citaData.pacienteID = clienteSel.id;
+            // Asegurar que campos temporales no se envíen
+            delete citaData.pacienteTemporalNombre;
+            delete citaData.pacienteTemporalTelefono;
+        }
+
+        console.log("Datos a enviar al servidor:", JSON.stringify(citaData, null, 2));
+
+        const token = await AsyncStorage.getItem("token");
+        if (!token) {
+            throw new Error("No se encontró el token de autenticación");
+        }
       
       const response = await axios.post(
         "http://localhost:8080/citas",

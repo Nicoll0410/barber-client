@@ -1,7 +1,7 @@
 /* ───────────────────────────────────────────────────────────
-   screens/ventas/DetalleVenta.js
-   Modal con la información de una venta
-   ─────────────────────────────────────────────────────────── */
+    screens/ventas/DetalleVenta.js
+    Modal con la información de una venta
+    ─────────────────────────────────────────────────────────── */
 import React from "react";
 import {
   Modal,
@@ -34,11 +34,13 @@ const DetalleVenta = ({ visible, onClose, venta }) => {
   };
   const formatoHora = (hhmmss) => (hhmmss ? hhmmss.slice(0, 5) : "--:--");
 
-  /* datos provenientes del backend */
-  const cliente     = venta.cliente?.nombre     || "No especificado";
-  const profesional = venta.barbero?.nombre     || "No especificado";
-  const servicioNom = venta.servicio?.nombre    || "Servicio no especificado";
-  const precio      = venta.servicio?.precio ?? venta.total ?? 0;
+  /* datos provenientes del backend - NUEVA ESTRUCTURA */
+  const cliente = venta.cliente_nombre || "No especificado";
+  const profesional = venta.barbero_nombre || "No especificado";
+  const servicioNom = venta.servicio_nombre || "Servicio no especificado";
+  const precioServicio = venta.servicio_precio || 0;
+  const descuento = venta.descuento || 0;
+  const total = venta.total || 0;
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
@@ -72,10 +74,55 @@ const DetalleVenta = ({ visible, onClose, venta }) => {
                   />
                   <Text
                     style={[styles.value, isMobile && styles.valueMobile]}
-                  >{`${formatFecha(venta.fecha)} – ${formatoHora(
-                    venta.hora
+                  >{`${formatFecha(venta.fecha_cita)} – ${formatoHora(
+                    venta.hora_cita
                   )}`}</Text>
                 </View>
+
+                <View style={styles.detailRow}>
+                  <MaterialIcons
+                    name="event"
+                    size={isMobile ? 20 : 18}
+                    color="#555"
+                    style={styles.icono}
+                  />
+                  <Text style={[styles.value, isMobile && styles.valueMobile]}>
+                    Fecha de venta: {new Date(venta.fecha_venta).toLocaleDateString("es-ES")}
+                  </Text>
+                </View>
+
+                <View style={styles.detailRow}>
+                  <MaterialIcons
+                    name="receipt"
+                    size={isMobile ? 20 : 18}
+                    color="#555"
+                    style={styles.icono}
+                  />
+                  <Text style={[styles.value, isMobile && styles.valueMobile]}>
+                    ID de venta: {venta.id}
+                  </Text>
+                </View>
+
+                {venta.cita_id && (
+                  <View style={styles.detailRow}>
+                    <MaterialIcons
+                      name="event-note"
+                      size={isMobile ? 20 : 18}
+                      color="#555"
+                      style={styles.icono}
+                    />
+                    <Text style={[styles.value, isMobile && styles.valueMobile]}>
+                      ID de cita: {venta.cita_id}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              {/* información financiera */}
+              <View style={[styles.item, isMobile && styles.itemMobile]}>
+                <Text style={[styles.label, isMobile && styles.labelMobile]}>
+                  Información Financiera
+                </Text>
 
                 <View style={styles.detailRow}>
                   <MaterialIcons
@@ -84,24 +131,48 @@ const DetalleVenta = ({ visible, onClose, venta }) => {
                     color="#555"
                     style={styles.icono}
                   />
-                  <Text
-                    style={[styles.value, isMobile && styles.valueMobile]}
-                  >{`Total: $${precio.toLocaleString("es-CO")}`}</Text>
+                  <Text style={[styles.value, isMobile && styles.valueMobile]}>
+                    Precio servicio: ${precioServicio.toLocaleString("es-CO")}
+                  </Text>
                 </View>
 
-                {venta.descuento && (
+                {descuento > 0 && (
                   <View style={styles.detailRow}>
                     <MaterialIcons
                       name="money-off"
                       size={isMobile ? 20 : 18}
-                      color="#555"
+                      color="#E53935"
                       style={styles.icono}
                     />
-                    <Text
-                      style={[styles.value, isMobile && styles.valueMobile]}
-                    >{`Descuento: ${venta.descuento}`}</Text>
+                    <Text style={[styles.value, isMobile && styles.valueMobile, { color: '#E53935' }]}>
+                      Descuento: -${descuento.toLocaleString("es-CO")}
+                    </Text>
                   </View>
                 )}
+
+                <View style={styles.detailRow}>
+                  <MaterialIcons
+                    name="payments"
+                    size={isMobile ? 20 : 18}
+                    color="#4CAF50"
+                    style={styles.icono}
+                  />
+                  <Text style={[styles.value, isMobile && styles.valueMobile, { color: '#4CAF50', fontWeight: 'bold' }]}>
+                    Total pagado: ${total.toLocaleString("es-CO")}
+                  </Text>
+                </View>
+
+                <View style={styles.detailRow}>
+                  <MaterialIcons
+                    name="assignment-turned-in"
+                    size={isMobile ? 20 : 18}
+                    color="#555"
+                    style={styles.icono}
+                  />
+                  <Text style={[styles.value, isMobile && styles.valueMobile]}>
+                    Estado: {venta.estado || "Completada"}
+                  </Text>
+                </View>
               </View>
 
               {/* servicio */}
@@ -142,9 +213,10 @@ const DetalleVenta = ({ visible, onClose, venta }) => {
                         {cliente.charAt(0).toUpperCase()}
                       </Text>
                     </View>
-                    <Text style={styles.participanteNombre}>
-                      Cliente: {cliente}
-                    </Text>
+                    <View style={styles.participanteInfo}>
+                      <Text style={styles.participanteTitulo}>Cliente</Text>
+                      <Text style={styles.participanteNombre}>{cliente}</Text>
+                    </View>
                   </View>
 
                   <View style={styles.participante}>
@@ -153,9 +225,10 @@ const DetalleVenta = ({ visible, onClose, venta }) => {
                         {profesional.charAt(0).toUpperCase()}
                       </Text>
                     </View>
-                    <Text style={styles.participanteNombre}>
-                      Barbero: {profesional}
-                    </Text>
+                    <View style={styles.participanteInfo}>
+                      <Text style={styles.participanteTitulo}>Barbero</Text>
+                      <Text style={styles.participanteNombre}>{profesional}</Text>
+                    </View>
                   </View>
                 </View>
               </View>
@@ -182,7 +255,7 @@ const styles = StyleSheet.create({
     padding: isMobile ? 20 : 0,
   },
   modal: {
-    width: isMobile ? '100%' : '40%',
+    width: isMobile ? '100%' : '50%',
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: isMobile ? 24 : 20,
@@ -218,61 +291,56 @@ const styles = StyleSheet.create({
   },
   item: {
     marginBottom: isMobile ? 16 : 14,
+    padding: isMobile ? 16 : 12,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#eee',
   },
   itemMobile: {
     marginBottom: 18,
   },
   label: {
-    fontSize: isMobile ? 15 : 14,
+    fontSize: isMobile ? 16 : 15,
     fontWeight: '600',
-    color: '#555',
-    marginBottom: isMobile ? 6 : 4,
+    color: '#333',
+    marginBottom: isMobile ? 12 : 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+    paddingBottom: 4,
   },
   labelMobile: {
-    fontSize: 16,
+    fontSize: 17,
   },
   value: {
-    fontSize: isMobile ? 16 : 16,
+    fontSize: isMobile ? 16 : 15,
     color: '#222',
-    fontWeight: isMobile ? '500' : '400',
-    paddingLeft: isMobile ? 8 : 0,
+    fontWeight: '400',
     lineHeight: 20,
   },
   valueMobile: {
     fontSize: 17,
-    paddingVertical: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   textoNegrita: {
     fontWeight: 'bold',
+    fontSize: isMobile ? 17 : 16,
+    marginBottom: 4,
   },
   textoDescripcion: {
     fontSize: isMobile ? 14 : 14,
     color: '#777',
+    fontStyle: 'italic',
   },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: isMobile ? 10 : 8,
+    paddingVertical: 4,
   },
   icono: {
     marginRight: 10,
     width: 20,
     textAlign: 'center',
-  },
-  precioContainer: {
-    backgroundColor: 'rgba(76, 175, 80, 0.2)',
-    borderRadius: 15,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    alignSelf: 'flex-start',
-    marginTop: 6,
-  },
-  precio: {
-    fontSize: isMobile ? 16 : 16,
-    fontWeight: 'bold',
-    color: '#2e7d32',
   },
   participantesContainer: {
     flexDirection: 'column',
@@ -281,19 +349,32 @@ const styles = StyleSheet.create({
   participante: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: isMobile ? 12 : 10,
-    justifyContent: 'space-between',
+    marginBottom: isMobile ? 16 : 12,
+    padding: isMobile ? 12 : 10,
+    backgroundColor: 'white',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
+  participanteInfo: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  participanteTitulo: {
+    fontSize: isMobile ? 12 : 11,
+    color: '#666',
+    fontWeight: '500',
+    marginBottom: 2,
   },
   participanteNombre: {
     fontSize: isMobile ? 15 : 14,
     color: '#333',
-    marginHorizontal: 8,
-    flex: 1,
+    fontWeight: '500',
   },
   avatar: {
-    width: isMobile ? 36 : 30,
-    height: isMobile ? 36 : 30,
-    borderRadius: isMobile ? 18 : 15,
+    width: isMobile ? 40 : 36,
+    height: isMobile ? 40 : 36,
+    borderRadius: isMobile ? 20 : 18,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -306,7 +387,7 @@ const styles = StyleSheet.create({
   avatarText: {
     color: 'white',
     fontWeight: 'bold',
-    fontSize: isMobile ? 16 : 14,
+    fontSize: isMobile ? 18 : 16,
   },
   cerrar: {
     marginTop: isMobile ? 24 : 20,

@@ -80,10 +80,10 @@ const VentasScreen = () => {
     } else {
       const term = busqueda.toLowerCase();
       const filtradas = ventas.filter((v) => {
-        const cliente = v.cliente?.nombre?.toLowerCase() || "";
-        const servicio = v.servicio?.nombre?.toLowerCase() || "";
-        const barbero = v.barbero?.nombre?.toLowerCase() || "";
-        const fecha = v.fecha?.toLowerCase() || "";
+        const cliente = v.cliente_nombre?.toLowerCase() || "";
+        const servicio = v.servicio_nombre?.toLowerCase() || "";
+        const barbero = v.barbero_nombre?.toLowerCase() || "";
+        const fecha = v.fecha_cita?.toLowerCase() || "";
         return (
           cliente.includes(term) ||
           servicio.includes(term) ||
@@ -93,10 +93,9 @@ const VentasScreen = () => {
       });
       setVentasFiltradas(filtradas);
     }
-    setPagina(1); // Resetear a primera página al buscar
+    setPagina(1);
   }, [busqueda, ventas]);
 
-  // Cálculos para paginación
   const idxStart = (pagina - 1) * porPagina;
   const ventasPaginadas = isMobile ? ventasFiltradas : ventasFiltradas.slice(idxStart, idxStart + porPagina);
   const totalPags = Math.max(1, Math.ceil(ventasFiltradas.length / porPagina));
@@ -123,16 +122,15 @@ const VentasScreen = () => {
       <View style={styles.cardHeader}>
         <View style={styles.cardHeaderText}>
           <Text style={styles.cardTitle}>
-            {item.cliente?.nombre || "Cliente sin nombre"}
+            {item.cliente_nombre || "Cliente sin nombre"}
           </Text>
           <Text style={styles.cardSubtitle}>
-            {formatFecha(item.fecha)} – {formatoHora(item.hora)}
+            {formatFecha(item.fecha_cita)} – {formatoHora(item.hora_cita)}
           </Text>
         </View>
         <View style={styles.precioContainer}>
           <Text style={styles.textoPrecio}>
-            $
-            {(item.servicio?.precio ?? item.total ?? 0).toLocaleString("es-CO")}
+            ${(item.total || 0).toLocaleString("es-CO")}
           </Text>
         </View>
       </View>
@@ -140,14 +138,28 @@ const VentasScreen = () => {
       <View style={styles.cardInfoRow}>
         <Text style={styles.cardLabel}>Servicio:</Text>
         <Text style={styles.cardValue}>
-          {item.servicio?.nombre || "—"}
+          {item.servicio_nombre || "—"}
         </Text>
       </View>
 
       <View style={styles.cardInfoRow}>
         <Text style={styles.cardLabel}>Barbero:</Text>
         <Text style={styles.cardValue}>
-          {item.barbero?.nombre || "—"}
+          {item.barbero_nombre || "—"}
+        </Text>
+      </View>
+
+      <View style={styles.cardInfoRow}>
+        <Text style={styles.cardLabel}>Precio servicio:</Text>
+        <Text style={styles.cardValue}>
+          ${(item.servicio_precio || 0).toLocaleString("es-CO")}
+        </Text>
+      </View>
+
+      <View style={styles.cardInfoRow}>
+        <Text style={styles.cardLabel}>Descuento:</Text>
+        <Text style={[styles.cardValue, { color: '#E53935' }]}>
+          -${(item.descuento || 0).toLocaleString("es-CO")}
         </Text>
       </View>
 
@@ -165,26 +177,30 @@ const VentasScreen = () => {
   const renderDesktopItem = ({ item }) => (
     <View style={styles.fila}>
       <View style={[styles.celda, styles.columnaFecha]}>
-        <Text style={styles.textoNombre}>{formatFecha(item.fecha)}</Text>
+        <Text style={styles.textoNombre}>{formatFecha(item.fecha_cita)}</Text>
       </View>
       <View style={[styles.celda, styles.columnaHora]}>
-        <Text style={styles.textoNombre}>{formatoHora(item.hora)}</Text>
+        <Text style={styles.textoNombre}>{formatoHora(item.hora_cita)}</Text>
       </View>
       <View style={[styles.celda, styles.columnaCliente]}>
         <Text style={styles.textoNombre}>
-          {item.cliente?.nombre || "—"}
+          {item.cliente_nombre || "—"}
         </Text>
       </View>
       <View style={[styles.celda, styles.columnaServicio]}>
         <Text style={styles.textoServicio}>
-          {item.servicio?.nombre || "—"}
+          {item.servicio_nombre || "—"}
+        </Text>
+      </View>
+      <View style={[styles.celda, styles.columnaBarbero]}>
+        <Text style={styles.textoNombre}>
+          {item.barbero_nombre || "—"}
         </Text>
       </View>
       <View style={[styles.celda, styles.columnaPrecio]}>
         <View style={styles.precioContainer}>
           <Text style={styles.textoPrecio}>
-            $
-            {(item.servicio?.precio ?? item.total ?? 0).toLocaleString("es-CO")}
+            ${(item.total || 0).toLocaleString("es-CO")}
           </Text>
         </View>
       </View>
@@ -211,7 +227,7 @@ const VentasScreen = () => {
       </View>
 
       <Buscador
-        placeholder="🔍 Buscar ventas (cliente, servicio, profesional, fecha)"
+        placeholder="Buscar ventas (cliente, servicio, barbero, fecha)"
         value={busqueda}
         onChangeText={setBusqueda}
       />
@@ -253,6 +269,9 @@ const VentasScreen = () => {
               </View>
               <View style={[styles.celdaEncabezado, styles.columnaServicio]}>
                 <Text style={styles.encabezado}>💈 Servicio</Text>
+              </View>
+              <View style={[styles.celdaEncabezado, styles.columnaBarbero]}>
+                <Text style={styles.encabezado}>🧔 Barbero</Text>
               </View>
               <View style={[styles.celdaEncabezado, styles.columnaPrecio]}>
                 <Text style={styles.encabezado}>💰 Total</Text>
@@ -336,7 +355,6 @@ const styles = StyleSheet.create({
   listContainer: {
     paddingBottom: 16,
   },
-  // Estilos para móvil (tarjetas)
   card: {
     backgroundColor: 'white',
     borderRadius: 10,
@@ -409,7 +427,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 14,
   },
-  // Estilos para desktop (tabla)
   tabla: {
     borderWidth: 1,
     borderColor: '#ddd',
@@ -443,11 +460,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   columnaFecha: {
-    flex: 1.5,
+    flex: 1.2,
     alignItems: 'flex-start',
   },
   columnaHora: {
-    flex: 1,
+    flex: 0.8,
     alignItems: 'center',
   },
   columnaCliente: {
@@ -455,15 +472,19 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   columnaServicio: {
-    flex: 2,
+    flex: 1.5,
+    alignItems: 'flex-start',
+  },
+  columnaBarbero: {
+    flex: 1.2,
     alignItems: 'flex-start',
   },
   columnaPrecio: {
-    flex: 1.5,
+    flex: 1,
     alignItems: 'center',
   },
   columnaAcciones: {
-    flex: 0.8,
+    flex: 0.6,
     alignItems: 'flex-end',
   },
   textoNombre: {
@@ -472,14 +493,6 @@ const styles = StyleSheet.create({
   textoServicio: {
     color: '#000',
     fontWeight: '500',
-  },
-  contenedorAcciones: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    width: '100%',
-  },
-  botonAccion: {
-    marginHorizontal: 6,
   },
   emptyState: {
     alignItems: 'center',

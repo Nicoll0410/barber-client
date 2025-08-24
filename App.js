@@ -8,6 +8,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { NavigationContainer } from "@react-navigation/native";
 import { configurePushNotifications } from './utils/notifications';
 
+
 // Configuración completa de notificaciones
 Notifications.setNotificationHandler({
   handleNotification: async () => ({

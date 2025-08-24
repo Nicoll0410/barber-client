@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useContext, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -11,6 +11,8 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
@@ -39,11 +41,28 @@ const CrearCita = ({
   const [temporalTelefono, setTemporalTelefono] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  // Referencias para los inputs
+  const nombreInputRef = useRef(null);
+  const telefonoInputRef = useRef(null);
+  const lastFocusedInput = useRef(null);
+
   useEffect(() => {
     return () => {
       reset();
     };
   }, []);
+
+  useEffect(() => {
+    if (visible && step === 2 && isTemporal) {
+      // Enfocar el input de nombre cuando se selecciona cliente nuevo
+      setTimeout(() => {
+        if (nombreInputRef.current) {
+          nombreInputRef.current.focus();
+          lastFocusedInput.current = 'nombre';
+        }
+      }, 100);
+    }
+  }, [visible, step, isTemporal]);
 
   const reset = () => {
     setServicioSel(null);
@@ -54,12 +73,27 @@ const CrearCita = ({
     setTemporalNombre("");
     setTemporalTelefono("");
     setIsLoading(false);
+    lastFocusedInput.current = null;
   };
 
   const handleClose = () => {
     reset();
     onClose();
   };
+
+  const mantenerFocoEnInput = (inputType) => {
+    lastFocusedInput.current = inputType;
+  };
+
+  const restaurarFoco = () => {
+    if (lastFocusedInput.current === 'nombre' && nombreInputRef.current) {
+      nombreInputRef.current.focus();
+    } else if (lastFocusedInput.current === 'telefono' && telefonoInputRef.current) {
+      telefonoInputRef.current.focus();
+    }
+  };
+
+  // ... (las demás funciones permanecen igual: convertirHora24, calcularHoraFin, etc.)
 
   const convertirHora24 = (horaStr) => {
     horaStr = horaStr.trim().toUpperCase();
@@ -189,78 +223,70 @@ const CrearCita = ({
     }
   };
 
-const handleCrear = async () => {
+  const handleCrear = async () => {
     console.log("Iniciando creación de cita...");
     
     try {
-        setIsLoading(true);
+      setIsLoading(true);
 
-        if (!servicioSel || !barbero) {
-            throw new Error("Falta información del servicio o barbero");
+      if (!servicioSel || !barbero) {
+        throw new Error("Falta información del servicio o barbero");
+      }
+
+      if (!isTemporal && !clienteSel) {
+        throw new Error("Debes seleccionar un cliente");
+      }
+      if (isTemporal && !temporalNombre.trim()) {
+        throw new Error("El nombre del cliente temporal es requerido");
+      }
+
+      const fechaFormateada = `${fecha.getFullYear()}-${(fecha.getMonth() + 1)
+        .toString()
+        .padStart(2, "0")}-${fecha.getDate().toString().padStart(2, "0")}`;
+
+      let horaInicio24 = convertirHora24(slot.displayTime);
+      if (!horaInicio24.includes(":")) {
+        horaInicio24 = `${horaInicio24}:00`;
+      } else if (horaInicio24.split(":").length === 2) {
+        horaInicio24 = `${horaInicio24}:00`;
+      }
+
+      const duracionMinutos = convertirDuracionAMinutos(
+        servicioSel.duracionMaxima
+      );
+      const horaFin24 = calcularHoraFin(horaInicio24, duracionMinutos);
+
+      const citaData = {
+        barberoID: barbero.id,
+        servicioID: servicioSel.id,
+        fecha: fechaFormateada,
+        hora: horaInicio24,
+        horaFin: `${horaFin24}:00`,
+        direccion: "En barbería",
+        estado: "Pendiente",
+        duracionReal: servicioSel.duracionMaxima || "00:30:00",
+        duracionRedondeada: `${Math.floor(duracionMinutos / 60)}:${(
+          duracionMinutos % 60
+        )
+          .toString()
+          .padStart(2, "0")}:00`,
+      };
+
+      if (isTemporal) {
+        citaData.pacienteTemporalNombre = temporalNombre.trim();
+        if (temporalTelefono.trim()) {
+          citaData.pacienteTemporalTelefono = temporalTelefono.trim();
         }
+      } else {
+        citaData.pacienteID = clienteSel.id;
+      }
 
-        if (!isTemporal && !clienteSel) {
-            throw new Error("Debes seleccionar un cliente");
-        }
-        if (isTemporal && !temporalNombre.trim()) {
-            throw new Error("El nombre del cliente temporal es requerido");
-        }
+      const token = await AsyncStorage.getItem("token");
+      if (!token) {
+        throw new Error("No se encontró el token de autenticación");
+      }
 
-        const fechaFormateada = `${fecha.getFullYear()}-${(fecha.getMonth() + 1)
-            .toString()
-            .padStart(2, "0")}-${fecha.getDate().toString().padStart(2, "0")}`;
-
-        let horaInicio24 = convertirHora24(slot.displayTime);
-        if (!horaInicio24.includes(":")) {
-            horaInicio24 = `${horaInicio24}:00`;
-        } else if (horaInicio24.split(":").length === 2) {
-            horaInicio24 = `${horaInicio24}:00`;
-        }
-
-        const duracionMinutos = convertirDuracionAMinutos(
-            servicioSel.duracionMaxima
-        );
-        const horaFin24 = calcularHoraFin(horaInicio24, duracionMinutos);
-
-        const citaData = {
-            barberoID: barbero.id,
-            servicioID: servicioSel.id,
-            fecha: fechaFormateada,
-            hora: horaInicio24,
-            horaFin: `${horaFin24}:00`,
-            direccion: "En barbería",
-            estado: "Confirmada", // Cambiado de "Pendiente" a "Confirmada"
-            duracionReal: servicioSel.duracionMaxima || "00:30:00",
-            duracionRedondeada: `${Math.floor(duracionMinutos / 60)}:${(
-                duracionMinutos % 60
-            )
-                .toString()
-                .padStart(2, "0")}:00`,
-        };
-
-        // CORRECCIÓN IMPORTANTE: Manejo correcto de cliente temporal vs registrado
-        if (isTemporal) {
-            // Para cliente temporal: solo enviar campos temporales
-            citaData.pacienteTemporalNombre = temporalNombre.trim();
-            if (temporalTelefono.trim()) {
-                citaData.pacienteTemporalTelefono = temporalTelefono.trim();
-            }
-            // Asegurar que pacienteID no se envíe para clientes temporales
-            delete citaData.pacienteID;
-        } else {
-            // Para cliente registrado: solo enviar pacienteID
-            citaData.pacienteID = clienteSel.id;
-            // Asegurar que campos temporales no se envíen
-            delete citaData.pacienteTemporalNombre;
-            delete citaData.pacienteTemporalTelefono;
-        }
-
-        console.log("Datos a enviar al servidor:", JSON.stringify(citaData, null, 2));
-
-        const token = await AsyncStorage.getItem("token");
-        if (!token) {
-            throw new Error("No se encontró el token de autenticación");
-        }
+      console.log("Enviando datos al servidor:", JSON.stringify(citaData, null, 2));
       
       const response = await axios.post(
         "http://localhost:8080/citas",
@@ -342,6 +368,23 @@ const handleCrear = async () => {
       setIsLoading(false);
     }
   };
+
+  // Usar useCallback para evitar recrear funciones en cada render
+  const handleSetTemporalNombre = useCallback((text) => {
+    setTemporalNombre(text);
+    // Restaurar el foco después de actualizar el estado
+    setTimeout(restaurarFoco, 50);
+  }, []);
+
+  const handleSetTemporalTelefono = useCallback((text) => {
+    setTemporalTelefono(text);
+    // Restaurar el foco después de actualizar el estado
+    setTimeout(restaurarFoco, 50);
+  }, []);
+
+  const handleSetBusqueda = useCallback((text) => {
+    setBusqueda(text);
+  }, []);
 
   const Paso1 = () => (
     <View style={styles.stepContainer}>
@@ -432,6 +475,13 @@ const handleCrear = async () => {
               setIsTemporal(true);
               setClienteSel(null);
               setBusqueda("");
+              // Enfocar el input de nombre
+              setTimeout(() => {
+                if (nombreInputRef.current) {
+                  nombreInputRef.current.focus();
+                  lastFocusedInput.current = 'nombre';
+                }
+              }, 100);
             }}
           >
             <Text
@@ -455,7 +505,8 @@ const handleCrear = async () => {
                 style={styles.searchInput}
                 placeholder="Buscar por nombre"
                 value={busqueda}
-                onChangeText={setBusqueda}
+                onChangeText={handleSetBusqueda}
+                autoFocus={true}
               />
             </View>
             <FlatList
@@ -473,26 +524,40 @@ const handleCrear = async () => {
                   <Text style={styles.clienteNombre}>{item.nombre}</Text>
                 </TouchableOpacity>
               )}
+              initialNumToRender={10}
+              maxToRenderPerBatch={5}
+              windowSize={5}
             />
           </>
         ) : (
           <>
             <Text style={styles.inputLabel}>Nombre del cliente*</Text>
             <TextInput
+              ref={nombreInputRef}
               style={styles.input}
               placeholder="Ej. Juan Pérez"
               value={temporalNombre}
-              onChangeText={setTemporalNombre}
-              maxLength={50}
+              onChangeText={handleSetTemporalNombre}
+              onFocus={() => mantenerFocoEnInput('nombre')}
+              returnKeyType="next"
+              onSubmitEditing={() => {
+                if (telefonoInputRef.current) {
+                  telefonoInputRef.current.focus();
+                  lastFocusedInput.current = 'telefono';
+                }
+              }}
+              blurOnSubmit={false}
             />
             <Text style={styles.inputLabel}>Teléfono (opcional)</Text>
             <TextInput
+              ref={telefonoInputRef}
               style={styles.input}
               placeholder="Ej. 3001234567"
               value={temporalTelefono}
               keyboardType="phone-pad"
-              onChangeText={setTemporalTelefono}
-              maxLength={10}
+              onChangeText={handleSetTemporalTelefono}
+              onFocus={() => mantenerFocoEnInput('telefono')}
+              returnKeyType="done"
             />
           </>
         )}
@@ -524,97 +589,97 @@ const handleCrear = async () => {
     );
   };
 
-const Paso3 = () => {
-  const duracionMinutos = convertirDuracionAMinutos(
-    servicioSel?.duracionMaxima || "01:00:00"
-  );
-  const horasCompletas = Math.floor(duracionMinutos / 60);
-  const minutosRestantes = duracionMinutos % 60;
-  const duracionFormateada = `${
-    horasCompletas > 0
-      ? `${horasCompletas} hora${horasCompletas > 1 ? "s" : ""}`
-      : ""
-  } ${minutosRestantes > 0 ? `${minutosRestantes} minutos` : ""}`.trim();
+  const Paso3 = () => {
+    const duracionMinutos = convertirDuracionAMinutos(
+      servicioSel?.duracionMaxima || "01:00:00"
+    );
+    const horasCompletas = Math.floor(duracionMinutos / 60);
+    const minutosRestantes = duracionMinutos % 60;
+    const duracionFormateada = `${
+      horasCompletas > 0
+        ? `${horasCompletas} hora${horasCompletas > 1 ? "s" : ""}`
+        : ""
+    } ${minutosRestantes > 0 ? `${minutosRestantes} minutos` : ""}`.trim();
 
-  const horaInicio24 = convertirHora24(slot.displayTime);
-  const horaFin24 = calcularHoraFin(horaInicio24, duracionMinutos);
+    const horaInicio24 = convertirHora24(slot.displayTime);
+    const horaFin24 = calcularHoraFin(horaInicio24, duracionMinutos);
 
-  return (
-    <View style={styles.stepContainer}>
-      <Text style={styles.subtitle}>Revisa y confirma la información</Text>
-      <View style={styles.infoBox}>
-        <Text style={styles.infoLabel}>Servicio</Text>
-        <Text style={styles.infoText}>{servicioSel.nombre}</Text>
+    return (
+      <View style={styles.stepContainer}>
+        <Text style={styles.subtitle}>Revisa y confirma la información</Text>
+        <View style={styles.infoBox}>
+          <Text style={styles.infoLabel}>Servicio</Text>
+          <Text style={styles.infoText}>{servicioSel.nombre}</Text>
 
-        <Text style={styles.infoLabel}>Barbero</Text>
-        <Text style={styles.infoText}>{barbero.nombre}</Text>
+          <Text style={styles.infoLabel}>Barbero</Text>
+          <Text style={styles.infoText}>{barbero.nombre}</Text>
 
-        <Text style={styles.infoLabel}>Cliente</Text>
-        <Text style={styles.infoText}>
-          {isTemporal ? temporalNombre : clienteSel?.nombre}
-          {isTemporal && " (Temporal)"}
-        </Text>
+          <Text style={styles.infoLabel}>Cliente</Text>
+          <Text style={styles.infoText}>
+            {isTemporal ? temporalNombre : clienteSel?.nombre}
+            {isTemporal && " (Temporal)"}
+          </Text>
 
-        {isTemporal && (
-          <>
-            <Text style={styles.infoLabel}>Teléfono</Text>
-            <Text style={styles.infoText}>
-              {temporalTelefono || "No especificado"}
-            </Text>
-          </>
-        )}
-
-        <Text style={styles.infoLabel}>Fecha</Text>
-        <Text style={styles.infoText}>
-          {fecha.toLocaleDateString("es-ES", {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}
-        </Text>
-
-        <Text style={styles.infoLabel}>Hora de inicio</Text>
-        <Text style={styles.infoText}>
-          {formatearHoraParaMostrar(horaInicio24)}
-        </Text>
-
-        <Text style={styles.infoLabel}>Hora de finalización</Text>
-        <Text style={styles.infoText}>
-          {formatearHoraParaMostrar(horaFin24)}
-        </Text>
-
-        <Text style={styles.infoLabel}>Duración total</Text>
-        <Text style={styles.infoText}>{duracionFormateada}</Text>
-
-        <Text style={[styles.infoLabel, { color: "#E53935", marginTop: 20 }]}>
-          ¡Todo este horario será reservado!
-        </Text>
-      </View>
-
-      <View style={styles.navBtns}>
-        <TouchableOpacity
-          style={styles.btnSecondary}
-          onPress={() => setStep(2)}
-          disabled={isLoading}
-        >
-          <Text style={styles.btnSecondaryText}>Volver</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.btnPrimary, isLoading && styles.btnDisabled]}
-          onPress={handleCrear}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.btnPrimaryText}>Confirmar cita</Text>
+          {isTemporal && (
+            <>
+              <Text style={styles.infoLabel}>Teléfono</Text>
+              <Text style={styles.infoText}>
+                {temporalTelefono || "No especificado"}
+              </Text>
+            </>
           )}
-        </TouchableOpacity>
+
+          <Text style={styles.infoLabel}>Fecha</Text>
+          <Text style={styles.infoText}>
+            {fecha.toLocaleDateString("es-ES", {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
+          </Text>
+
+          <Text style={styles.infoLabel}>Hora de inicio</Text>
+          <Text style={styles.infoText}>
+            {formatearHoraParaMostrar(horaInicio24)}
+          </Text>
+
+          <Text style={styles.infoLabel}>Hora de finalización</Text>
+          <Text style={styles.infoText}>
+            {formatearHoraParaMostrar(horaFin24)}
+          </Text>
+
+          <Text style={styles.infoLabel}>Duración total</Text>
+          <Text style={styles.infoText}>{duracionFormateada}</Text>
+
+          <Text style={[styles.infoLabel, { color: "#E53935", marginTop: 20 }]}>
+            ¡Todo este horario será reservado!
+          </Text>
+        </View>
+
+        <View style={styles.navBtns}>
+          <TouchableOpacity
+            style={styles.btnSecondary}
+            onPress={() => setStep(2)}
+            disabled={isLoading}
+          >
+            <Text style={styles.btnSecondaryText}>Volver</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.btnPrimary, isLoading && styles.btnDisabled]}
+            onPress={handleCrear}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.btnPrimaryText}>Confirmar cita</Text>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
-  );
-};
+    );
+  };
 
   const renderStep = () => {
     switch (step) {
@@ -632,23 +697,31 @@ const Paso3 = () => {
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <BlurView intensity={20} tint="light" style={styles.blur}>
-        <View style={styles.modal}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>
-              {step === 1
-                ? "Seleccionar servicio"
-                : step === 2
-                ? "Seleccionar cliente"
-                : "Revisa y confirma"}
-            </Text>
-            <TouchableOpacity onPress={handleClose}>
-              <MaterialIcons name="close" size={24} color="#000" />
-            </TouchableOpacity>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.keyboardAvoiding}
+        >
+          <View style={styles.modal}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {step === 1
+                  ? "Seleccionar servicio"
+                  : step === 2
+                  ? "Seleccionar cliente"
+                  : "Revisa y confirma"}
+              </Text>
+              <TouchableOpacity onPress={handleClose}>
+                <MaterialIcons name="close" size={24} color="#000" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView 
+              contentContainerStyle={{ flexGrow: 1 }}
+              keyboardShouldPersistTaps="handled"
+            >
+              {renderStep()}
+            </ScrollView>
           </View>
-          <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-            {renderStep()}
-          </ScrollView>
-        </View>
+        </KeyboardAvoidingView>
       </BlurView>
     </Modal>
   );
@@ -659,6 +732,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  keyboardAvoiding: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modal: {
     width: "95%",
@@ -837,6 +915,8 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 15,
     backgroundColor: "#fafafa",
+    fontSize: 16,
+    height: 44,
   },
   optionToggle: {
     paddingVertical: 8,

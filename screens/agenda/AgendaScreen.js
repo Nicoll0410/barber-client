@@ -10,6 +10,7 @@ import {
   Dimensions,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
@@ -34,6 +35,7 @@ LocaleConfig.locales.es = {
 LocaleConfig.defaultLocale = 'es';
 
 const { width } = Dimensions.get('window');
+const isMobile = width < 768; // Detectar si es móvil (ancho menor a 768px)
 
 const AgendaScreen = () => {
   const today = new Date();
@@ -563,7 +565,7 @@ const fetchCitas = async () => {
     const estaDisponible = disp.estaDisponible;
 
     return (
-      <View key={b.id} style={styles.barberoHeader}>
+      <View key={b.id} style={[styles.barberoHeader, isMobile && styles.barberoHeaderMobile]}>
         <Image source={b.avatar} style={styles.avatar} />
         <Text style={styles.barberoNombre}>{b.nombre}</Text>
         <Text style={styles.subItem}>Barbero</Text>
@@ -605,7 +607,7 @@ const fetchCitas = async () => {
     } else if (estaEnCita) {
       // Para slots intermedios de una cita larga
       return (
-        <View key={`${slot.key}-${b.id}`} style={styles.slotContainer}>
+        <View key={`${slot.key}-${b.id}`} style={[styles.slotContainer, isMobile && styles.slotContainerMobile]}>
           <View style={[
             styles.slot, 
             styles.slotOcupadoSecundario,
@@ -644,7 +646,7 @@ const fetchCitas = async () => {
     }
 
     return (
-      <View key={`${slot.key}-${b.id}`} style={styles.slotContainer}>
+      <View key={`${slot.key}-${b.id}`} style={[styles.slotContainer, isMobile && styles.slotContainerMobile]}>
         <TouchableOpacity
           style={[
             styles.slot,
@@ -697,6 +699,76 @@ const fetchCitas = async () => {
     );
   }
 
+  // Renderizado condicional para móvil vs web
+  const renderBarberosHeader = () => {
+    if (isMobile) {
+      return (
+        <View style={styles.barberosContainerMobile}>
+          <View style={styles.timeColumnMobile}>
+            <Text style={styles.timeColumnText}>Hora</Text>
+          </View>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={true}
+            contentContainerStyle={styles.barberosScrollContent}
+          >
+            {barberos.map(renderBarberoHeader)}
+          </ScrollView>
+        </View>
+      );
+    } else {
+      return (
+        <View style={styles.barberosHeader}>
+          <View style={styles.timeColumn} />
+          {barberos.map(renderBarberoHeader)}
+        </View>
+      );
+    }
+  };
+
+  const renderMainContent = () => {
+    if (isMobile) {
+      return (
+        <View style={styles.mainContent}>
+          <ScrollView 
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={true}
+          >
+            {generateTimeSlots().map(slot => (
+              <View key={slot.key} style={styles.rowMobile}>
+                <View style={styles.timeCellMobile}>
+                  <Text style={styles.horaText}>{slot.displayTime}</Text>
+                </View>
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.barberosSlotsScrollContent}
+                >
+                  {barberos.map(b => renderBarberoSlot(slot, b))}
+                </ScrollView>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      );
+    } else {
+      return (
+        <View style={styles.mainContent}>
+          <ScrollView contentContainerStyle={styles.scrollContent}>
+            {generateTimeSlots().map(slot => (
+              <View key={slot.key} style={styles.row}>
+                <View style={styles.timeCell}>
+                  <Text style={styles.horaText}>{slot.displayTime}</Text>
+                </View>
+                {barberos.map(b => renderBarberoSlot(slot, b))}
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      );
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -725,23 +797,8 @@ const fetchCitas = async () => {
         </View>
       </View>
 
-      <View style={styles.barberosHeader}>
-        <View style={styles.timeColumn} />
-        {barberos.map(renderBarberoHeader)}
-      </View>
-
-      <View style={styles.mainContent}>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          {generateTimeSlots().map(slot => (
-            <View key={slot.key} style={styles.row}>
-              <View style={styles.timeCell}>
-                <Text style={styles.horaText}>{slot.displayTime}</Text>
-              </View>
-              {barberos.map(b => renderBarberoSlot(slot, b))}
-            </View>
-          ))}
-        </ScrollView>
-      </View>
+      {renderBarberosHeader()}
+      {renderMainContent()}
 
       <Modal visible={showCalendar} animationType="fade" transparent>
         <BlurView intensity={15} tint="light" style={StyleSheet.absoluteFill} />
@@ -889,6 +946,7 @@ const styles = StyleSheet.create({
   calendarButton: {
     marginRight: 10
   },
+  // Estilos para web (escritorio)
   barberosHeader: {
     flexDirection: 'row',
     borderBottomWidth: 1,
@@ -900,6 +958,36 @@ const styles = StyleSheet.create({
   },
   barberoHeader: {
     flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 5,
+    borderRightWidth: 1,
+    borderRightColor: '#000'
+  },
+  // Estilos para móvil
+  barberosContainerMobile: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#000',
+    paddingVertical: 10,
+    height: 120
+  },
+  timeColumnMobile: {
+    width: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRightWidth: 1,
+    borderRightColor: '#000'
+  },
+  timeColumnText: {
+    fontWeight: 'bold',
+    fontSize: 16
+  },
+  barberosScrollContent: {
+    flexDirection: 'row',
+    paddingRight: 10
+  },
+  barberoHeaderMobile: {
+    width: 100,
     alignItems: 'center',
     paddingHorizontal: 5,
     borderRightWidth: 1,
@@ -925,6 +1013,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginBottom: 60
   },
+  // Filas para web
   row: {
     flexDirection: 'row',
     borderBottomWidth: 1,
@@ -938,11 +1027,37 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderRightColor: '#000'
   },
+  // Filas para móvil
+  rowMobile: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#000',
+    minHeight: 60
+  },
+  timeCellMobile: {
+    width: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRightWidth: 1,
+    borderRightColor: '#000'
+  },
   horaText: {
     fontSize: 14
   },
+  barberosSlotsScrollContent: {
+    flexDirection: 'row'
+  },
+  // Slots para web
   slotContainer: {
     flex: 1,
+    borderRightWidth: 1,
+    borderRightColor: '#000',
+    justifyContent: 'center',
+    height: 60,
+  },
+  // Slots para móvil
+  slotContainerMobile: {
+    width: 100,
     borderRightWidth: 1,
     borderRightColor: '#000',
     justifyContent: 'center',

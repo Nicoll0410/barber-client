@@ -25,7 +25,7 @@ import ConfirmarModal from '../../components/ConfirmarModal'; // Importar el mod
 import { AuthContext } from '../../contexts/AuthContext';
 
 /* ------------------------ Constantes ------------------------ */
-const API = 'http://localhost:8080';
+const API = 'https://barber-server-6kuo.onrender.com';
 const { width } = Dimensions.get('window');
 const isMobile  = width <= 768;
 

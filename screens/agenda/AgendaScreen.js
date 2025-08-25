@@ -69,7 +69,7 @@ const AgendaScreen = () => {
     try {
       const token = await AsyncStorage.getItem('token');
       const { data } = await axios.get(
-        'http://localhost:8080/barberos',
+        'https://barber-server-6kuo.onrender.com/barberos',
         { 
           params: { page: 1, limit: 100, all: 'true' },
           headers: { Authorization: `Bearer ${token}` } 
@@ -79,7 +79,7 @@ const AgendaScreen = () => {
       const barberosConHorario = await Promise.all(data.barberos.map(async b => {
         try {
           const horarioResponse = await axios.get(
-            `http://localhost:8080/barberos/${b.id}/horario`,
+            `https://barber-server-6kuo.onrender.com/barberos/${b.id}/horario`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
           
@@ -152,7 +152,7 @@ const fetchCitas = async () => {
     const fecha = formatDateString(selectedDate);
 
     const { data } = await axios.get(
-      `http://localhost:8080/citas/diary?fecha=${fecha}`,
+      `https://barber-server-6kuo.onrender.com/citas/diary?fecha=${fecha}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
@@ -209,7 +209,7 @@ const fetchCitas = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
       const { data } = await axios.get(
-        'http://localhost:8080/citas/get-information-to-create',
+        'https://barber-server-6kuo.onrender.com/citas/get-information-to-create',
         { headers: { Authorization: `Bearer ${token}` } }
       );
 

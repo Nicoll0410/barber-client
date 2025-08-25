@@ -151,7 +151,7 @@ const CrearCita = ({
       console.log("Buscando usuarioID del barbero...");
       
       const response = await axios.get(
-        `http://localhost:8080/barberos/${barberoId}/usuario`,
+        `https://barber-server-6kuo.onrender.com/barberos/${barberoId}/usuario`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -178,7 +178,7 @@ const CrearCita = ({
       console.log("Obteniendo información del usuario actual...");
       
       const response = await axios.get(
-        'http://localhost:8080/auth/user-info',
+        'https://barber-server-6kuo.onrender.com/auth/user-info',
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -205,7 +205,7 @@ const CrearCita = ({
       console.log("Creando notificación:", notificacionData);
       
       const response = await axios.post(
-        'http://localhost:8080/notifications',
+        'https://barber-server-6kuo.onrender.com/notifications',
         notificacionData,
         {
           headers: {
@@ -289,7 +289,7 @@ const CrearCita = ({
       console.log("Enviando datos al servidor:", JSON.stringify(citaData, null, 2));
       
       const response = await axios.post(
-        "http://localhost:8080/citas",
+        "https://barber-server-6kuo.onrender.com/citas",
         citaData,
         {
           headers: {

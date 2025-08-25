@@ -46,7 +46,7 @@ const VentasScreen = () => {
       setLoading(true);
       const token = await AsyncStorage.getItem("token");
       const { data } = await axios.get(
-        "http://localhost:8080/ventas",
+        "https://barber-server-6kuo.onrender.com/ventas",
         {
           headers: { Authorization: `Bearer ${token}` },
         }

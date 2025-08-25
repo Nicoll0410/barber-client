@@ -66,7 +66,7 @@ const HorarioBarbero = ({ barberoId, visible, onClose }) => {
     try {
       setLoading(true);
       const token = await AsyncStorage.getItem('token');
-      const response = await axios.get(`http://localhost:8080/barberos/${barberoId}/horario`, {
+      const response = await axios.get(`https://barber-server-6kuo.onrender.com/barberos/${barberoId}/horario`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -211,7 +211,7 @@ const HorarioBarbero = ({ barberoId, visible, onClose }) => {
         excepciones: horario.excepciones || []
       };
 
-      await axios.put(`http://localhost:8080/barberos/${barberoId}/horario`, datosEnviar, {
+      await axios.put(`https://barber-server-6kuo.onrender.com/barberos/${barberoId}/horario`, datosEnviar, {
         headers: { Authorization: `Bearer ${token}` }
       });
 

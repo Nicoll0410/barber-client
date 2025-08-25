@@ -3,7 +3,7 @@ import { Audio } from "expo-av";
 import * as Notifications from "expo-notifications";
 
 // Asegúrate de que esta URL coincida con tu configuración de backend
-const API_URL = "http://localhost:8080/api/notifications";
+const API_URL = "https://barber-server-6kuo.onrender.com/api/notifications";
 
 // Configuración inicial de notificaciones
 export const configurePushNotifications = async () => {

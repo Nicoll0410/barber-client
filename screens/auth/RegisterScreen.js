@@ -47,8 +47,8 @@ const months = [
 ];
 
 const BASE_URL = Platform.OS === 'android'
-  ? 'http://10.0.2.2:8082'
-  : 'http://localhost:8080';
+  ? 'https://barber-server-6kuo.onrender.com'
+  : 'https://barber-server-6kuo.onrender.com';
 
 const RegisterScreen = () => {
   const navigation = useNavigation();

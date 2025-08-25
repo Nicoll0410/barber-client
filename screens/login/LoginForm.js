@@ -22,7 +22,7 @@ const isDesktop = width >= 1024;
 const isMobile = width < 768;
 
 const BASE_URL =
-  Platform.OS === "android" ? "http://10.0.2.2:8082" : "http://localhost:8080";
+  Platform.OS === "android" ? "https://barber-server-6kuo.onrender.com" : "https://barber-server-6kuo.onrender.com";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");

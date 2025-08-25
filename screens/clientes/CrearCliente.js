@@ -68,7 +68,7 @@ LocaleConfig.defaultLocale = "es";
 const { width } = Dimensions.get("window");
 
 const BASE_URL =
-  Platform.OS === "android" ? "http://10.0.2.2:8082" : "http://localhost:8080";
+  Platform.OS === "android" ? "https://barber-server-6kuo.onrender.com" : "https://barber-server-6kuo.onrender.com";
 
 const CrearCliente = ({ visible, onClose, onCreate }) => {
   const [formData, setFormData] = useState({

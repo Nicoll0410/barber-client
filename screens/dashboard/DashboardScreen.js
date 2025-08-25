@@ -38,7 +38,7 @@ const DashboardScreen = () => {
     try {
       setLoading(true);
       const token = await AsyncStorage.getItem('token');
-      const response = await axios.get('http://localhost:8080/dashboard', {
+      const response = await axios.get('https://barber-server-6kuo.onrender.com/dashboard', {
         headers: {
           Authorization: `Bearer ${token}`
         }

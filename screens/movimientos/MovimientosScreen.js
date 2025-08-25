@@ -30,9 +30,9 @@ const isMobile = width < 768;
 
 /*  Soluciona localhost en emulador Android  */
 const API_BASE = Platform.select({
-  android : "http://10.0.2.2:8082",
-  ios     : "http://localhost:8080",
-  default : "http://localhost:8080",
+  android : "https://barber-server-6kuo.onrender.com",
+  ios     : "https://barber-server-6kuo.onrender.com",
+  default : "https://barber-server-6kuo.onrender.com",
 });
 
 /* ───────── CARD (modo móvil) ───────── */

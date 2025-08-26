@@ -23,7 +23,9 @@
       "package": "com.anonymous.barberiaclient"
     },
     "web": {
-      "outputDir": "dist"
+      "outputDir": "dist",
+      "bundler": "metro",
+      "output": "static"
     }
   }
 }

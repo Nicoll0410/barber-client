@@ -24,7 +24,7 @@
       "package": "com.anonymous.barberiaclient"
     },
     "web": {
-      "output": "static",
+      "output": "web-build",
       "bundler": "metro"
     }
   }

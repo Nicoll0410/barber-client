@@ -6,7 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "splash": {
       "image": "./public/apple-touch-icon.png",
       "resizeMode": "contain",
@@ -22,6 +21,10 @@
       },
       "package": "com.anonymous.barberiaclient"
     },
-    "web": {}
+    "web": {
+      "bundler": "webpack",
+      "output": "static",
+      "favicon": "./assets/favicon.png"
+    }
   }
 }

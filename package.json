@@ -38,7 +38,7 @@
     "lucide-react-native": "^0.541.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "react-native": "0.72.6",
+    "react-native": "^0.72.17",
     "react-native-blob-util": "^0.22.2",
     "react-native-calendars": "^1.1313.0",
     "react-native-chart-kit": "^6.12.0",
@@ -67,7 +67,7 @@
     "mini-css-extract-plugin": "^2.7.6",
     "style-loader": "^3.3.3",
     "webpack": "^5.88.0",
-    "webpack-dev-server": "^4.0.0"
+    "webpack-dev-server": "^5.2.2"
   },
   "private": true
 }

@@ -6,9 +6,9 @@
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
-    "ios": "expo start --ios",
+    "ios": "expo start --ios", 
     "web": "expo start --web",
-    "build": "expo export:web",
+    "build": "npx expo export --platform web",
     "vercel-build": "npm run build"
   },
   "dependencies": {

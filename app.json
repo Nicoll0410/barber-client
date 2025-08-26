@@ -24,7 +24,8 @@
     },
     "web": {
       "outputDir": "dist",
-      "bundler": "webpack"
+      "bundler": "metro",
+      "output": "static"
     }
   }
 }

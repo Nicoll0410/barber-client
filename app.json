@@ -8,7 +8,7 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./public/apple-touch-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -19,10 +19,9 @@
       "adaptiveIcon": {
         "foregroundImage": "./public/apple-touch-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.anonymous.barberiaclient"
     },
-    "web": {
-      
-    }
+    "web": {}
   }
 }

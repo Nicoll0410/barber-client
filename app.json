@@ -22,6 +22,8 @@
       },
       "package": "com.anonymous.barberiaclient"
     },
-    "web": {}
+    "web": {
+      "outputDir": "dist"
+    }
   }
 }

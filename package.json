@@ -3,14 +3,14 @@
   "license": "0BSD",
   "version": "1.0.0",
   "main": "index.js",
-  "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios", 
-    "web": "expo start --web",
-    "build": "npx expo export --platform web",
-    "vercel-build": "npm run build"
-  },
+"scripts": {
+  "start": "expo start",
+  "android": "expo start --android",
+  "ios": "expo start --ios",
+  "web": "expo start --web",
+  "build": "expo export --web --output dist",
+  "vercel-build": "npm run build"
+},
   "dependencies": {
     "@expo/metro-runtime": "~5.0.4",
     "@expo/vector-icons": "^14.0.0",

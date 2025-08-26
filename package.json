@@ -8,7 +8,7 @@
     "android": "npx expo start --android",
     "ios": "npx expo start --ios",
     "web": "npx expo start --web",
-    "build": "expo build:web --output dist",
+    "build": "expo export:web --output dist",
     "vercel-build": "npm run build"
   },
   "dependencies": {

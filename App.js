@@ -1,3 +1,8 @@
+
+if (Platform.OS === 'web') {
+  require('./webPolyfills');
+}
+
 import React, { useEffect, useRef } from "react";
 import { Platform, Alert, LogBox, AppState, Linking } from "react-native";
 import * as Notifications from "expo-notifications";
@@ -7,7 +12,6 @@ import AppNavigator from "./navigation/AppNavigator";
 import { AuthProvider } from "./contexts/AuthContext";
 import { NavigationContainer } from "@react-navigation/native";
 import { configurePushNotifications } from './utils/notifications';
-
 
 // Configuración completa de notificaciones
 Notifications.setNotificationHandler({

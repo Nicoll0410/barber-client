@@ -6,7 +6,6 @@ import { AuthContext } from "../contexts/AuthContext";
 import CustomDrawer from "../components/CustomDrawer";
 import { Ionicons } from "@expo/vector-icons";
 
-
 // Importa TODAS tus pantallas
 import DashboardScreen from "../screens/dashboard/DashboardScreen";
 import ClientesScreen from "../screens/clientes/ClientesScreen";
@@ -116,21 +115,17 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
     mainNavigation.navigate(screen);
   };
 
-  const screenWithLogo = (title) => ({
-    headerTitle: title,
+  // OPCIONES COMUNES para TODAS las pantallas - CON BOTÓN DE HAMBURGUESA
+  const commonOptions = {
+    headerLeft: () => (
+      <TouchableOpacity onPress={toggleDrawer} style={{ marginLeft: 15 }}>
+        <Ionicons name="menu" size={24} color="black" />
+      </TouchableOpacity>
+    ),
     headerRight: () => <HeaderLogo />,
-  });
+  };
 
   const renderDrawerScreens = (userRole) => {
-    const commonOptions = {
-      headerLeft: () => (
-        <TouchableOpacity onPress={toggleDrawer} style={{ marginLeft: 15 }}>
-          <Ionicons name="menu" size={24} color="black" />
-        </TouchableOpacity>
-      ),
-      headerRight: () => <HeaderLogo />,
-    };
-
     switch (userRole) {
       case "Cliente":
         return (
@@ -139,7 +134,7 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
               name="Agenda" 
               component={AgendaScreen}
               options={{
-                ...commonOptions,
+                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
                 headerTitle: "Agenda",
                 headerRight: () => (
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -152,7 +147,10 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
             <Stack.Screen 
               name="Citas" 
               component={CitasScreen}
-              options={screenWithLogo("Citas")}
+              options={{
+                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
+                headerTitle: "Citas"
+              }}
             />
           </>
         );
@@ -160,19 +158,36 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
       case "Barbero":
         return (
           <>
-            <Stack.Screen name="Clientes" component={ClientesScreen} options={screenWithLogo("Clientes")} />
-            {/* <Stack.Screen name="Insumos" component={InsumosScreen} options={screenWithLogo("Insumos")} /> */}
-            {/* <Stack.Screen name="Movimientos" component={MovimientosScreen} options={screenWithLogo("Movimientos")} /> */}
+            <Stack.Screen 
+              name="Clientes" 
+              component={ClientesScreen}
+              options={{
+                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
+                headerTitle: "Clientes"
+              }}
+            />
+            {/* <Stack.Screen 
+              name="Insumos" 
+              component={InsumosScreen}
+              options={{
+                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
+                headerTitle: "Insumos"
+              }}
+            /> */}
+            {/* <Stack.Screen 
+              name="Movimientos" 
+              component={MovimientosScreen}
+              options={{
+                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
+                headerTitle: "Movimientos"
+              }}
+            /> */}
             <Stack.Screen 
               name="Agenda" 
               component={AgendaScreen}
               options={{
+                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
                 headerTitle: "Agenda",
-                headerLeft: () => (
-                  <TouchableOpacity onPress={toggleDrawer} style={{ marginLeft: 15 }}>
-                    <Ionicons name="menu" size={24} color="black" />
-                  </TouchableOpacity>
-                ),
                 headerRight: () => (
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
                     <NotificationBell navigation={mainNavigation} />
@@ -181,31 +196,90 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
                 )
               }}
             />
-            <Stack.Screen name="Citas" component={CitasScreen} options={screenWithLogo("Citas")} />
+            <Stack.Screen 
+              name="Citas" 
+              component={CitasScreen}
+              options={{
+                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
+                headerTitle: "Citas"
+              }}
+            />
           </>
         );
 
       default:
         return (
           <>
-            <Stack.Screen name="Dashboard" component={DashboardScreen} options={screenWithLogo("Dashboard")} />
-            <Stack.Screen name="Clientes" component={ClientesScreen} options={screenWithLogo("Clientes")} />
-            <Stack.Screen name="Barberos" component={BarberosScreen} options={screenWithLogo("Barberos")} />
-            {/* <Stack.Screen name="Roles" component={RolesScreen} options={screenWithLogo("Roles")} /> */}
-            {/* <Stack.Screen name="Compras" component={ComprasScreen} options={screenWithLogo("Compras")} /> */}
-            {/* <Stack.Screen name="Proveedores" component={ProveedoresScreen} options={screenWithLogo("Proveedores")} /> */}
-            {/* <Stack.Screen name="Insumos" component={InsumosScreen} options={screenWithLogo("Insumos")} /> */}
-            {/* <Stack.Screen name="CategoriaInsumos" component={CategoriaInsumosScreen} options={screenWithLogo("Categoría de Insumos")} /> */}
+            <Stack.Screen 
+              name="Dashboard" 
+              component={DashboardScreen}
+              options={{
+                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
+                headerTitle: "Dashboard"
+              }}
+            />
+            <Stack.Screen 
+              name="Clientes" 
+              component={ClientesScreen}
+              options={{
+                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
+                headerTitle: "Clientes"
+              }}
+            />
+            <Stack.Screen 
+              name="Barberos" 
+              component={BarberosScreen}
+              options={{
+                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
+                headerTitle: "Barberos"
+              }}
+            />
+            {/* <Stack.Screen 
+              name="Roles" 
+              component={RolesScreen}
+              options={{
+                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
+                headerTitle: "Roles"
+              }}
+            /> */}
+            {/* <Stack.Screen 
+              name="Compras" 
+              component={ComprasScreen}
+              options={{
+                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
+                headerTitle: "Compras"
+              }}
+            />
+            <Stack.Screen 
+              name="Proveedores" 
+              component={ProveedoresScreen}
+              options={{
+                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
+                headerTitle: "Proveedores"
+              }}
+            />
+            <Stack.Screen 
+              name="Insumos" 
+              component={InsumosScreen}
+              options={{
+                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
+                headerTitle: "Insumos"
+              }}
+            />
+            <Stack.Screen 
+              name="CategoriaInsumos" 
+              component={CategoriaInsumosScreen}
+              options={{
+                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
+                headerTitle: "Categoría de Insumos"
+              }}
+            /> */}
             <Stack.Screen 
               name="Agenda" 
               component={AgendaScreen}
               options={{
+                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
                 headerTitle: "Agenda",
-                headerLeft: () => (
-                  <TouchableOpacity onPress={toggleDrawer} style={{ marginLeft: 15 }}>
-                    <Ionicons name="menu" size={24} color="black" />
-                  </TouchableOpacity>
-                ),
                 headerRight: () => (
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
                     <NotificationBell navigation={mainNavigation} />
@@ -214,12 +288,54 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
                 )
               }}
             />
-            <Stack.Screen name="Citas" component={CitasScreen} options={screenWithLogo("Citas")} />
-            <Stack.Screen name="Servicios" component={ServiciosScreen} options={screenWithLogo("Servicios")} />
-            {/* <Stack.Screen name="Movimientos" component={MovimientosScreen} options={screenWithLogo("Movimientos")} /> */}
-            <Stack.Screen name="Ventas" component={VentasScreen} options={screenWithLogo("Ventas")} />
-            <Stack.Screen name="Notificaciones" component={NotificacionesScreen} options={screenWithLogo("Notificaciones")} />
-            {/* <Stack.Screen name="ControlInsumos" component={ControlInsumos} options={screenWithLogo("Control de Insumos")} /> */}
+            <Stack.Screen 
+              name="Citas" 
+              component={CitasScreen}
+              options={{
+                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
+                headerTitle: "Citas"
+              }}
+            />
+            <Stack.Screen 
+              name="Servicios" 
+              component={ServiciosScreen}
+              options={{
+                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
+                headerTitle: "Servicios"
+              }}
+            />
+            {/* <Stack.Screen 
+              name="Movimientos" 
+              component={MovimientosScreen}
+              options={{
+                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
+                headerTitle: "Movimientos"
+              }}
+            /> */}
+            <Stack.Screen 
+              name="Ventas" 
+              component={VentasScreen}
+              options={{
+                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
+                headerTitle: "Ventas"
+              }}
+            />
+            <Stack.Screen 
+              name="Notificaciones" 
+              component={NotificacionesScreen}
+              options={{
+                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
+                headerTitle: "Notificaciones"
+              }}
+            />
+            {/* <Stack.Screen 
+              name="ControlInsumos" 
+              component={ControlInsumos}
+              options={{
+                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
+                headerTitle: "Control de Insumos"
+              }}
+            /> */}
           </>
         );
     }

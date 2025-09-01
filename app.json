@@ -4,12 +4,12 @@
     "slug": "barberia-client",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./public/apple-touch-icon.png",
+    "icon": "./assets/apple-touch-icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "platforms": ["ios", "android", "web"],
     "splash": {
-      "image": "./public/apple-touch-icon.png",
+      "image": "./assets/Splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -18,15 +18,22 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./public/apple-touch-icon.png",
+        "foregroundImage": "./assets/android.png",
         "backgroundColor": "#ffffff"
       },
+      "ios": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/ios.png",
+        "backgroundColor": "#ffffff"
+      }
+    },
       "package": "com.anonymous.barberiaclient"
     },
     "web": {
       "output": "web-build",
       "bundler": "webpack",
-      "favicon": "./public/favicon-96x96.png"
-    }
+      "favicon": "./assets/favicon-96x96.png"
+    },
+    "plugins": []
   }
 }

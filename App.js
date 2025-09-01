@@ -1,4 +1,3 @@
-
 if (Platform.OS === 'web') {
   require('./webPolyfills');
 }

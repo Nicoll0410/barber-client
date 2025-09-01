@@ -1,6 +1,5 @@
 import React, { useState, useContext } from "react";
-import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
-import { DrawerContentScrollView } from "@react-navigation/drawer";
+import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import {
   FontAwesome5,
   MaterialIcons,
@@ -79,15 +78,20 @@ const CustomDrawer = (props) => {
   const toggle = (sec) => setExpanded((p) => ({ ...p, [sec]: !p[sec] }));
 
   /* Renderiza un ítem normal */
-  const Item = ({ label, screen, icon: IconComp, name, indent = 0 }) => (
-    <TouchableOpacity
-      style={[styles.menuItem, indent && { paddingLeft: 20 + indent }]}
-      onPress={() => props.navigation.navigate(screen)}
-    >
-      <IconComp name={name} size={indent ? 16 : 22} color="#fff" />
-      <Text style={[styles.menuText, indent && { fontSize: 14, marginLeft: 10 }]}>{label}</Text>
-    </TouchableOpacity>
-  );
+const Item = ({ label, screen, icon: IconComp, name, indent = 0 }) => (
+  <TouchableOpacity
+    style={[styles.menuItem, indent && { paddingLeft: 20 + indent }]}
+    onPress={() => {
+      props.navigation.navigate(screen);
+      if (props.navigation.closeDrawer) {
+        props.navigation.closeDrawer();
+      }
+    }}
+  >
+    <IconComp name={name} size={indent ? 16 : 22} color="#fff" />
+    <Text style={[styles.menuText, indent && { fontSize: 14, marginLeft: 10 }]}>{label}</Text>
+  </TouchableOpacity>
+);
 
   return (
     <View style={styles.container}>
@@ -96,8 +100,7 @@ const CustomDrawer = (props) => {
         <Image source={require("../assets/images/newYorkBarber.jpeg")} style={styles.logo} />
       </View>
 
-      <DrawerContentScrollView
-        {...props}
+      <ScrollView
         showsVerticalScrollIndicator
         contentContainerStyle={styles.scrollContainer}
       >
@@ -120,7 +123,7 @@ const CustomDrawer = (props) => {
             {expanded[section] && items.map((sub) => <Item key={sub.label} {...sub} indent={20} />)}
           </View>
         ))}
-      </DrawerContentScrollView>
+      </ScrollView>
 
       {/* ------------- Perfil abajo ------------- */}
       <View style={styles.profileSection}>

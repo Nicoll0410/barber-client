@@ -1,7 +1,6 @@
 // navigation/AppNavigator.js
 import React, { useContext } from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { createDrawerNavigator } from "@react-navigation/drawer";
 import {
   ActivityIndicator,
   View,
@@ -19,24 +18,9 @@ import LoginScreen from "../screens/login/LoginScreen";
 import RegisterScreen from "../screens/auth/RegisterScreen";
 import VerifyEmailScreen from "../screens/auth/VerifyEmailScreen";
 
-/* Drawer Screens */
-import DashboardScreen from "../screens/dashboard/DashboardScreen";
-import CustomDrawer from "../components/CustomDrawer";
+/* Custom Drawer Navigator */
+import CustomDrawerNavigator from "./CustomDrawerNavigator";
 import { AuthContext } from "../contexts/AuthContext";
-
-/* Módulos */
-import ClientesScreen from "../screens/clientes/ClientesScreen";
-import BarberosScreen from "../screens/barberos/BarberosScreen";
-import RolesScreen from "../screens/roles/RolesScreen";
-import ComprasScreen from "../screens/compras/ComprasScreen";
-import ProveedoresScreen from "../screens/proveedores/ProveedoresScreen";
-import InsumosScreen from "../screens/insumos/InsumosScreen";
-import CategoriaInsumosScreen from "../screens/categoria insumos/CategoriaInsumosScreen";
-import AgendaScreen from "../screens/agenda/AgendaScreen";
-import CitasScreen from "../screens/citas/CitasScreen";
-import ServiciosScreen from "../screens/servicios/ServiciosScreen";
-import MovimientosScreen from "../screens/movimientos/MovimientosScreen";
-import VentasScreen from "../screens/ventas/VentasScreen";
 
 /* Rutas privadas extra */
 import ControlInsumos from "../screens/insumos/ControlInsumos";
@@ -45,7 +29,6 @@ import ControlInsumos from "../screens/insumos/ControlInsumos";
 import LogoImg from "../assets/images/barberApp 1.png";
 
 const Stack = createNativeStackNavigator();
-const Drawer = createDrawerNavigator();
 
 /* Icono campana con badge */
 const NotificationBell = ({ navigation }) => {
@@ -105,161 +88,6 @@ const screenWithLogo = (Component, title) => ({
   headerRight: () => <HeaderLogo />,
 });
 
-/* Drawer dinámico */
-const renderDrawerScreens = (userRole) => {
-  switch (userRole) {
-    case "Cliente":
-      return (
-        <>
-          <Drawer.Screen
-            name="Agenda"
-            component={AgendaScreen}
-            options={({ navigation }) => ({
-              headerTitle: "Agenda",
-              headerRight: () => <NotificationBell navigation={navigation} />,
-            })}
-          />
-          <Drawer.Screen
-            name="Citas"
-            component={CitasScreen}
-            options={screenWithLogo(CitasScreen, "Citas")}
-          />
-        </>
-      );
-
-    case "Barbero":
-      return (
-        <>
-          <Drawer.Screen
-            name="Clientes"
-            component={ClientesScreen}
-            options={screenWithLogo(ClientesScreen, "Clientes")}
-          />
-          <Drawer.Screen
-            name="Insumos"
-            component={InsumosScreen}
-            options={screenWithLogo(InsumosScreen, "Insumos")}
-          />
-          <Drawer.Screen
-            name="Movimientos"
-            component={MovimientosScreen}
-            options={screenWithLogo(MovimientosScreen, "Movimientos")}
-          />
-          <Drawer.Screen
-            name="Agenda"
-            component={AgendaScreen}
-            options={({ navigation }) => ({
-              headerTitle: "Agenda",
-              headerRight: () => <NotificationBell navigation={navigation} />,
-            })}
-          />
-          <Drawer.Screen
-            name="Citas"
-            component={CitasScreen}
-            options={screenWithLogo(CitasScreen, "Citas")}
-          />
-        </>
-      );
-
-    default:
-      return (
-        <>
-          <Drawer.Screen
-            name="Dashboard"
-            component={DashboardScreen}
-            options={screenWithLogo(DashboardScreen, "Dashboard")}
-          />
-          <Drawer.Screen
-            name="Clientes"
-            component={ClientesScreen}
-            options={screenWithLogo(ClientesScreen, "Clientes")}
-          />
-          <Drawer.Screen
-            name="Barberos"
-            component={BarberosScreen}
-            options={screenWithLogo(BarberosScreen, "Barberos")}
-          />
-          <Drawer.Screen
-            name="Roles"
-            component={RolesScreen}
-            options={screenWithLogo(RolesScreen, "Roles")}
-          />
-          <Drawer.Screen
-            name="Compras"
-            component={ComprasScreen}
-            options={screenWithLogo(ComprasScreen, "Compras")}
-          />
-          <Drawer.Screen
-            name="Proveedores"
-            component={ProveedoresScreen}
-            options={screenWithLogo(ProveedoresScreen, "Proveedores")}
-          />
-          <Drawer.Screen
-            name="Insumos"
-            component={InsumosScreen}
-            options={screenWithLogo(InsumosScreen, "Insumos")}
-          />
-          <Drawer.Screen
-            name="CategoriaInsumos"
-            component={CategoriaInsumosScreen}
-            options={screenWithLogo(
-              CategoriaInsumosScreen,
-              "Categoría de Insumos"
-            )}
-          />
-          <Drawer.Screen
-            name="Agenda"
-            component={AgendaScreen}
-            options={({ navigation }) => ({
-              headerTitle: "Agenda",
-              headerRight: () => <NotificationBell navigation={navigation} />,
-            })}
-          />
-          <Drawer.Screen
-            name="Citas"
-            component={CitasScreen}
-            options={screenWithLogo(CitasScreen, "Citas")}
-          />
-          <Drawer.Screen
-            name="Servicios"
-            component={ServiciosScreen}
-            options={screenWithLogo(ServiciosScreen, "Servicios")}
-          />
-          <Drawer.Screen
-            name="Movimientos"
-            component={MovimientosScreen}
-            options={screenWithLogo(MovimientosScreen, "Movimientos")}
-          />
-          <Drawer.Screen
-            name="Ventas"
-            component={VentasScreen}
-            options={screenWithLogo(VentasScreen, "Ventas")}
-          />
-        </>
-      );
-  }
-};
-
-/* Drawer principal */
-const DrawerNavigator = () => {
-  const { userRole } = useContext(AuthContext);
-
-  return (
-    <Drawer.Navigator
-      drawerContent={(props) => <CustomDrawer {...props} />}
-      screenOptions={{ headerShown: true }}
-    >
-      {renderDrawerScreens(userRole)}
-    </Drawer.Navigator>
-  );
-};
-
-<Drawer.Screen
-  name="Notificaciones"
-  component={NotificacionesScreen}
-  options={{ drawerLabel: "Notificaciones" }}
-/>;
-
 /* Stack principal */
 const AppNavigator = () => {
   const { isLoggedIn, isLoading } = useContext(AuthContext);
@@ -288,7 +116,7 @@ const AppNavigator = () => {
         </>
       ) : (
         <>
-          <Stack.Screen name="MainDrawer" component={DrawerNavigator} />
+          <Stack.Screen name="MainDrawer" component={CustomDrawerNavigator} />
           <Stack.Screen
             name="ControlInsumos"
             component={ControlInsumos}
@@ -299,13 +127,17 @@ const AppNavigator = () => {
             component={VerifyEmailScreen}
             options={{
               title: "Verificar Email",
-              headerShown: true, // Mostrar header para poder navegar back
+              headerShown: true,
             }}
           />
           <Stack.Screen
             name="Notificaciones"
             component={NotificacionesScreen}
-            options={{ headerShown: true, title: "Notificaciones" }}
+            options={{ 
+              headerShown: true, 
+              title: "Notificaciones",
+              headerRight: () => <HeaderLogo />
+            }}
           />
         </>
       )}

@@ -1,10 +1,11 @@
 // navigation/CustomDrawerNavigator.js
 import React, { useContext, useState, useRef } from "react";
-import { View, TouchableOpacity, Text, StyleSheet, Animated, Image } from "react-native";
+import { View, TouchableOpacity, Text, StyleSheet, Animated, Image, useWindowDimensions } from "react-native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { AuthContext } from "../contexts/AuthContext";
 import CustomDrawer from "../components/CustomDrawer";
 import { Ionicons } from "@expo/vector-icons";
+
 
 // Importa TODAS tus pantallas
 import DashboardScreen from "../screens/dashboard/DashboardScreen";

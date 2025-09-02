@@ -77,16 +77,17 @@ const CrearServicio = ({ visible, onClose, onCreate, insumosDisponibles }) => {
     });
   };
 
-  const formatTime = (timeString) => {
-    const [hours, minutes] = timeString.split(":").map(Number);
-    let formatted = "";
-    if (hours > 0) formatted += `${hours} hora${hours !== 1 ? "s" : ""}`;
-    if (minutes > 0) {
-      if (hours > 0) formatted += " y ";
-      formatted += `${minutes} minuto${minutes !== 1 ? "s" : ""}`;
-    }
-    return formatted || "0 minutos";
-  };
+// Por esta (SOLO para mostrar, no para enviar):
+const formatTimeForDisplay = (timeString) => {
+  const [hours, minutes] = timeString.split(":").map(Number);
+  let formatted = "";
+  if (hours > 0) formatted += `${hours} hora${hours !== 1 ? "s" : ""}`;
+  if (minutes > 0) {
+    if (hours > 0) formatted += " y ";
+    formatted += `${minutes} minuto${minutes !== 1 ? "s" : ""}`;
+  }
+  return formatted || "0 minutos";
+};
 
   /* ───── Validaciones paso 1 ───── */
   const validatePaso1 = () => {
@@ -106,23 +107,21 @@ const CrearServicio = ({ visible, onClose, onCreate, insumosDisponibles }) => {
   };
 
   /* ───── Crear servicio (insumos opcionales) ───── */
-  const handleCreate = () => {
-    const duracionMaximaConvertido = formatTime(duracionMaxima);
-
-    onCreate({
-      nombre,
-      descripcion,
-      duracionMaxima,
-      duracionMaximaConvertido,
-      precio: parseInt(precio),
-      insumos: insumos.map((insumo) => ({
-        insumoID: insumo.id,
-        unidades: parseInt(insumo.cantidad),
-        categoria: insumo.categoria,
-      })),
-    });
-    resetForm();
-  };
+const handleCreate = () => {
+  // ✅ Enviar el formato original "00:30", el backend lo convertirá
+  onCreate({
+    nombre,
+    descripcion,
+    duracionMaxima, // "00:30" - Esto es lo que espera el backend
+    precio: parseInt(precio),
+    insumos: insumos.map((insumo) => ({
+      insumoID: insumo.id,
+      unidades: parseInt(insumo.cantidad),
+      categoria: insumo.categoria,
+    })),
+  });
+  resetForm();
+};
 
   /* ───── Agregar insumo ───── */
   const agregarInsumo = () => {

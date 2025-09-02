@@ -65,14 +65,15 @@ const NotificationBell = ({ navigation }) => {
 const HeaderLogo = () => {
   const { width } = useWindowDimensions();
   const isLargeScreen = width >= 1024;
-  const logoSize = isLargeScreen ? 180 : 120;
+  const logoWidth = isLargeScreen ? 180 : 120; // Width más grande
+  const logoHeight = isLargeScreen ? 40 : 30;  // Height reducido para evitar problemas
 
   return (
     <Image
       source={LogoImg}
       style={{
-        width: logoSize,
-        height: logoSize,
+        width: logoWidth,
+        height: logoHeight, // Altura reducida para evitar que tape otros elementos
         resizeMode: "contain",
         marginRight: 10,
       }}
@@ -139,6 +140,7 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
                 headerRight: () => (
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
                     <NotificationBell navigation={mainNavigation} />
+                    <HeaderLogo />
                   </View>
                 )
               }}
@@ -190,6 +192,7 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
                 headerRight: () => (
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
                     <NotificationBell navigation={mainNavigation} />
+                    <HeaderLogo />
                   </View>
                 )
               }}
@@ -281,6 +284,7 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
                 headerRight: () => (
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
                     <NotificationBell navigation={mainNavigation} />
+                    <HeaderLogo />
                   </View>
                 )
               }}

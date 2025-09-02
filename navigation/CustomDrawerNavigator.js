@@ -1,6 +1,15 @@
 // navigation/CustomDrawerNavigator.js
 import React, { useContext, useState, useRef } from "react";
-import { View, TouchableOpacity, Text, StyleSheet, Animated, Image, useWindowDimensions } from "react-native";
+import { 
+  View, 
+  TouchableOpacity, 
+  Text, 
+  StyleSheet, 
+  Animated, 
+  Image, 
+  useWindowDimensions,
+  Platform
+} from "react-native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { AuthContext } from "../contexts/AuthContext";
 import CustomDrawer from "../components/CustomDrawer";
@@ -65,15 +74,15 @@ const NotificationBell = ({ navigation }) => {
 const HeaderLogo = () => {
   const { width } = useWindowDimensions();
   const isLargeScreen = width >= 1024;
-  const logoWidth = isLargeScreen ? 180 : 120; // Width más grande
-  const logoHeight = isLargeScreen ? 40 : 30;  // Height reducido para evitar problemas
+  const logoWidth = isLargeScreen ? 180 : 120;
+  const logoHeight = isLargeScreen ? 40 : 30;
 
   return (
     <Image
       source={LogoImg}
       style={{
         width: logoWidth,
-        height: logoHeight, // Altura reducida para evitar que tape otros elementos
+        height: logoHeight,
         resizeMode: "contain",
         marginRight: 10,
       }}
@@ -85,8 +94,17 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
   const { userRole } = useContext(AuthContext);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const drawerAnimation = useRef(new Animated.Value(-300)).current;
+  const { width } = useWindowDimensions();
+  
+  // Determinar si es web
+  const isWeb = Platform.OS === 'web';
+  // Para web, mostramos el drawer siempre visible en pantallas grandes
+  const isLargeScreen = width >= 1024;
 
   const toggleDrawer = () => {
+    // En web con pantalla grande, el drawer siempre está visible
+    if (isWeb && isLargeScreen) return;
+    
     if (drawerOpen) {
       Animated.timing(drawerAnimation, {
         toValue: -300,
@@ -104,6 +122,9 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
   };
 
   const closeDrawer = () => {
+    // En web con pantalla grande, el drawer siempre está visible
+    if (isWeb && isLargeScreen) return;
+    
     Animated.timing(drawerAnimation, {
       toValue: -300,
       duration: 300,
@@ -135,7 +156,7 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
               name="Agenda" 
               component={AgendaScreen}
               options={{
-                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
+                ...commonOptions,
                 headerTitle: "Agenda",
                 headerRight: () => (
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -149,7 +170,7 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
               name="Citas" 
               component={CitasScreen}
               options={{
-                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
+                ...commonOptions,
                 headerTitle: "Citas"
               }}
             />
@@ -163,31 +184,15 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
               name="Clientes" 
               component={ClientesScreen}
               options={{
-                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
+                ...commonOptions,
                 headerTitle: "Clientes"
               }}
             />
-            {/* <Stack.Screen 
-              name="Insumos" 
-              component={InsumosScreen}
-              options={{
-                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
-                headerTitle: "Insumos"
-              }}
-            /> */}
-            {/* <Stack.Screen 
-              name="Movimientos" 
-              component={MovimientosScreen}
-              options={{
-                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
-                headerTitle: "Movimientos"
-              }}
-            /> */}
             <Stack.Screen 
               name="Agenda" 
               component={AgendaScreen}
               options={{
-                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
+                ...commonOptions,
                 headerTitle: "Agenda",
                 headerRight: () => (
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -201,7 +206,7 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
               name="Citas" 
               component={CitasScreen}
               options={{
-                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
+                ...commonOptions,
                 headerTitle: "Citas"
               }}
             />
@@ -215,7 +220,7 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
               name="Dashboard" 
               component={DashboardScreen}
               options={{
-                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
+                ...commonOptions,
                 headerTitle: "Dashboard"
               }}
             />
@@ -223,7 +228,7 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
               name="Clientes" 
               component={ClientesScreen}
               options={{
-                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
+                ...commonOptions,
                 headerTitle: "Clientes"
               }}
             />
@@ -231,55 +236,15 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
               name="Barberos" 
               component={BarberosScreen}
               options={{
-                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
+                ...commonOptions,
                 headerTitle: "Barberos"
               }}
             />
-            {/* <Stack.Screen 
-              name="Roles" 
-              component={RolesScreen}
-              options={{
-                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
-                headerTitle: "Roles"
-              }}
-            /> */}
-            {/* <Stack.Screen 
-              name="Compras" 
-              component={ComprasScreen}
-              options={{
-                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
-                headerTitle: "Compras"
-              }}
-            />
-            <Stack.Screen 
-              name="Proveedores" 
-              component={ProveedoresScreen}
-              options={{
-                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
-                headerTitle: "Proveedores"
-              }}
-            />
-            <Stack.Screen 
-              name="Insumos" 
-              component={InsumosScreen}
-              options={{
-                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
-                headerTitle: "Insumos"
-              }}
-            />
-            <Stack.Screen 
-              name="CategoriaInsumos" 
-              component={CategoriaInsumosScreen}
-              options={{
-                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
-                headerTitle: "Categoría de Insumos"
-              }}
-            /> */}
             <Stack.Screen 
               name="Agenda" 
               component={AgendaScreen}
               options={{
-                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
+                ...commonOptions,
                 headerTitle: "Agenda",
                 headerRight: () => (
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -293,7 +258,7 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
               name="Citas" 
               component={CitasScreen}
               options={{
-                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
+                ...commonOptions,
                 headerTitle: "Citas"
               }}
             />
@@ -301,23 +266,15 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
               name="Servicios" 
               component={ServiciosScreen}
               options={{
-                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
+                ...commonOptions,
                 headerTitle: "Servicios"
               }}
             />
-            {/* <Stack.Screen 
-              name="Movimientos" 
-              component={MovimientosScreen}
-              options={{
-                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
-                headerTitle: "Movimientos"
-              }}
-            /> */}
             <Stack.Screen 
               name="Ventas" 
               component={VentasScreen}
               options={{
-                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
+                ...commonOptions,
                 headerTitle: "Ventas"
               }}
             />
@@ -325,27 +282,19 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
               name="Notificaciones" 
               component={NotificacionesScreen}
               options={{
-                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
+                ...commonOptions,
                 headerTitle: "Notificaciones"
               }}
             />
-            {/* <Stack.Screen 
-              name="ControlInsumos" 
-              component={ControlInsumos}
-              options={{
-                ...commonOptions, // ← BOTÓN DE HAMBURGUESA AQUÍ
-                headerTitle: "Control de Insumos"
-              }}
-            /> */}
           </>
         );
     }
   };
 
   return (
-    <View style={{ flex: 1 }}>
-      {/* Drawer overlay */}
-      {drawerOpen && (
+    <View style={styles.container}>
+      {/* Drawer overlay - Solo mostrar en móvil o cuando el drawer está abierto */}
+      {(drawerOpen && !(isWeb && isLargeScreen)) && (
         <TouchableOpacity
           style={styles.overlay}
           onPress={closeDrawer}
@@ -357,7 +306,14 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
       <Animated.View 
         style={[
           styles.drawer, 
-          { transform: [{ translateX: drawerAnimation }] }
+          { 
+            transform: [
+              // En web con pantalla grande, siempre visible (translateX: 0)
+              isWeb && isLargeScreen 
+                ? { translateX: 0 } 
+                : { translateX: drawerAnimation }
+            ]
+          }
         ]}
       >
         <CustomDrawer 
@@ -369,7 +325,11 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
       </Animated.View>
 
       {/* Main content */}
-      <View style={styles.mainContent}>
+      <View style={[
+        styles.mainContent,
+        // En web con pantalla grande, agregamos margen para el drawer fijo
+        isWeb && isLargeScreen && { marginLeft: 300 }
+      ]}>
         <Stack.Navigator>
           {renderDrawerScreens(userRole)}
         </Stack.Navigator>
@@ -379,6 +339,10 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    flexDirection: 'row', // Cambiamos a fila para diseño horizontal
+  },
   overlay: {
     position: 'absolute',
     top: 0,
@@ -389,18 +353,27 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
   drawer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
     width: 300,
     height: '100%',
     backgroundColor: '#000',
     zIndex: 1000,
     elevation: 1000,
+    // Para web: drawer fijo en pantallas grandes
+    ...(Platform.OS === 'web' ? {
+      position: 'fixed',
+      left: 0,
+      top: 0,
+      bottom: 0,
+    } : {}),
   },
   mainContent: {
     flex: 1,
     zIndex: 1,
+    // Para web: permitir scroll solo en este contenedor
+    ...(Platform.OS === 'web' ? {
+      overflowY: 'auto',
+      height: '100vh',
+    } : {}),
   },
 });
 

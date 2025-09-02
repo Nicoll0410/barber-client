@@ -14,7 +14,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { BlurView } from 'expo-blur';
-import { Calendar, LocaleConfig } from 'react-native-calendars';
+import Calendar from '../../components/Calendar';
 import moment from 'moment';
 
 // Configuración de localización en español
@@ -263,148 +263,111 @@ const pickImage = async () => {
             </View>
             
             {showDatePicker && (
-              <View style={styles.customDatePickerContainer}>
-                <View style={styles.customDatePicker}>
-                  <View style={styles.datePickerHeader}>
-                    <TouchableOpacity 
-                      onPress={() => changeMonth(-1)}
-                      disabled={calendarYear === (currentYear - 80) && calendarMonth === 0}
-                    >
-                      <MaterialIcons 
-                        name="chevron-left" 
-                        size={24} 
-                        color={
-                          calendarYear === (currentYear - 80) && calendarMonth === 0
-                            ? '#ccc' 
-                            : '#333'
-                        } 
-                      />
-                    </TouchableOpacity>
-                    
-                    <View style={styles.monthYearSelector}>
-                      <Text style={styles.monthYearText}>
-                        {months[calendarMonth]} de {calendarYear}
-                      </Text>
-                    </View>
-                    
-                    <TouchableOpacity 
-                      onPress={() => changeMonth(1)}
-                      disabled={calendarYear === currentYear && calendarMonth === new Date().getMonth()}
-                    >
-                      <MaterialIcons 
-                        name="chevron-right" 
-                        size={24} 
-                        color={
-                          calendarYear === currentYear && calendarMonth === new Date().getMonth()
-                            ? '#ccc' 
-                            : '#333'
-                        } 
-                      />
-                    </TouchableOpacity>
-                  </View>
-                  
-                  <View style={styles.yearSelectorContainer}>
-                    <ScrollView 
-                      horizontal 
-                      showsHorizontalScrollIndicator={false}
-                      contentContainerStyle={styles.yearScrollContent}
-                    >
-                      {years.map(year => (
-                        <TouchableOpacity 
-                          key={year}
-                          style={[
-                            styles.yearButton,
-                            calendarYear === year && styles.selectedYearButton
-                          ]}
-                          onPress={() => changeYear(year)}
-                        >
-                          <Text style={[
-                            styles.yearButtonText,
-                            calendarYear === year && styles.selectedYearButtonText
-                          ]}>
-                            {year}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-                  
-                  <View style={styles.calendarContainer}>
-                    <Calendar
-                      key={`${calendarYear}-${calendarMonth}`}
-                      current={`${calendarYear}-${(calendarMonth + 1).toString().padStart(2, '0')}-01`}
-                      minDate={`${currentYear - 80}-01-01`}
-                      maxDate={new Date().toISOString().split('T')[0]}
-                      onDayPress={handleDayPress}
-                      monthFormat={'MMMM yyyy'}
-                      hideArrows={true}
-                      hideExtraDays={true}
-                      disableMonthChange={true}
-                      markedDates={{
-                        ...getDisabledDates(),
-                        [formData.fechaNacimiento ? formatDateString(formData.fechaNacimiento) : '']: {
-                          selected: true,
-                          selectedColor: '#424242',
-                          selectedTextColor: '#fff'
-                        },
-                        [new Date().toISOString().split('T')[0]]: {
-                          marked: true,
-                          dotColor: '#424242'
-                        }
-                      }}
-                      theme={{
-                        calendarBackground: 'transparent',
-                        textSectionTitleColor: '#666',
-                        dayTextColor: '#333',
-                        todayTextColor: '#424242',
-                        selectedDayTextColor: '#fff',
-                        selectedDayBackgroundColor: '#424242',
-                        arrowColor: '#424242',
-                        monthTextColor: '#333',
-                        textDayFontWeight: '400',
-                        textMonthFontWeight: 'bold',
-                        textDayHeaderFontWeight: '500',
-                        textDayFontSize: 12,
-                        textMonthFontSize: 14,
-                        textDayHeaderFontSize: 12,
-                        'stylesheet.calendar.header': {
-                          week: {
-                            marginTop: 5,
-                            flexDirection: 'row',
-                            justifyContent: 'space-between'
-                          }
-                        },
-                        disabledDayTextColor: '#d9d9d9'
-                      }}
-                      style={styles.calendar}
-                      disableAllTouchEventsForDisabledDays={true}
-                    />
-                  </View>
-                  
-                  <View style={styles.datePickerActions}>
-                    <TouchableOpacity 
-                      style={styles.datePickerButton}
-                      onPress={() => {
-                        const today = new Date();
-                        setFormData({...formData, fechaNacimiento: today});
-                        setCalendarMonth(today.getMonth());
-                        setCalendarYear(today.getFullYear());
-                        setShowDatePicker(false);
-                      }}
-                    >
-                      <Text style={styles.datePickerButtonText}>Hoy</Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity 
-                      style={styles.closeButton} 
-                      onPress={() => setShowDatePicker(false)}
-                    >
-                      <Text style={styles.closeButtonText}>Cerrar</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            )}
+  <View style={styles.customDatePickerContainer}>
+    <View style={styles.customDatePicker}>
+      <View style={styles.datePickerHeader}>
+        <TouchableOpacity 
+          onPress={() => changeMonth(-1)}
+          disabled={calendarYear === (currentYear - 80) && calendarMonth === 0}
+        >
+          <MaterialIcons 
+            name="chevron-left" 
+            size={24} 
+            color={
+              calendarYear === (currentYear - 80) && calendarMonth === 0
+                ? '#ccc' 
+                : '#333'
+            } 
+          />
+        </TouchableOpacity>
+        
+        <View style={styles.monthYearSelector}>
+          <Text style={styles.monthYearText}>
+            {months[calendarMonth]} de {calendarYear}
+          </Text>
+        </View>
+        
+        <TouchableOpacity 
+          onPress={() => changeMonth(1)}
+          disabled={calendarYear === currentYear && calendarMonth === new Date().getMonth()}
+        >
+          <MaterialIcons 
+            name="chevron-right" 
+            size={24} 
+            color={
+              calendarYear === currentYear && calendarMonth === new Date().getMonth()
+                ? '#ccc' 
+                : '#333'
+            } 
+          />
+        </TouchableOpacity>
+      </View>
+      
+      <View style={styles.yearSelectorContainer}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.yearScrollContent}
+        >
+          {years.map(year => (
+            <TouchableOpacity 
+              key={year}
+              style={[
+                styles.yearButton,
+                calendarYear === year && styles.selectedYearButton
+              ]}
+              onPress={() => changeYear(year)}
+            >
+              <Text style={[
+                styles.yearButtonText,
+                calendarYear === year && styles.selectedYearButtonText
+              ]}>
+                {year}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+      
+      {/* REEMPLAZAMOS EL CALENDARIO CON NUESTRO COMPONENTE */}
+      <View style={styles.calendarContainer}>
+        <Calendar
+          selectedDate={formData.fechaNacimiento ? formatDateString(formData.fechaNacimiento) : null}
+          onDateChange={(date) => {
+            const selectedDate = new Date(date);
+            setFormData({...formData, fechaNacimiento: selectedDate});
+            setShowDatePicker(false);
+          }}
+          minDate={`${currentYear - 80}-01-01`}
+          maxDate={new Date().toISOString().split('T')[0]}
+          markedDates={getDisabledDates()}
+        />
+      </View>
+      
+      <View style={styles.datePickerActions}>
+        <TouchableOpacity 
+          style={styles.datePickerButton}
+          onPress={() => {
+            const today = new Date();
+            setFormData({...formData, fechaNacimiento: today});
+            setCalendarMonth(today.getMonth());
+            setCalendarYear(today.getFullYear());
+            setShowDatePicker(false);
+          }}
+        >
+          <Text style={styles.datePickerButtonText}>Hoy</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.closeButton} 
+          onPress={() => setShowDatePicker(false)}
+        >
+          <Text style={styles.closeButtonText}>Cerrar</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  </View>
+)}
             
             <View style={styles.formGroup}>
               <Text style={styles.label}>Email <Text style={styles.required}>*</Text></Text>

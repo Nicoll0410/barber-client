@@ -65,85 +65,86 @@ const AgendaScreen = () => {
     }
   };
 
-  const fetchBarberos = async () => {
-    try {
-      const token = await AsyncStorage.getItem('token');
-      const { data } = await axios.get(
-        'https://barber-server-6kuo.onrender.com/barberos',
-        { 
-          params: { page: 1, limit: 100, all: 'true' },
-          headers: { Authorization: `Bearer ${token}` } 
-        }
-      );
+const fetchBarberos = async () => {
+  try {
+    const token = await AsyncStorage.getItem('token');
+    // Cambiar la URL para usar el nuevo endpoint
+    const { data } = await axios.get(
+      'https://barber-server-6kuo.onrender.com/barberos/para-agenda',
+      { 
+        params: { page: 1, limit: 100, all: 'true' },
+        headers: { Authorization: `Bearer ${token}` } 
+      }
+    );
 
-      const barberosConHorario = await Promise.all(data.barberos.map(async b => {
-        try {
-          const horarioResponse = await axios.get(
-            `https://barber-server-6kuo.onrender.com/barberos/${b.id}/horario`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-          
-          return {
-            id: b.id,
-            nombre: b.nombre,
-            avatar: b.avatar
-              ? { uri: b.avatar }
-              : require('../../assets/avatar.png'),
-            subItems: ['Barbero'],
-            disponibilidad: horarioResponse.data?.horario || {
-              diasLaborales: {
-                lunes: { activo: true, horas: [] },
-                martes: { activo: true, horas: [] },
-                miercoles: { activo: true, horas: [] },
-                jueves: { activo: true, horas: [] },
-                viernes: { activo: true, horas: [] },
-                sabado: { activo: true, horas: [] },
-                domingo: { activo: false, horas: [] }
-              },
-              horarioAlmuerzo: {
-                inicio: "13:00",
-                fin: "14:00",
-                activo: true
-              },
-              excepciones: []
-            }
-          };
-        } catch (error) {
-          console.error(`Error al obtener horario para barbero ${b.id}:`, error);
-          return {
-            id: b.id,
-            nombre: b.nombre,
-            avatar: b.avatar
-              ? { uri: b.avatar }
-              : require('../../assets/avatar.png'),
-            subItems: ['Barbero'],
-            disponibilidad: {
-              diasLaborales: {
-                lunes: { activo: true, horas: [] },
-                martes: { activo: true, horas: [] },
-                miercoles: { activo: true, horas: [] },
-                jueves: { activo: true, horas: [] },
-                viernes: { activo: true, horas: [] },
-                sabado: { activo: true, horas: [] },
-                domingo: { activo: false, horas: [] }
-              },
-              horarioAlmuerzo: {
-                inicio: "13:00",
-                fin: "14:00",
-                activo: true
-              },
-              excepciones: []
-            }
-          };
-        }
-      }));
+    const barberosConHorario = await Promise.all(data.barberos.map(async b => {
+      try {
+        const horarioResponse = await axios.get(
+          `https://barber-server-6kuo.onrender.com/barberos/${b.id}/horario`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        
+        return {
+          id: b.id,
+          nombre: b.nombre,
+          avatar: b.avatar
+            ? { uri: b.avatar }
+            : require('../../assets/avatar.png'),
+          subItems: ['Barbero'],
+          disponibilidad: horarioResponse.data?.horario || {
+            diasLaborales: {
+              lunes: { activo: true, horas: [] },
+              martes: { activo: true, horas: [] },
+              miercoles: { activo: true, horas: [] },
+              jueves: { activo: true, horas: [] },
+              viernes: { activo: true, horas: [] },
+              sabado: { activo: true, horas: [] },
+              domingo: { activo: false, horas: [] }
+            },
+            horarioAlmuerzo: {
+              inicio: "13:00",
+              fin: "14:00",
+              activo: true
+            },
+            excepciones: []
+          }
+        };
+      } catch (error) {
+        console.error(`Error al obtener horario para barbero ${b.id}:`, error);
+        return {
+          id: b.id,
+          nombre: b.nombre,
+          avatar: b.avatar
+            ? { uri: b.avatar }
+            : require('../../assets/avatar.png'),
+          subItems: ['Barbero'],
+          disponibilidad: {
+            diasLaborales: {
+              lunes: { activo: true, horas: [] },
+              martes: { activo: true, horas: [] },
+              miercoles: { activo: true, horas: [] },
+              jueves: { activo: true, horas: [] },
+              viernes: { activo: true, horas: [] },
+              sabado: { activo: true, horas: [] },
+              domingo: { activo: false, horas: [] }
+            },
+            horarioAlmuerzo: {
+              inicio: "13:00",
+              fin: "14:00",
+              activo: true
+            },
+            excepciones: []
+          }
+        };
+      }
+    }));
 
-      setBarberos(barberosConHorario);
-    } catch (err) {
-      console.error('Error al obtener barberos:', err);
-      Alert.alert('Error', 'No se pudieron cargar los barberos');
-    }
-  };
+    setBarberos(barberosConHorario);
+  } catch (err) {
+    console.error('Error al obtener barberos:', err);
+    Alert.alert('Error', 'No se pudieron cargar los barberos');
+  }
+};
 
 const fetchCitas = async () => {
   try {

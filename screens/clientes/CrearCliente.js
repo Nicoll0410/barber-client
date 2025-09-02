@@ -502,8 +502,6 @@ const pickImage = async () => {
               </View>
             </View>
 
-// Reemplazar completamente la sección del Date Picker en CrearCliente.js
-
 {showDatePicker && (
   <View style={styles.customDatePickerContainer}>
     <View style={styles.customDatePicker}>
@@ -1038,10 +1036,6 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 5,
     backgroundColor: "#424242",
-  },
-  closeButtonText: {
-    color: "white",
-    fontWeight: "bold",
   },
   successModalOverlay: {
     flex: 1,

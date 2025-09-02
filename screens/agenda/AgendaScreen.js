@@ -799,7 +799,41 @@ const fetchCitas = async () => {
       </View>
 
       {renderBarberosHeader()}
-      {renderMainContent()}
+      
+      {/* Contenedor principal con scroll horizontal para móvil */}
+      {isMobile ? (
+        <View style={styles.mobileMainContainer}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={true}
+            contentContainerStyle={styles.mobileHorizontalScroll}
+          >
+            <View>
+              {renderBarberosHeader()}
+              <ScrollView 
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={true}
+              >
+                {generateTimeSlots().map(slot => (
+                  <View key={slot.key} style={styles.rowMobile}>
+                    <View style={styles.timeCellMobile}>
+                      <Text style={styles.horaText}>{slot.displayTime}</Text>
+                    </View>
+                    <View style={styles.barberosSlotsContainer}>
+                      {barberos.map(b => renderBarberoSlot(slot, b))}
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          </ScrollView>
+        </View>
+      ) : (
+        <>
+          {renderBarberosHeader()}
+          {renderMainContent()}
+        </>
+      )}
 
       <Modal visible={showCalendar} animationType="fade" transparent>
         <BlurView intensity={15} tint="light" style={StyleSheet.absoluteFill} />
@@ -1237,6 +1271,17 @@ const styles = StyleSheet.create({
   disponibilidadTexto: {
     fontSize: 10,
     fontWeight: 'bold'
+  },
+  // Nuevos estilos para el scroll horizontal unificado
+  mobileMainContainer: {
+    flex: 1,
+    marginBottom: 60
+  },
+  mobileHorizontalScroll: {
+    flexDirection: 'row'
+  },
+  barberosSlotsContainer: {
+    flexDirection: 'row'
   }
 });
 

@@ -1,4 +1,10 @@
-import React, { useState, useContext, useEffect, useCallback, useRef } from "react";
+import React, {
+  useState,
+  useContext,
+  useEffect,
+  useCallback,
+  useRef,
+} from "react";
 import {
   View,
   Text,
@@ -12,7 +18,7 @@ import {
   Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
-  Platform
+  Platform,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
@@ -58,7 +64,7 @@ const CrearCita = ({
       setTimeout(() => {
         if (nombreInputRef.current) {
           nombreInputRef.current.focus();
-          lastFocusedInput.current = 'nombre';
+          lastFocusedInput.current = "nombre";
         }
       }, 100);
     }
@@ -86,9 +92,12 @@ const CrearCita = ({
   };
 
   const restaurarFoco = () => {
-    if (lastFocusedInput.current === 'nombre' && nombreInputRef.current) {
+    if (lastFocusedInput.current === "nombre" && nombreInputRef.current) {
       nombreInputRef.current.focus();
-    } else if (lastFocusedInput.current === 'telefono' && telefonoInputRef.current) {
+    } else if (
+      lastFocusedInput.current === "telefono" &&
+      telefonoInputRef.current
+    ) {
       telefonoInputRef.current.focus();
     }
   };
@@ -149,22 +158,25 @@ const CrearCita = ({
   const obtenerUsuarioIdDelBarbero = async (token, barberoId) => {
     try {
       console.log("Buscando usuarioID del barbero...");
-      
+
       const response = await axios.get(
         `https://barber-server-6kuo.onrender.com/barberos/${barberoId}/usuario`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json"
-          }
+            "Content-Type": "application/json",
+          },
         }
       );
 
       if (response.data?.success && response.data.usuarioID) {
-        console.log("✅ UsuarioID del barbero encontrado:", response.data.usuarioID);
+        console.log(
+          "✅ UsuarioID del barbero encontrado:",
+          response.data.usuarioID
+        );
         return response.data.usuarioID;
       }
-      
+
       console.log("❌ No se pudo obtener usuarioID del barbero");
       return null;
     } catch (error) {
@@ -176,14 +188,14 @@ const CrearCita = ({
   const obtenerUsuarioActual = async (token) => {
     try {
       console.log("Obteniendo información del usuario actual...");
-      
+
       const response = await axios.get(
-        'https://barber-server-6kuo.onrender.com/auth/user-info',
+        "https://barber-server-6kuo.onrender.com/auth/user-info",
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+            "Content-Type": "application/json",
+          },
         }
       );
 
@@ -191,7 +203,7 @@ const CrearCita = ({
         console.log("✅ UserId obtenido:", response.data.user.id);
         return response.data.user.id;
       }
-      
+
       console.log("❌ No se pudo obtener userId del backend");
       return null;
     } catch (error) {
@@ -203,15 +215,15 @@ const CrearCita = ({
   const crearNotificacion = async (token, notificacionData) => {
     try {
       console.log("Creando notificación:", notificacionData);
-      
+
       const response = await axios.post(
-        'https://barber-server-6kuo.onrender.com/notifications',
+        "https://barber-server-6kuo.onrender.com/notifications",
         notificacionData,
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+            "Content-Type": "application/json",
+          },
         }
       );
 
@@ -225,7 +237,7 @@ const CrearCita = ({
 
   const handleCrear = async () => {
     console.log("Iniciando creación de cita...");
-    
+
     try {
       setIsLoading(true);
 
@@ -286,8 +298,11 @@ const CrearCita = ({
         throw new Error("No se encontró el token de autenticación");
       }
 
-      console.log("Enviando datos al servidor:", JSON.stringify(citaData, null, 2));
-      
+      console.log(
+        "Enviando datos al servidor:",
+        JSON.stringify(citaData, null, 2)
+      );
+
       const response = await axios.post(
         "https://barber-server-6kuo.onrender.com/citas",
         citaData,
@@ -302,54 +317,64 @@ const CrearCita = ({
 
       console.log("Respuesta del servidor:", response.data);
 
-      if (response.data && response.data.mensaje === 'Cita creada exitosamente') {
-        Alert.alert('Éxito', 'Cita creada correctamente');
-        
+      if (
+        response.data &&
+        response.data.mensaje === "Cita creada exitosamente"
+      ) {
+        Alert.alert("Éxito", "Cita creada correctamente");
+
         // Crear notificaciones
         const citaId = response.data.cita.id;
         const clienteNombre = isTemporal ? temporalNombre : clienteSel?.nombre;
-        
+
         // 1. Crear notificación para el barbero
-        const usuarioIDBarbero = await obtenerUsuarioIdDelBarbero(token, barbero.id);
+        const usuarioIDBarbero = await obtenerUsuarioIdDelBarbero(
+          token,
+          barbero.id
+        );
         if (usuarioIDBarbero) {
           await crearNotificacion(token, {
             usuarioID: usuarioIDBarbero,
             titulo: "📅 Nueva cita agendada",
-            cuerpo: `El cliente ${clienteNombre} ha agendado una cita para el ${fecha.toLocaleDateString('es-ES')} a las ${slot.displayTime}`,
+            cuerpo: `El cliente ${clienteNombre} ha agendado una cita para el ${fecha.toLocaleDateString(
+              "es-ES"
+            )} a las ${slot.displayTime}`,
             tipo: "cita_creada",
-            relacionId: citaId
+            relacionId: citaId,
           });
         }
-        
+
         // 2. Crear notificación para el usuario actual
         const usuarioIDActual = await obtenerUsuarioActual(token);
         if (usuarioIDActual) {
           await crearNotificacion(token, {
             usuarioID: usuarioIDActual,
             titulo: "📅 Cita agendada",
-            cuerpo: `Agendaste una cita para ${fecha.toLocaleDateString('es-ES')} a las ${slot.displayTime} con ${barbero.nombre}`,
+            cuerpo: `Agendaste una cita para ${fecha.toLocaleDateString(
+              "es-ES"
+            )} a las ${slot.displayTime} con ${barbero.nombre}`,
             tipo: "cita_creada",
-            relacionId: citaId
+            relacionId: citaId,
           });
         }
-        
+
         // Forzar actualización de notificaciones
         if (authContext?.fetchNotifications) {
           console.log("Actualizando notificaciones...");
           await authContext.fetchNotifications();
         }
-        
+
         // Reproducir sonido
         if (authContext?.playNotificationSound) {
           console.log("Reproduciendo sonido de notificación...");
           await authContext.playNotificationSound();
         }
-        
+
         handleClose();
         if (onCreate) onCreate();
         return;
       }
-      
+
       throw new Error(response.data?.mensaje || "Error al crear la cita");
     } catch (error) {
       console.error("Error completo al crear cita:", error);
@@ -479,7 +504,7 @@ const CrearCita = ({
               setTimeout(() => {
                 if (nombreInputRef.current) {
                   nombreInputRef.current.focus();
-                  lastFocusedInput.current = 'nombre';
+                  lastFocusedInput.current = "nombre";
                 }
               }, 100);
             }}
@@ -538,12 +563,12 @@ const CrearCita = ({
               placeholder="Ej. Juan Pérez"
               value={temporalNombre}
               onChangeText={handleSetTemporalNombre}
-              onFocus={() => mantenerFocoEnInput('nombre')}
+              onFocus={() => mantenerFocoEnInput("nombre")}
               returnKeyType="next"
               onSubmitEditing={() => {
                 if (telefonoInputRef.current) {
                   telefonoInputRef.current.focus();
-                  lastFocusedInput.current = 'telefono';
+                  lastFocusedInput.current = "telefono";
                 }
               }}
               blurOnSubmit={false}
@@ -556,7 +581,7 @@ const CrearCita = ({
               value={temporalTelefono}
               keyboardType="phone-pad"
               onChangeText={handleSetTemporalTelefono}
-              onFocus={() => mantenerFocoEnInput('telefono')}
+              onFocus={() => mantenerFocoEnInput("telefono")}
               returnKeyType="done"
             />
           </>
@@ -697,30 +722,32 @@ const CrearCita = ({
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <BlurView intensity={20} tint="light" style={styles.blur}>
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0}
           style={styles.keyboardAvoiding}
         >
-          <View style={styles.modal}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {step === 1
-                  ? "Seleccionar servicio"
-                  : step === 2
-                  ? "Seleccionar cliente"
-                  : "Revisa y confirma"}
-              </Text>
-              <TouchableOpacity onPress={handleClose}>
-                <MaterialIcons name="close" size={24} color="#000" />
-              </TouchableOpacity>
-            </View>
-            <ScrollView 
-              contentContainerStyle={{ flexGrow: 1 }}
-              keyboardShouldPersistTaps="handled"
-            >
+          <ScrollView
+            contentContainerStyle={{ flexGrow: 1 }}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+          >
+            <View style={styles.modal}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>
+                  {step === 1
+                    ? "Seleccionar servicio"
+                    : step === 2
+                    ? "Seleccionar cliente"
+                    : "Revisa y confirma"}
+                </Text>
+                <TouchableOpacity onPress={handleClose}>
+                  <MaterialIcons name="close" size={24} color="#000" />
+                </TouchableOpacity>
+              </View>
               {renderStep()}
-            </ScrollView>
-          </View>
+            </View>
+          </ScrollView>
         </KeyboardAvoidingView>
       </BlurView>
     </Modal>
@@ -734,9 +761,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   keyboardAvoiding: {
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
   },
   modal: {
     width: "95%",

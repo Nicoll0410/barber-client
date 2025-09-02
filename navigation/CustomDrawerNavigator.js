@@ -168,7 +168,6 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
                 headerRight: () => (
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
                     <NotificationBell navigation={mainNavigation} />
-                    <HeaderLogo />
                   </View>
                 )
               })}
@@ -204,7 +203,6 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
                 headerRight: () => (
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
                     <NotificationBell navigation={mainNavigation} />
-                    <HeaderLogo />
                   </View>
                 )
               })}

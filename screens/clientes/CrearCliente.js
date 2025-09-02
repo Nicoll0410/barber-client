@@ -502,197 +502,113 @@ const pickImage = async () => {
               </View>
             </View>
 
-            {showDatePicker && (
-              <View style={styles.customDatePickerContainer}>
-                <View style={styles.customDatePicker}>
-                  <View style={styles.datePickerHeader}>
-                    <TouchableOpacity
-                      onPress={() => changeMonth(-1)}
-                      disabled={
-                        calendarYear === currentYear - 120 &&
-                        calendarMonth === 0
-                      }
-                    >
-                      <MaterialIcons
-                        name="chevron-left"
-                        size={24}
-                        color={
-                          calendarYear === currentYear - 120 &&
-                          calendarMonth === 0
-                            ? "#ccc"
-                            : "#333"
-                        }
-                      />
-                    </TouchableOpacity>
+{showDatePicker && (
+  <View style={styles.customDatePickerContainer}>
+    <View style={styles.customDatePicker}>
+      {/* Header month/year */}
+      <View style={styles.dpHeader}>
+        <TouchableOpacity
+          onPress={() => {
+            const m = calendarMonth === 0 ? 11 : calendarMonth - 1;
+            const y = calendarMonth === 0 ? calendarYear - 1 : calendarYear;
+            if (y >= currentYear - 80) {
+              setCalendarMonth(m);
+              setCalendarYear(y);
+            }
+          }}
+        >
+          <MaterialIcons name="chevron-left" size={24} color="#333" />
+        </TouchableOpacity>
+        <Text style={styles.dpTitle}>
+          {months[calendarMonth]} de {calendarYear}
+        </Text>
+        <TouchableOpacity
+          onPress={() => {
+            const today = new Date();
+            const m = calendarMonth === 11 ? 0 : calendarMonth + 1;
+            const y = calendarMonth === 11 ? calendarYear + 1 : calendarYear;
+            if (y < currentYear || (y === currentYear && m <= today.getMonth())) {
+              setCalendarMonth(m);
+              setCalendarYear(y);
+            }
+          }}
+        >
+          <MaterialIcons name="chevron-right" size={24} color="#333" />
+        </TouchableOpacity>
+      </View>
+      
+      {/* Years horizontal scroll */}
+      <View style={styles.yearsScrollContainer}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={true}
+          contentContainerStyle={styles.yearsContainer}
+          snapToInterval={70}
+          decelerationRate="fast"
+        >
+          {years.map((year) => (
+            <TouchableOpacity
+              key={year}
+              style={[
+                styles.yearBtn,
+                year === calendarYear && styles.yearBtnSel,
+              ]}
+              onPress={() => setCalendarYear(year)}
+            >
+              <Text
+                style={[
+                  styles.yearText,
+                  year === calendarYear && styles.yearTextSel,
+                ]}
+              >
+                {year}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
-                    <View style={styles.monthYearSelector}>
-                      <Text style={styles.monthYearText}>
-                        {months[calendarMonth]} de {calendarYear}
-                      </Text>
-                    </View>
-
-                    <TouchableOpacity
-                      onPress={() => changeMonth(1)}
-                      disabled={
-                        calendarYear === currentYear &&
-                        calendarMonth === new Date().getMonth()
-                      }
-                    >
-                      <MaterialIcons
-                        name="chevron-right"
-                        size={24}
-                        color={
-                          calendarYear === currentYear &&
-                          calendarMonth === new Date().getMonth()
-                            ? "#ccc"
-                            : "#333"
-                        }
-                      />
-                    </TouchableOpacity>
-                  </View>
-
-                  <View style={styles.yearSelectorContainer}>
-                    <TouchableOpacity
-                      onPress={() => changeYear(-10)}
-                      disabled={calendarYear - 10 < currentYear - 120}
-                      style={styles.yearArrowButton}
-                    >
-                      <MaterialIcons
-                        name="keyboard-double-arrow-left"
-                        size={20}
-                        color={
-                          calendarYear - 10 < currentYear - 120
-                            ? "#ccc"
-                            : "#333"
-                        }
-                      />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      onPress={() => changeYear(-1)}
-                      disabled={calendarYear - 1 < currentYear - 120}
-                      style={styles.yearArrowButton}
-                    >
-                      <MaterialIcons
-                        name="chevron-left"
-                        size={20}
-                        color={
-                          calendarYear - 1 < currentYear - 120 ? "#ccc" : "#333"
-                        }
-                      />
-                    </TouchableOpacity>
-
-                    <View style={styles.yearDisplay}>
-                      <Text style={styles.yearText}>{calendarYear}</Text>
-                    </View>
-
-                    <TouchableOpacity
-                      onPress={() => changeYear(1)}
-                      disabled={calendarYear + 1 > currentYear}
-                      style={styles.yearArrowButton}
-                    >
-                      <MaterialIcons
-                        name="chevron-right"
-                        size={20}
-                        color={calendarYear + 1 > currentYear ? "#ccc" : "#333"}
-                      />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      onPress={() => changeYear(10)}
-                      disabled={calendarYear + 10 > currentYear}
-                      style={styles.yearArrowButton}
-                    >
-                      <MaterialIcons
-                        name="keyboard-double-arrow-right"
-                        size={20}
-                        color={
-                          calendarYear + 10 > currentYear ? "#ccc" : "#333"
-                        }
-                      />
-                    </TouchableOpacity>
-                  </View>
-
-                  <View style={styles.calendarContainer}>
-                    <Calendar
-                      key={`${calendarYear}-${calendarMonth}`}
-                      current={`${calendarYear}-${(calendarMonth + 1)
-                        .toString()
-                        .padStart(2, "0")}-01`}
-                      minDate={`${currentYear - 120}-01-01`}
-                      maxDate={new Date().toISOString().split("T")[0]}
-                      onDayPress={handleDayPress}
-                      monthFormat={"MMMM yyyy"}
-                      hideArrows={true}
-                      hideExtraDays={true}
-                      disableMonthChange={true}
-                      markedDates={{
-                        ...getDisabledDates(),
-                        [formData.fechaNacimiento
-                          ? formatDateString(formData.fechaNacimiento)
-                          : ""]: {
-                          selected: true,
-                          selectedColor: "#424242",
-                          selectedTextColor: "#fff",
-                        },
-                        [new Date().toISOString().split("T")[0]]: {
-                          marked: true,
-                          dotColor: "#424242",
-                        },
-                      }}
-                      theme={{
-                        calendarBackground: "transparent",
-                        textSectionTitleColor: "#666",
-                        dayTextColor: "#333",
-                        todayTextColor: "#424242",
-                        selectedDayTextColor: "#fff",
-                        selectedDayBackgroundColor: "#424242",
-                        arrowColor: "#424242",
-                        monthTextColor: "#333",
-                        textDayFontWeight: "400",
-                        textMonthFontWeight: "bold",
-                        textDayHeaderFontWeight: "500",
-                        textDayFontSize: 12,
-                        textMonthFontSize: 14,
-                        textDayHeaderFontSize: 12,
-                        "stylesheet.calendar.header": {
-                          week: {
-                            marginTop: 5,
-                            flexDirection: "row",
-                            justifyContent: "space-between",
-                          },
-                        },
-                        disabledDayTextColor: "#d9d9d9",
-                      }}
-                      style={styles.calendar}
-                      disableAllTouchEventsForDisabledDays={true}
-                    />
-                  </View>
-
-                  <View style={styles.datePickerActions}>
-                    <TouchableOpacity
-                      style={styles.datePickerButton}
-                      onPress={() => {
-                        const today = new Date();
-                        handleChange("fechaNacimiento", today);
-                        setCalendarMonth(today.getMonth());
-                        setCalendarYear(today.getFullYear());
-                        setShowDatePicker(false);
-                      }}
-                    >
-                      <Text style={styles.datePickerButtonText}>Hoy</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={styles.closeButton}
-                      onPress={() => setShowDatePicker(false)}
-                    >
-                      <Text style={styles.closeButtonText}>Cerrar</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            )}
+      {/* Calendar days */}
+      <Calendar
+        key={`${calendarYear}-${calendarMonth}`}
+        current={`${calendarYear}-${(calendarMonth + 1).toString().padStart(2, "0")}-01`}
+        hideArrows
+        hideExtraDays
+        disableMonthChange
+        onDayPress={handleDayPress}
+        markedDates={{
+          ...getDisabledDates(),
+          [formData.fechaNacimiento ? formatDateString(formData.fechaNacimiento) : ""]: {
+            selected: true,
+            selectedColor: '#424242',
+            selectedTextColor: '#fff',
+          },
+        }}
+        theme={{
+          calendarBackground: 'transparent',
+          textSectionTitleColor: '#666',
+          dayTextColor: '#333',
+          todayTextColor: '#424242',
+          selectedDayTextColor: '#fff',
+          selectedDayBackgroundColor: '#424242',
+          monthTextColor: '#333',
+          textDayFontSize: 14,
+          textMonthFontSize: 16,
+          textDayHeaderFontSize: 14,
+        }}
+        disableAllTouchEventsForDisabledDays
+      />
+      
+      {/* Close button */}
+      <TouchableOpacity
+        style={styles.closeButton}
+        onPress={() => setShowDatePicker(false)}
+      >
+        <Text style={styles.closeButtonText}>Cerrar</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+)}
 
             <View style={styles.formGroup}>
               <Text style={styles.label}>
@@ -1184,6 +1100,56 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 16,
   },
+  dpHeader: { 
+  flexDirection: 'row', 
+  justifyContent: 'space-between', 
+  alignItems: 'center',
+  marginBottom: 10,
+},
+dpTitle: { 
+  fontSize: 18, 
+  fontWeight: 'bold', 
+  color: '#333' 
+},
+yearsScrollContainer: {
+  height: 50,
+  marginVertical: 10,
+},
+yearsContainer: {
+  paddingHorizontal: 10,
+  alignItems: 'center',
+},
+yearBtn: { 
+  paddingHorizontal: 15,
+  paddingVertical: 8,
+  marginHorizontal: 5,
+  borderRadius: 15,
+  justifyContent: 'center',
+  alignItems: 'center',
+  minWidth: 70,
+},
+yearBtnSel: { 
+  backgroundColor: '#424242' 
+},
+yearText: { 
+  color: '#666',
+  fontSize: 14,
+},
+yearTextSel: { 
+  color: '#fff' 
+},
+closeButton: {
+  paddingVertical: 10,
+  backgroundColor: '#f0f0f0',
+  borderRadius: 8,
+  alignItems: 'center',
+  marginTop: 10,
+},
+closeButtonText: {
+  color: '#424242',
+  fontWeight: 'bold',
+  fontSize: 16,
+},
 });
 
 export default CrearCliente;

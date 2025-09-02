@@ -43,7 +43,7 @@ LocaleConfig.locales.es = {
 LocaleConfig.defaultLocale = "es";
 
 /* ─── helpers constantes ─── */
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
 const currentYear = new Date().getFullYear();
 const months = [
   "Enero","Febrero","Marzo","Abril","Mayo","Junio",
@@ -217,6 +217,7 @@ const CrearBarbero = ({ visible, onClose, onCreate }) => {
 
   /* ─── calendario ─── */
   const changeMonth = (increment) => {
+    const today = new Date();
     let newMonth = calendarMonth + increment;
     let newYear = calendarYear;
     
@@ -232,22 +233,10 @@ const CrearBarbero = ({ visible, onClose, onCreate }) => {
     const minYear = pickerField === "contratacion" ? currentYear - 15 : currentYear - 80;
     
     if (newYear <= currentYear && newYear >= minYear) {
-      if (newYear === currentYear && newMonth > new Date().getMonth()) {
-        setCalendarMonth(new Date().getMonth());
+      if (newYear === currentYear && newMonth > today.getMonth()) {
+        setCalendarMonth(today.getMonth());
       } else {
         setCalendarMonth(newMonth);
-      }
-      setCalendarYear(newYear);
-    }
-  };
-
-  const changeYear = (increment) => {
-    const newYear = calendarYear + increment;
-    const minYear = pickerField === "contratacion" ? currentYear - 15 : currentYear - 80;
-    
-    if (newYear <= currentYear && newYear >= minYear) {
-      if (newYear === currentYear && calendarMonth > new Date().getMonth()) {
-        setCalendarMonth(new Date().getMonth());
       }
       setCalendarYear(newYear);
     }
@@ -641,7 +630,11 @@ const CrearBarbero = ({ visible, onClose, onCreate }) => {
               
               <TouchableOpacity
                 onPress={() => changeMonth(1)}
-                disabled={calendarYear === currentYear && calendarMonth === new Date().getMonth()}
+                disabled={
+                  pickerField === "contratacion" 
+                    ? calendarYear === currentYear && calendarMonth === new Date().getMonth()
+                    : calendarYear === currentYear && calendarMonth === new Date().getMonth()
+                }
               >
                 <MaterialIcons 
                   name="chevron-right" 
@@ -655,75 +648,39 @@ const CrearBarbero = ({ visible, onClose, onCreate }) => {
               </TouchableOpacity>
             </View>
             
-            {/* Selector de años con flechas */}
-            <View style={styles.yearSelectorContainer}>
-              <TouchableOpacity 
-                onPress={() => changeYear(-10)}
-                disabled={
-                  pickerField === "contratacion" 
-                    ? calendarYear - 10 < currentYear - 15
-                    : calendarYear - 10 < currentYear - 80
-                }
-                style={styles.yearArrowButton}
+            {/* Selector de años con scroll horizontal */}
+            <View style={styles.yearsScrollContainer}>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={true}
+                contentContainerStyle={styles.yearsContainer}
               >
-                <MaterialIcons 
-                  name="keyboard-double-arrow-left" 
-                  size={20} 
-                  color={
-                    pickerField === "contratacion" 
-                      ? calendarYear - 10 < currentYear - 15 ? "#ccc" : "#333"
-                      : calendarYear - 10 < currentYear - 80 ? "#ccc" : "#333"
-                  } 
-                />
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                onPress={() => changeYear(-1)}
-                disabled={
-                  pickerField === "contratacion" 
-                    ? calendarYear - 1 < currentYear - 15
-                    : calendarYear - 1 < currentYear - 80
-                }
-                style={styles.yearArrowButton}
-              >
-                <MaterialIcons 
-                  name="chevron-left" 
-                  size={20} 
-                  color={
-                    pickerField === "contratacion" 
-                      ? calendarYear - 1 < currentYear - 15 ? "#ccc" : "#333"
-                      : calendarYear - 1 < currentYear - 80 ? "#ccc" : "#333"
-                  } 
-                />
-              </TouchableOpacity>
-              
-              <View style={styles.yearDisplay}>
-                <Text style={styles.yearText}>{calendarYear}</Text>
-              </View>
-              
-              <TouchableOpacity 
-                onPress={() => changeYear(1)}
-                disabled={calendarYear + 1 > currentYear}
-                style={styles.yearArrowButton}
-              >
-                <MaterialIcons 
-                  name="chevron-right" 
-                  size={20} 
-                  color={calendarYear + 1 > currentYear ? "#ccc" : "#333"} 
-                />
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                onPress={() => changeYear(10)}
-                disabled={calendarYear + 10 > currentYear}
-                style={styles.yearArrowButton}
-              >
-                <MaterialIcons 
-                  name="keyboard-double-arrow-right" 
-                  size={20} 
-                  color={calendarYear + 10 > currentYear ? "#ccc" : "#333"} 
-                />
-              </TouchableOpacity>
+                {years.map((year) => (
+                  <TouchableOpacity
+                    key={year}
+                    style={[
+                      styles.yearBtn,
+                      year === calendarYear && styles.yearBtnSel,
+                    ]}
+                    onPress={() => {
+                      const today = new Date();
+                      if (year === currentYear && calendarMonth > today.getMonth()) {
+                        setCalendarMonth(today.getMonth());
+                      }
+                      setCalendarYear(year);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.yearText,
+                        year === calendarYear && styles.yearTextSel,
+                      ]}
+                    >
+                      {year}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
             </View>
             
             {/* calendario */}
@@ -764,9 +721,9 @@ const CrearBarbero = ({ visible, onClose, onCreate }) => {
                   textDayFontWeight: "400",
                   textMonthFontWeight: "bold",
                   textDayHeaderFontWeight: "500",
-                  textDayFontSize: 12,
-                  textMonthFontSize: 14,
-                  textDayHeaderFontSize: 12,
+                  textDayFontSize: 14,
+                  textMonthFontSize: 16,
+                  textDayHeaderFontSize: 14,
                   "stylesheet.calendar.header": {
                     week: {
                       marginTop: 5,
@@ -955,7 +912,7 @@ const styles = StyleSheet.create({
     maxWidth: 350,
     backgroundColor: "white",
     borderRadius: 10,
-    padding: 12,
+    padding: 15,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
@@ -978,29 +935,35 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#333",
   },
-  yearSelectorContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 10,
-    paddingHorizontal: 10,
+  yearsScrollContainer: {
+    height: 50,
+    marginVertical: 10,
   },
-  yearArrowButton: {
-    padding: 8,
-  },
-  yearDisplay: {
-    minWidth: 80,
-    alignItems: "center",
-    justifyContent: "center",
+  yearsContainer: {
     paddingHorizontal: 10,
+    alignItems: "center",
+  },
+  yearBtn: {
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    marginHorizontal: 5,
+    borderRadius: 15,
+    justifyContent: "center",
+    alignItems: "center",
+    minWidth: 70,
+  },
+  yearBtnSel: {
+    backgroundColor: "#424242",
   },
   yearText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#424242",
+    color: "#666",
+    fontSize: 14,
+  },
+  yearTextSel: {
+    color: "#fff",
   },
   calendarContainer: {
-    height: 250,
+    height: 280,
     overflow: "hidden",
   },
   calendar: {

@@ -8,7 +8,8 @@ import {
   Animated, 
   Image, 
   useWindowDimensions,
-  Platform
+  Platform,
+  SafeAreaView
 } from "react-native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { AuthContext } from "../contexts/AuthContext";
@@ -94,7 +95,7 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
   const { userRole } = useContext(AuthContext);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const drawerAnimation = useRef(new Animated.Value(-300)).current;
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   
   // Determinar si es web
   const isWeb = Platform.OS === 'web';
@@ -255,7 +256,6 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
                 headerRight: () => (
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
                     <NotificationBell navigation={mainNavigation} />
-                    <HeaderLogo />
                   </View>
                 )
               })}
@@ -298,53 +298,64 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Drawer overlay - Solo mostrar en móvil o cuando el drawer está abierto */}
-      {(drawerOpen && !(isWeb && isLargeScreen)) && (
-        <TouchableOpacity
-          style={styles.overlay}
-          onPress={closeDrawer}
-          activeOpacity={1}
-        />
-      )}
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        {/* Drawer overlay - Solo mostrar en móvil o cuando el drawer está abierto */}
+        {(drawerOpen && !(isWeb && isLargeScreen)) && (
+          <TouchableOpacity
+            style={styles.overlay}
+            onPress={closeDrawer}
+            activeOpacity={1}
+          />
+        )}
 
-      {/* Drawer content */}
-      <Animated.View 
-        style={[
-          styles.drawer, 
-          { 
-            transform: [
-              // En web con pantalla grande, siempre visible (translateX: 0)
-              isWeb && isLargeScreen 
-                ? { translateX: 0 } 
-                : { translateX: drawerAnimation }
-            ]
-          }
-        ]}
-      >
-        <CustomDrawer 
-          navigation={{ 
-            navigate: navigateAndClose,
-            closeDrawer: closeDrawer
-          }} 
-        />
-      </Animated.View>
+        {/* Drawer content */}
+        <Animated.View 
+          style={[
+            styles.drawer, 
+            { 
+              transform: [
+                // En web con pantalla grande, siempre visible (translateX: 0)
+                isWeb && isLargeScreen 
+                  ? { translateX: 0 } 
+                  : { translateX: drawerAnimation }
+              ]
+            }
+          ]}
+        >
+          <CustomDrawer 
+            navigation={{ 
+              navigate: navigateAndClose,
+              closeDrawer: closeDrawer
+            }} 
+          />
+        </Animated.View>
 
-      {/* Main content */}
-      <View style={[
-        styles.mainContent,
-        // En web con pantalla grande, agregamos margen para el drawer fijo
-        isWeb && isLargeScreen && { marginLeft: 300 }
-      ]}>
-        <Stack.Navigator>
-          {renderDrawerScreens(userRole)}
-        </Stack.Navigator>
+        {/* Main content */}
+        <View style={[
+          styles.mainContent,
+          // En web con pantalla grande, agregamos margen para el drawer fijo
+          isWeb && isLargeScreen && { marginLeft: 300 }
+        ]}>
+          <Stack.Navigator
+            screenOptions={{
+              // Asegurar que el contenido se ajuste correctamente
+              cardStyle: { flex: 1 }
+            }}
+          >
+            {renderDrawerScreens(userRole)}
+          </Stack.Navigator>
+        </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
   container: {
     flex: 1,
     flexDirection: 'row',

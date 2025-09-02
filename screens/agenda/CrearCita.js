@@ -14,7 +14,6 @@ import {
   KeyboardAvoidingView,
   Platform
 } from "react-native";
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { MaterialIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -698,35 +697,31 @@ const CrearCita = ({
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <BlurView intensity={20} tint="light" style={styles.blur}>
-    <KeyboardAwareScrollView
-      contentContainerStyle={{ flexGrow: 1, padding: 16 }}
-      enableOnAndroid={true}
-      extraScrollHeight={20} // empuja un poco más al abrir teclado
-      keyboardShouldPersistTaps="handled"
-    >
-  <ScrollView
-    contentContainerStyle={{ flexGrow: 1 }}
-    keyboardShouldPersistTaps="handled"
-    keyboardDismissMode="on-drag"
-  >
-    <View style={styles.modal}>
-      <View style={styles.modalHeader}>
-        <Text style={styles.modalTitle}>
-          {step === 1
-            ? "Seleccionar servicio"
-            : step === 2
-            ? "Seleccionar cliente"
-            : "Revisa y confirma"}
-        </Text>
-        <TouchableOpacity onPress={handleClose}>
-          <MaterialIcons name="close" size={24} color="#000" />
-        </TouchableOpacity>
-      </View>
-      {renderStep()}
-    </View>
-  </ScrollView>
-</KeyboardAwareScrollView>
-
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.keyboardAvoiding}
+        >
+          <View style={styles.modal}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {step === 1
+                  ? "Seleccionar servicio"
+                  : step === 2
+                  ? "Seleccionar cliente"
+                  : "Revisa y confirma"}
+              </Text>
+              <TouchableOpacity onPress={handleClose}>
+                <MaterialIcons name="close" size={24} color="#000" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView 
+              contentContainerStyle={{ flexGrow: 1 }}
+              keyboardShouldPersistTaps="handled"
+            >
+              {renderStep()}
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
       </BlurView>
     </Modal>
   );

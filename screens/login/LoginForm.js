@@ -165,7 +165,7 @@ const LoginForm = () => {
 
         <TouchableOpacity
           style={styles.forgotPasswordButton}
-          onPress={() => navigation.navigate("ForgotPassword")} // Asegúrate que coincida con tu navegación
+          onPress={() => navigation.navigate("ForgotPassword")}
         >
           <Text style={styles.forgotPassword}>¿Olvidaste tu contraseña?</Text>
         </TouchableOpacity>
@@ -251,15 +251,22 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 16,
     backgroundColor: "#fff",
+    overflow: "hidden", // Añadido para contener el icono dentro del borde
   },
   passwordInput: {
     flex: 1,
     height: 50,
     paddingHorizontal: 15,
     fontSize: 15,
+    paddingRight: 45, // Espacio para el icono del ojo
   },
   eyeIcon: {
-    padding: 10,
+    position: "absolute", // Cambiado a posición absoluta
+    right: 0,
+    height: "100%",
+    width: 45, // Ancho fijo para el área táctil
+    justifyContent: "center",
+    alignItems: "center",
   },
   button: {
     height: 50,

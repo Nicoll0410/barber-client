@@ -98,6 +98,8 @@ const Item = ({ label, screen, icon: IconComp, name, indent = 0 }) => (
       {/* ----------- Logo superior ------------ */}
       <View style={styles.logoContainer}>
         <Image source={require("../assets/images/newYorkBarber.jpeg")} style={styles.logo} />
+        {/* Título agregado debajo del logo */}
+        <Text style={styles.logoTitle}>New York Barber</Text>
       </View>
 
       <ScrollView
@@ -183,6 +185,13 @@ const styles = StyleSheet.create({
   profileContainer:   { padding: 16, borderTopWidth: 1, borderColor: "#222" },
   logoutButton:       { flexDirection: "row", backgroundColor: "#D9D9D9", paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   logoutText:         { color: "black", marginLeft: 8, fontSize: 16, fontWeight: "700" },
+    logoTitle: {
+    color: "#fff",
+    fontSize: 20,
+    fontWeight: "bold",
+    marginTop: 8,
+    textAlign: "center"
+  },
 });
 
 export default CustomDrawer;

@@ -798,7 +798,6 @@ const fetchCitas = async () => {
         </View>
       </View>
 
-      {renderBarberosHeader()}
       
       {/* Contenedor principal con scroll horizontal para móvil */}
       {isMobile ? (

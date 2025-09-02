@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "web-build/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/web-build/$1"
+    },
+    {
+      "src": "/MainDrawer/(.*)",
+      "dest": "/web-build/index.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/web-build/index.html"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/MainDrawer/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:path*", 
+      "destination": "/index.html"
+    }
+  ]
+}

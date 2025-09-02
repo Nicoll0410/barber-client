@@ -8,8 +8,8 @@
     "android": "npx expo start --android",
     "ios": "npx expo start --ios",
     "web": "npx expo start --web",
-    "build": "expo export:web",
-    "vercel-build": "npm run build && cp _redirects web-build/",
+    "build": "expo export:web && cp _redirects web-build/",
+    "vercel-build": "npm run build",
     "postinstall": "patch-package || true"
   },
   "dependencies": {

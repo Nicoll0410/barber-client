@@ -138,14 +138,20 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
   };
 
   // OPCIONES COMUNES para TODAS las pantallas - CON BOTÓN DE HAMBURGUESA
-  const commonOptions = {
-    headerLeft: () => (
-      <TouchableOpacity onPress={toggleDrawer} style={{ marginLeft: 15 }}>
-        <Ionicons name="menu" size={24} color="black" />
-      </TouchableOpacity>
-    ),
+  // SOLO en móvil/pantallas pequeñas
+  const commonOptions = ({ navigation }) => ({
+    headerLeft: () => {
+      // No mostrar el ícono de menú en pantallas grandes de web
+      if (isWeb && isLargeScreen) return null;
+      
+      return (
+        <TouchableOpacity onPress={toggleDrawer} style={{ marginLeft: 15 }}>
+          <Ionicons name="menu" size={24} color="black" />
+        </TouchableOpacity>
+      );
+    },
     headerRight: () => <HeaderLogo />,
-  };
+  });
 
   const renderDrawerScreens = (userRole) => {
     switch (userRole) {
@@ -155,8 +161,8 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
             <Stack.Screen 
               name="Agenda" 
               component={AgendaScreen}
-              options={{
-                ...commonOptions,
+              options={({ navigation }) => ({
+                ...commonOptions({ navigation }),
                 headerTitle: "Agenda",
                 headerRight: () => (
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -164,15 +170,15 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
                     <HeaderLogo />
                   </View>
                 )
-              }}
+              })}
             />
             <Stack.Screen 
               name="Citas" 
               component={CitasScreen}
-              options={{
-                ...commonOptions,
+              options={({ navigation }) => ({
+                ...commonOptions({ navigation }),
                 headerTitle: "Citas"
-              }}
+              })}
             />
           </>
         );
@@ -183,16 +189,16 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
             <Stack.Screen 
               name="Clientes" 
               component={ClientesScreen}
-              options={{
-                ...commonOptions,
+              options={({ navigation }) => ({
+                ...commonOptions({ navigation }),
                 headerTitle: "Clientes"
-              }}
+              })}
             />
             <Stack.Screen 
               name="Agenda" 
               component={AgendaScreen}
-              options={{
-                ...commonOptions,
+              options={({ navigation }) => ({
+                ...commonOptions({ navigation }),
                 headerTitle: "Agenda",
                 headerRight: () => (
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -200,15 +206,15 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
                     <HeaderLogo />
                   </View>
                 )
-              }}
+              })}
             />
             <Stack.Screen 
               name="Citas" 
               component={CitasScreen}
-              options={{
-                ...commonOptions,
+              options={({ navigation }) => ({
+                ...commonOptions({ navigation }),
                 headerTitle: "Citas"
-              }}
+              })}
             />
           </>
         );
@@ -219,32 +225,32 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
             <Stack.Screen 
               name="Dashboard" 
               component={DashboardScreen}
-              options={{
-                ...commonOptions,
+              options={({ navigation }) => ({
+                ...commonOptions({ navigation }),
                 headerTitle: "Dashboard"
-              }}
+              })}
             />
             <Stack.Screen 
               name="Clientes" 
               component={ClientesScreen}
-              options={{
-                ...commonOptions,
+              options={({ navigation }) => ({
+                ...commonOptions({ navigation }),
                 headerTitle: "Clientes"
-              }}
+              })}
             />
             <Stack.Screen 
               name="Barberos" 
               component={BarberosScreen}
-              options={{
-                ...commonOptions,
+              options={({ navigation }) => ({
+                ...commonOptions({ navigation }),
                 headerTitle: "Barberos"
-              }}
+              })}
             />
             <Stack.Screen 
               name="Agenda" 
               component={AgendaScreen}
-              options={{
-                ...commonOptions,
+              options={({ navigation }) => ({
+                ...commonOptions({ navigation }),
                 headerTitle: "Agenda",
                 headerRight: () => (
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -252,39 +258,39 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
                     <HeaderLogo />
                   </View>
                 )
-              }}
+              })}
             />
             <Stack.Screen 
               name="Citas" 
               component={CitasScreen}
-              options={{
-                ...commonOptions,
+              options={({ navigation }) => ({
+                ...commonOptions({ navigation }),
                 headerTitle: "Citas"
-              }}
+              })}
             />
             <Stack.Screen 
               name="Servicios" 
               component={ServiciosScreen}
-              options={{
-                ...commonOptions,
+              options={({ navigation }) => ({
+                ...commonOptions({ navigation }),
                 headerTitle: "Servicios"
-              }}
+              })}
             />
             <Stack.Screen 
               name="Ventas" 
               component={VentasScreen}
-              options={{
-                ...commonOptions,
+              options={({ navigation }) => ({
+                ...commonOptions({ navigation }),
                 headerTitle: "Ventas"
-              }}
+              })}
             />
             <Stack.Screen 
               name="Notificaciones" 
               component={NotificacionesScreen}
-              options={{
-                ...commonOptions,
+              options={({ navigation }) => ({
+                ...commonOptions({ navigation }),
                 headerTitle: "Notificaciones"
-              }}
+              })}
             />
           </>
         );
@@ -341,7 +347,7 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    flexDirection: 'row', // Cambiamos a fila para diseño horizontal
+    flexDirection: 'row',
   },
   overlay: {
     position: 'absolute',

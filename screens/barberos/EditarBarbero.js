@@ -56,10 +56,10 @@ const EditarBarbero = ({ visible, onClose, barbero, onUpdate }) => {
   /* ───────── estados ───────── */
   const [roles, setRoles] = useState([]);
   const [loadingRoles, setLoadingRoles] = useState(true);
-  const [showPicker, setShowPicker] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [pickerField, setPickerField] = useState("nacimiento");
-  const [calMonth, setCalMonth] = useState(new Date().getMonth());
-  const [calYear, setCalYear] = useState(currentYear);
+  const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
+  const [calendarYear, setCalendarYear] = useState(currentYear);
   const [errors, setErrors] = useState({});
   const scrollRef = useRef(null);
   const [showHorarioModal, setShowHorarioModal] = useState(false);
@@ -185,34 +185,46 @@ const EditarBarbero = ({ visible, onClose, barbero, onUpdate }) => {
   };
 
   /* ───────── calendario ───────── */
-  const disabledDays = (d) => {
+  const getDisabledDates = () => {
+    const disabledDates = {};
     const today = new Date();
-    return (
-      d > today ||
-      (calYear === currentYear && calMonth > today.getMonth()) ||
-      d.getFullYear() < currentYear - 80
-    );
+    today.setHours(0, 0, 0, 0);
+
+    const startDate = new Date(calendarYear, calendarMonth, 1);
+    const endDate = new Date(calendarYear, calendarMonth + 1, 0);
+    const tempDate = new Date(startDate);
+
+    while (tempDate <= endDate) {
+      if (
+        tempDate > today ||
+        tempDate.getFullYear() < currentYear - 80
+      ) {
+        disabledDates[
+          `${tempDate.getFullYear()}-${(tempDate.getMonth() + 1)
+            .toString()
+            .padStart(2, "0")}-${tempDate
+            .getDate()
+            .toString()
+            .padStart(2, "0")}`
+        ] = {
+          disabled: true,
+          disableTouchEvent: true,
+        };
+      }
+      tempDate.setDate(tempDate.getDate() + 1);
+    }
+
+    return disabledDates;
   };
 
-  const disabledObj = () => {
-    const obj = {};
-    const start = new Date(calYear, calMonth, 1);
-    const end = new Date(calYear, calMonth + 1, 0);
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      if (disabledDays(d)) {
-        obj[toISODate(new Date(d))] = { disabled: true, disableTouchEvent: true };
-      }
-    }
-    return obj;
-  };
 
   const onDaySelect = (day) => {
-    const sel = new Date(day.year, day.month - 1, day.day);
+    const selectedDate = new Date(day.year, day.month - 1, day.day);
     handleChange(
       pickerField === "nacimiento" ? "fechaNacimiento" : "fechaContratacion",
-      sel
+      selectedDate
     );
-    setShowPicker(false);
+    setShowDatePicker(false);
   };
   /* ───────── UI ───────── */
   return (
@@ -465,28 +477,33 @@ const EditarBarbero = ({ visible, onClose, barbero, onUpdate }) => {
       </View>
 
       {/* ─── date‑picker ─── */}
-      {showPicker && (
+      {showDatePicker && (
         <View style={styles.datePickerOverlay}>
           <View style={styles.datePickerCard}>
             <View style={styles.datePickerHeader}>
               <TouchableOpacity
                 onPress={() => {
-                  if (calYear > currentYear - 80 || calMonth > 0) {
-                    setCalMonth((m) => (m + 11) % 12);
-                    if (calMonth === 0) setCalYear((y) => y - 1);
+                  const newMonth = calendarMonth === 0 ? 11 : calendarMonth - 1;
+                  const newYear = calendarMonth === 0 ? calendarYear - 1 : calendarYear;
+                  if (newYear >= currentYear - 80) {
+                    setCalendarMonth(newMonth);
+                    setCalendarYear(newYear);
                   }
                 }}
               >
                 <MaterialIcons name="chevron-left" size={24} color="#333" />
               </TouchableOpacity>
               <Text style={styles.monthYearText}>
-                {months[calMonth]} de {calYear}
+                {months[calendarMonth]} de {calendarYear}
               </Text>
               <TouchableOpacity
                 onPress={() => {
-                  if (calYear < currentYear || calMonth < 11) {
-                    setCalMonth((m) => (m + 1) % 12);
-                    if (calMonth === 11) setCalYear((y) => y + 1);
+                  const today = new Date();
+                  const newMonth = calendarMonth === 11 ? 0 : calendarMonth + 1;
+                  const newYear = calendarMonth === 11 ? calendarYear + 1 : calendarYear;
+                  if (newYear < currentYear || (newYear === currentYear && newMonth <= today.getMonth())) {
+                    setCalendarMonth(newMonth);
+                    setCalendarYear(newYear);
                   }
                 }}
               >
@@ -494,38 +511,40 @@ const EditarBarbero = ({ visible, onClose, barbero, onUpdate }) => {
               </TouchableOpacity>
             </View>
 
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={{ marginVertical: 8 }}
-            >
-              {years.map((y) => (
-                <TouchableOpacity
-                  key={y}
-                  style={[
-                    styles.yearBox,
-                    y === calYear && styles.yearBoxSelected,
-                  ]}
-                  onPress={() => setCalYear(y)}
-                >
-                  <Text
+            {/* Years horizontal scroll */}
+            <View style={styles.yearsScrollContainer}>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={true}
+                contentContainerStyle={styles.yearsContainer}
+                snapToInterval={70}
+                decelerationRate="fast"
+              >
+                {years.map((year) => (
+                  <TouchableOpacity
+                    key={year}
                     style={[
-                      styles.yearText,
-                      y === calYear && styles.yearTextSelected,
+                      styles.yearBtn,
+                      year === calendarYear && styles.yearBtnSel,
                     ]}
+                    onPress={() => setCalendarYear(year)}
                   >
-                    {y}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+                    <Text
+                      style={[
+                        styles.yearText,
+                        year === calendarYear && styles.yearTextSel,
+                      ]}
+                    >
+                      {year}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
 
             <Calendar
-              key={`${calYear}-${calMonth}`}
-              current={`${calYear}-${String(calMonth + 1).padStart(
-                2,
-                "0"
-              )}-01`}
+              key={`${calendarYear}-${calendarMonth}`}
+              current={`${calendarYear}-${String(calendarMonth + 1).padStart(2, "0")}-01`}
               hideExtraDays
               hideArrows
               disableMonthChange
@@ -533,7 +552,7 @@ const EditarBarbero = ({ visible, onClose, barbero, onUpdate }) => {
               maxDate={new Date().toISOString().split("T")[0]}
               onDayPress={onDaySelect}
               markedDates={{
-                ...disabledObj(),
+                ...getDisabledDates(),
                 ...(formData[
                   pickerField === "nacimiento"
                     ? "fechaNacimiento"
@@ -555,16 +574,25 @@ const EditarBarbero = ({ visible, onClose, barbero, onUpdate }) => {
                   : {}),
               }}
               theme={{
-                todayTextColor: "#424242",
-                selectedDayBackgroundColor: "#424242",
+                calendarBackground: 'transparent',
+                textSectionTitleColor: '#666',
+                dayTextColor: '#333',
+                todayTextColor: '#424242',
+                selectedDayTextColor: '#fff',
+                selectedDayBackgroundColor: '#424242',
+                monthTextColor: '#333',
+                textDayFontSize: 14,
+                textMonthFontSize: 16,
+                textDayHeaderFontSize: 14,
               }}
               style={{ alignSelf: "center" }}
+              disableAllTouchEventsForDisabledDays={true}
             />
 
             <View style={styles.datePickerActions}>
               <TouchableOpacity
                 style={styles.datePickerBtn}
-                onPress={() => setShowPicker(false)}
+                onPress={() => setShowDatePicker(false)}
               >
                 <Text style={styles.datePickerBtnText}>Cerrar</Text>
               </TouchableOpacity>
@@ -572,6 +600,7 @@ const EditarBarbero = ({ visible, onClose, barbero, onUpdate }) => {
           </View>
         </View>
       )}
+
       <HorarioBarbero 
         barberoId={barbero?.id} 
         visible={showHorarioModal} 
@@ -734,16 +763,46 @@ horarioButtonText: {
     borderRadius: 12,
   },
   yearBoxSelected: { backgroundColor: "#424242" },
-  yearText: { color: "#333" },
-  yearTextSelected: { color: "#fff", fontWeight: "600" },
   datePickerActions: { marginTop: 10, alignItems: "flex-end" },
-  datePickerBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    backgroundColor: "#424242",
-    borderRadius: 10,
+  yearsScrollContainer: {
+    height: 50,
+    marginVertical: 10,
   },
-  datePickerBtnText: { color: "#fff", fontWeight: "600" },
+  yearsContainer: {
+    paddingHorizontal: 10,
+    alignItems: 'center',
+  },
+  yearBtn: { 
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    marginHorizontal: 5,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 70,
+  },
+  yearBtnSel: { 
+    backgroundColor: '#424242' 
+  },
+  yearText: { 
+    color: '#666',
+    fontSize: 14,
+  },
+  yearTextSel: { 
+    color: '#fff' 
+  },
+  datePickerBtn: {
+    paddingVertical: 10,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  datePickerBtnText: {
+    color: '#424242',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
 });
+
 
 export default EditarBarbero;

@@ -35,7 +35,7 @@ LocaleConfig.locales.es = {
 LocaleConfig.defaultLocale = 'es';
 
 const { width } = Dimensions.get('window');
-const isMobile = width < 768;
+const isMobile = width < 768; // Detectar si es móvil (ancho menor a 768px)
 
 const AgendaScreen = () => {
   const today = new Date();
@@ -65,144 +65,146 @@ const AgendaScreen = () => {
     }
   };
 
-  const fetchBarberos = async () => {
-    try {
-      const token = await AsyncStorage.getItem('token');
-      const { data } = await axios.get(
-        'https://barber-server-6kuo.onrender.com/barberos/para-agenda',
-        { 
-          params: { page: 1, limit: 100, all: 'true' },
-          headers: { Authorization: `Bearer ${token}` } 
-        }
-      );
+const fetchBarberos = async () => {
+  try {
+    const token = await AsyncStorage.getItem('token');
+    // Cambiar la URL para usar el nuevo endpoint
+    const { data } = await axios.get(
+      'https://barber-server-6kuo.onrender.com/barberos/para-agenda',
+      { 
+        params: { page: 1, limit: 100, all: 'true' },
+        headers: { Authorization: `Bearer ${token}` } 
+      }
+    );
 
-      const barberosConHorario = await Promise.all(data.barberos.map(async b => {
-        try {
-          const horarioResponse = await axios.get(
-            `https://barber-server-6kuo.onrender.com/barberos/${b.id}/horario`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-          
+    const barberosConHorario = await Promise.all(data.barberos.map(async b => {
+      try {
+        const horarioResponse = await axios.get(
+          `https://barber-server-6kuo.onrender.com/barberos/${b.id}/horario`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        
+        return {
+          id: b.id,
+          nombre: b.nombre,
+          avatar: b.avatar
+            ? { uri: b.avatar }
+            : require('../../assets/avatar.png'),
+          subItems: ['Barbero'],
+          disponibilidad: horarioResponse.data?.horario || {
+            diasLaborales: {
+              lunes: { activo: true, horas: [] },
+              martes: { activo: true, horas: [] },
+              miercoles: { activo: true, horas: [] },
+              jueves: { activo: true, horas: [] },
+              viernes: { activo: true, horas: [] },
+              sabado: { activo: true, horas: [] },
+              domingo: { activo: false, horas: [] }
+            },
+            horarioAlmuerzo: {
+              inicio: "13:00",
+              fin: "14:00",
+              activo: true
+            },
+            excepciones: []
+          }
+        };
+      } catch (error) {
+        console.error(`Error al obtener horario para barbero ${b.id}:`, error);
+        return {
+          id: b.id,
+          nombre: b.nombre,
+          avatar: b.avatar
+            ? { uri: b.avatar }
+            : require('../../assets/avatar.png'),
+          subItems: ['Barbero'],
+          disponibilidad: {
+            diasLaborales: {
+              lunes: { activo: true, horas: [] },
+              martes: { activo: true, horas: [] },
+              miercoles: { activo: true, horas: [] },
+              jueves: { activo: true, horas: [] },
+              viernes: { activo: true, horas: [] },
+              sabado: { activo: true, horas: [] },
+              domingo: { activo: false, horas: [] }
+            },
+            horarioAlmuerzo: {
+              inicio: "13:00",
+              fin: "14:00",
+              activo: true
+            },
+            excepciones: []
+          }
+        };
+      }
+    }));
+
+    setBarberos(barberosConHorario);
+  } catch (err) {
+    console.error('Error al obtener barberos:', err);
+    Alert.alert('Error', 'No se pudieron cargar los barberos');
+  }
+};
+
+const fetchCitas = async () => {
+  try {
+    setLoading(true);
+    const token = await AsyncStorage.getItem('token');
+    const fecha = formatDateString(selectedDate);
+
+    const { data } = await axios.get(
+      `https://barber-server-6kuo.onrender.com/citas/diary?fecha=${fecha}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    // Filtrar solo citas que no estén canceladas
+    const transformed = data.flatMap(barbero =>
+      barbero.schedule
+        .filter(cita => cita.estado !== "Cancelada") // ← FILTRAR CITAS CANCELADAS
+        .map(cita => {
+          const fechaCita = new Date(`${fecha}T00:00:00`);
           return {
-            id: b.id,
-            nombre: b.nombre,
-            avatar: b.avatar
-              ? { uri: b.avatar }
-              : require('../../assets/avatar.png'),
-            subItems: ['Barbero'],
-            disponibilidad: horarioResponse.data?.horario || {
-              diasLaborales: {
-                lunes: { activo: true, horas: [] },
-                martes: { activo: true, horas: [] },
-                miercoles: { activo: true, horas: [] },
-                jueves: { activo: true, horas: [] },
-                viernes: { activo: true, horas: [] },
-                sabado: { activo: true, horas: [] },
-                domingo: { activo: false, horas: [] }
-              },
-              horarioAlmuerzo: {
-                inicio: "13:00",
-                fin: "14:00",
-                activo: true
-              },
-              excepciones: []
-            }
+            id: cita.id,
+            fecha: fechaCita,
+            fechaFormateada: fechaCita.toLocaleDateString('es-ES', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric'
+            }),
+            hora: normalizeHoraFromDecimal(cita.start),
+            horaFin: normalizeHoraFromDecimal(cita.end),
+            servicio: {
+              id: cita.servicio.id,
+              nombre: cita.servicio.nombre,
+              duracionMaxima: cita.servicio.duracion,
+              precio: cita.servicio.precio,
+            },
+            barbero: {
+              id: barbero.id,
+              nombre: barbero.name,
+              avatar: barbero.avatar
+                ? { uri: barbero.avatar }
+                : require('../../assets/avatar.png'),
+              disponibilidad: barbero.disponibilidad
+            },
+            cliente: {
+              id: cita.cliente.id,
+              nombre: cita.cliente.nombre,
+              email: cita.cliente.email,
+            },
+            estado: cita.estado,
           };
-        } catch (error) {
-          console.error(`Error al obtener horario para barbero ${b.id}:`, error);
-          return {
-            id: b.id,
-            nombre: b.nombre,
-            avatar: b.avatar
-              ? { uri: b.avatar }
-              : require('../../assets/avatar.png'),
-            subItems: ['Barbero'],
-            disponibilidad: {
-              diasLaborales: {
-                lunes: { activo: true, horas: [] },
-                martes: { activo: true, horas: [] },
-                miercoles: { activo: true, horas: [] },
-                jueves: { activo: true, horas: [] },
-                viernes: { activo: true, horas: [] },
-                sabado: { activo: true, horas: [] },
-                domingo: { activo: false, horas: [] }
-              },
-              horarioAlmuerzo: {
-                inicio: "13:00",
-                fin: "14:00",
-                activo: true
-              },
-              excepciones: []
-            }
-          };
-        }
-      }));
+        })
+    );
 
-      setBarberos(barberosConHorario);
-    } catch (err) {
-      console.error('Error al obtener barberos:', err);
-      Alert.alert('Error', 'No se pudieron cargar los barberos');
-    }
-  };
-
-  const fetchCitas = async () => {
-    try {
-      setLoading(true);
-      const token = await AsyncStorage.getItem('token');
-      const fecha = formatDateString(selectedDate);
-
-      const { data } = await axios.get(
-        `https://barber-server-6kuo.onrender.com/citas/diary?fecha=${fecha}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      const transformed = data.flatMap(barbero =>
-        barbero.schedule
-          .filter(cita => cita.estado !== "Cancelada")
-          .map(cita => {
-            const fechaCita = new Date(`${fecha}T00:00:00`);
-            return {
-              id: cita.id,
-              fecha: fechaCita,
-              fechaFormateada: fechaCita.toLocaleDateString('es-ES', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric'
-              }),
-              hora: normalizeHoraFromDecimal(cita.start),
-              horaFin: normalizeHoraFromDecimal(cita.end),
-              servicio: {
-                id: cita.servicio.id,
-                nombre: cita.servicio.nombre,
-                duracionMaxima: cita.servicio.duracion,
-                precio: cita.servicio.precio,
-              },
-              barbero: {
-                id: barbero.id,
-                nombre: barbero.name,
-                avatar: barbero.avatar
-                  ? { uri: barbero.avatar }
-                  : require('../../assets/avatar.png'),
-                disponibilidad: barbero.disponibilidad
-              },
-              cliente: {
-                id: cita.cliente.id,
-                nombre: cita.cliente.nombre,
-                email: cita.cliente.email,
-              },
-              estado: cita.estado,
-            };
-          })
-      );
-
-      setCitas(transformed);
-    } catch (err) {
-      console.error('Error al obtener citas:', err);
-      Alert.alert('Error', 'No se pudieron cargar las citas');
-    } finally {
-      setLoading(false);
-    }
-  };
+    setCitas(transformed);
+  } catch (err) {
+    console.error('Error al obtener citas:', err);
+    Alert.alert('Error', 'No se pudieron cargar las citas');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const fetchInformationForCreate = async () => {
     try {
@@ -268,24 +270,31 @@ const AgendaScreen = () => {
       const diaSemanaTexto = diasSemanaTexto[diaActual];
       const fechaStr = formatDateString(selectedDate);
       
+      // Verificar si el día es laboral
       const esDiaLaboral = disponibilidad.diasLaborales?.[diaSemanaTexto]?.activo || false;
       
+      // Verificar si hay excepción para esta fecha
       const tieneExcepcion = disponibilidad.excepciones?.some(ex => 
         ex.fecha === fechaStr && ex.activo === false
       );
       
+      // Generar todos los slots posibles para el día
       const slots = generateTimeSlots();
       
+      // Filtrar slots realmente disponibles (considerando horario laboral, almuerzo, etc.)
       const slotsDisponibles = slots.filter(slot => 
         isBarberoDisponible(barbero, selectedDate, slot.startTime)
       );
       
+      // Obtener citas del barbero para este día
       const citasBarbero = citas.filter(c => c.barbero.id === barbero.id);
       
+      // Calcular disponibilidad
       const tieneDisponibilidad = esDiaLaboral && 
                                !tieneExcepcion && 
                                slotsDisponibles.length > 0;
       
+      // Verificar si hay slots disponibles que no están ocupados por citas
       const slotsLibres = slotsDisponibles.filter(slot => {
         return !citasBarbero.some(cita => {
           const [citaHora, citaMinuto] = cita.hora.split(':').slice(0, 2).map(Number);
@@ -301,6 +310,7 @@ const AgendaScreen = () => {
         });
       });
       
+      // Determinar si está disponible (tiene slots libres)
       const estaDisponible = tieneDisponibilidad && slotsLibres.length > 0;
 
       nuevaDisponibilidad[barbero.id] = {
@@ -328,22 +338,26 @@ const AgendaScreen = () => {
     const diaSemanaTexto = diasSemanaTexto[diaSemana];
     const fechaStr = formatDateString(fecha);
     
+    // 1. Verificar excepciones
     const excepcion = disponibilidad.excepciones?.find(ex => ex.fecha === fechaStr);
     if (excepcion) {
-      return excepcion.activo !== false;
+      return excepcion.activo !== false; // Si hay excepción y está inactivo, no disponible
     }
     
+    // 2. Verificar si el día es laboral
     const diaConfig = disponibilidad.diasLaborales?.[diaSemanaTexto];
     if (!diaConfig?.activo) {
       return false;
     }
     
+    // 3. Verificar horas específicas si están configuradas
     if (diaConfig.horas?.length > 0) {
-      const horaFormateada = hora.length === 4 ? `0${hora}` : hora;
+      const horaFormateada = hora.length === 4 ? `0${hora}` : hora; // Asegurar formato HH:MM
       const horaDisponible = diaConfig.horas.some(h => h === horaFormateada);
       if (!horaDisponible) return false;
     }
     
+    // 4. Verificar horario de almuerzo
     if (disponibilidad.horarioAlmuerzo?.activo !== false) {
       const [horaActual, minActual] = hora.split(':').map(Number);
       const horaActualMinutos = horaActual * 60 + minActual;
@@ -362,6 +376,7 @@ const AgendaScreen = () => {
       }
     }
     
+    // 5. Verificar si ya hay una cita en este horario
     const citaExistente = citas.find(c => {
       if (c.barbero.id !== barbero.id) return false;
       if (c.fecha.toDateString() !== fecha.toDateString()) return false;
@@ -591,6 +606,7 @@ const AgendaScreen = () => {
     if (cita && isFirstSlot) {
       cellState = 'ocupado';
     } else if (estaEnCita) {
+      // Para slots intermedios de una cita larga
       return (
         <View key={`${slot.key}-${b.id}`} style={[styles.slotContainer, isMobile && styles.slotContainerMobile]}>
           <View style={[
@@ -684,81 +700,115 @@ const AgendaScreen = () => {
     );
   }
 
-  // Renderizado de la agenda con scroll general
-  const renderAgenda = () => {
-    return (
-      <View style={styles.agendaContainer}>
-        {/* Cabecera fija con la fecha */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => setShowCalendar(true)}
-            style={styles.calendarButton}>
-            <MaterialIcons name="calendar-today" size={24} color="#000" />
-          </TouchableOpacity>
-
-          <View style={styles.dateContainer}>
-            <TouchableOpacity
-              onPress={() => navigateDay('prev')}
-              disabled={isToday(selectedDate)}>
-              <MaterialIcons
-                name="chevron-left"
-                size={24}
-                color={isToday(selectedDate) ? '#ccc' : '#000'}
-              />
-            </TouchableOpacity>
-
-            <Text style={styles.dateText}>{formatDateFull(selectedDate)}</Text>
-
-            <TouchableOpacity onPress={() => navigateDay('next')}>
-              <MaterialIcons name="chevron-right" size={24} color="#000" />
-            </TouchableOpacity>
+  // Renderizado condicional para móvil vs web
+  const renderBarberosHeader = () => {
+    if (isMobile) {
+      return (
+        <View style={styles.barberosContainerMobile}>
+          <View style={styles.timeColumnMobile}>
+            <Text style={styles.timeColumnText}>Hora</Text>
           </View>
-        </View>
-
-        {/* Contenedor principal con scroll horizontal general */}
-        <View style={styles.agendaContent}>
-          {/* Columna de horas fija a la izquierda */}
-          <View style={styles.timeColumn}>
-            <View style={styles.timeHeader}>
-              <Text style={styles.timeHeaderText}>Hora</Text>
-            </View>
-            {generateTimeSlots().map(slot => (
-              <View key={slot.key} style={styles.timeCell}>
-                <Text style={styles.horaText}>{slot.displayTime}</Text>
-              </View>
-            ))}
-          </View>
-
-          {/* Contenido desplazable horizontalmente */}
           <ScrollView 
             horizontal 
             showsHorizontalScrollIndicator={true}
-            style={styles.horizontalScroll}
+            contentContainerStyle={styles.barberosScrollContent}
           >
-            <View>
-              {/* Encabezados de barberos */}
-              <View style={styles.barberosHeader}>
-                {barberos.map(renderBarberoHeader)}
-              </View>
-
-              {/* Slots de tiempo para cada barbero */}
-              <View>
-                {generateTimeSlots().map(slot => (
-                  <View key={slot.key} style={styles.row}>
-                    {barberos.map(b => renderBarberoSlot(slot, b))}
-                  </View>
-                ))}
-              </View>
-            </View>
+            {barberos.map(renderBarberoHeader)}
           </ScrollView>
         </View>
-      </View>
-    );
+      );
+    } else {
+      return (
+        <View style={styles.barberosHeader}>
+          <View style={styles.timeColumn} />
+          {barberos.map(renderBarberoHeader)}
+        </View>
+      );
+    }
+  };
+
+  const renderMainContent = () => {
+    if (isMobile) {
+      return (
+        <View style={styles.mainContent}>
+          <ScrollView 
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={true}
+          >
+            {generateTimeSlots().map(slot => (
+              <View key={slot.key} style={styles.rowMobile}>
+                <View style={styles.timeCellMobile}>
+                  <Text style={styles.horaText}>{slot.displayTime}</Text>
+                </View>
+                <View style={styles.barberosSlotsContainer}>
+                  {barberos.map(b => renderBarberoSlot(slot, b))}
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      );
+    } else {
+      return (
+        <View style={styles.mainContent}>
+          <ScrollView contentContainerStyle={styles.scrollContent}>
+            {generateTimeSlots().map(slot => (
+              <View key={slot.key} style={styles.row}>
+                <View style={styles.timeCell}>
+                  <Text style={styles.horaText}>{slot.displayTime}</Text>
+                </View>
+                {barberos.map(b => renderBarberoSlot(slot, b))}
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      );
+    }
   };
 
   return (
     <View style={styles.container}>
-      {renderAgenda()}
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => setShowCalendar(true)}
+          style={styles.calendarButton}>
+          <MaterialIcons name="calendar-today" size={24} color="#000" />
+        </TouchableOpacity>
+
+        <View style={styles.dateContainer}>
+          <TouchableOpacity
+            onPress={() => navigateDay('prev')}
+            disabled={isToday(selectedDate)}>
+            <MaterialIcons
+              name="chevron-left"
+              size={24}
+              color={isToday(selectedDate) ? '#ccc' : '#000'}
+            />
+          </TouchableOpacity>
+
+          <Text style={styles.dateText}>{formatDateFull(selectedDate)}</Text>
+
+          <TouchableOpacity onPress={() => navigateDay('next')}>
+            <MaterialIcons name="chevron-right" size={24} color="#000" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Contenedor principal con scroll horizontal general */}
+      <View style={styles.agendaContainer}>
+        {renderBarberosHeader()}
+        
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={true}
+          style={styles.horizontalScroll}
+          contentContainerStyle={styles.horizontalScrollContent}
+        >
+          <View style={styles.agendaContent}>
+            {renderMainContent()}
+          </View>
+        </ScrollView>
+      </View>
 
       <Modal visible={showCalendar} animationType="fade" transparent>
         <BlurView intensity={15} tint="light" style={StyleSheet.absoluteFill} />
@@ -882,48 +932,17 @@ const styles = StyleSheet.create({
   },
   agendaContainer: {
     flex: 1,
-  },
-  agendaContent: {
-    flex: 1,
-    flexDirection: 'row',
-  },
-  timeColumn: {
-    width: 80,
-    borderRightWidth: 1,
-    borderRightColor: '#000',
-  },
-  timeHeader: {
-    height: 120,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#000',
-  },
-  timeHeaderText: {
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  timeCell: {
-    height: 60,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#000',
+    marginBottom: 60
   },
   horizontalScroll: {
     flex: 1,
   },
-  barberosHeader: {
-    flexDirection: 'row',
-    height: 120,
-    borderBottomWidth: 1,
-    borderBottomColor: '#000',
+  horizontalScrollContent: {
+    flexGrow: 1,
   },
-  row: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#000',
-    minHeight: 60,
+  agendaContent: {
+    flex: 1,
+    minWidth: '100%',
   },
   loadingContainer: {
     flex: 1,
@@ -951,21 +970,52 @@ const styles = StyleSheet.create({
   calendarButton: {
     marginRight: 10
   },
+  // Estilos para web (escritorio)
+  barberosHeader: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#000',
+    paddingVertical: 10
+  },
+  timeColumn: {
+    width: 80
+  },
   barberoHeader: {
-    width: 120,
+    flex: 1,
     alignItems: 'center',
     paddingHorizontal: 5,
     borderRightWidth: 1,
-    borderRightColor: '#000',
+    borderRightColor: '#000'
+  },
+  // Estilos para móvil
+  barberosContainerMobile: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#000',
+    paddingVertical: 10,
+    height: 120
+  },
+  timeColumnMobile: {
+    width: 80,
     justifyContent: 'center',
+    alignItems: 'center',
+    borderRightWidth: 1,
+    borderRightColor: '#000'
+  },
+  timeColumnText: {
+    fontWeight: 'bold',
+    fontSize: 16
+  },
+  barberosScrollContent: {
+    flexDirection: 'row',
+    paddingRight: 10
   },
   barberoHeaderMobile: {
     width: 100,
     alignItems: 'center',
     paddingHorizontal: 5,
     borderRightWidth: 1,
-    borderRightColor: '#000',
-    justifyContent: 'center',
+    borderRightColor: '#000'
   },
   avatar: {
     width: 40,
@@ -983,16 +1033,53 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center'
   },
+  mainContent: {
+    flex: 1,
+  },
+  // Filas para web
+  row: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#000',
+    minHeight: 60
+  },
+  timeCell: {
+    width: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRightWidth: 1,
+    borderRightColor: '#000'
+  },
+  // Filas para móvil
+  rowMobile: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#000',
+    minHeight: 60
+  },
+  timeCellMobile: {
+    width: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRightWidth: 1,
+    borderRightColor: '#000'
+  },
+  barberosSlotsContainer: {
+    flexDirection: 'row',
+    flex: 1,
+  },
   horaText: {
     fontSize: 14
   },
+  // Slots para web
   slotContainer: {
-    width: 120,
+    flex: 1,
     borderRightWidth: 1,
     borderRightColor: '#000',
     justifyContent: 'center',
     height: 60,
   },
+  // Slots para móvil
   slotContainerMobile: {
     width: 100,
     borderRightWidth: 1,
@@ -1081,6 +1168,9 @@ const styles = StyleSheet.create({
     color: '#555',
     fontStyle: 'italic',
     marginTop: 2
+  },
+  scrollContent: {
+    paddingBottom: 20
   },
   calendarModal: {
     flex: 1,

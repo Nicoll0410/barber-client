@@ -77,17 +77,16 @@ const CrearServicio = ({ visible, onClose, onCreate, insumosDisponibles }) => {
     });
   };
 
-// Por esta (SOLO para mostrar, no para enviar):
-const formatTimeForDisplay = (timeString) => {
-  const [hours, minutes] = timeString.split(":").map(Number);
-  let formatted = "";
-  if (hours > 0) formatted += `${hours} hora${hours !== 1 ? "s" : ""}`;
-  if (minutes > 0) {
-    if (hours > 0) formatted += " y ";
-    formatted += `${minutes} minuto${minutes !== 1 ? "s" : ""}`;
-  }
-  return formatted || "0 minutos";
-};
+  const formatTime = (timeString) => {
+    const [hours, minutes] = timeString.split(":").map(Number);
+    let formatted = "";
+    if (hours > 0) formatted += `${hours} hora${hours !== 1 ? "s" : ""}`;
+    if (minutes > 0) {
+      if (hours > 0) formatted += " y ";
+      formatted += `${minutes} minuto${minutes !== 1 ? "s" : ""}`;
+    }
+    return formatted || "0 minutos";
+  };
 
   /* ───── Validaciones paso 1 ───── */
   const validatePaso1 = () => {
@@ -106,13 +105,24 @@ const formatTimeForDisplay = (timeString) => {
     if (validatePaso1()) setPaso(2);
   };
 
-  /* ───── Crear servicio (insumos opcionales) ───── */
 const handleCreate = () => {
-  // ✅ Enviar el formato original "00:30", el backend lo convertirá
+  // Normalizar la duración a formato HH:MM:SS
+  let duracionSQL = duracionMaxima;
+  if (duracionMaxima && !duracionMaxima.includes(":")) {
+    // Si alguien escribe solo "30" lo convertimos a "00:30:00"
+    duracionSQL = `00:${duracionMaxima.padStart(2, "0")}:00`;
+  } else if (duracionMaxima && duracionMaxima.split(":").length === 2) {
+    // Si escriben "01:30", convertimos a "01:30:00"
+    duracionSQL = `${duracionMaxima}:00`;
+  }
+
+  const duracionMaximaConvertido = formatTime(duracionSQL);
+
   onCreate({
     nombre,
     descripcion,
-    duracionMaxima, // "00:30" - Esto es lo que espera el backend
+    duracionMaxima: duracionSQL, // ✅ siempre en HH:MM:SS
+    duracionMaximaConvertido,
     precio: parseInt(precio),
     insumos: insumos.map((insumo) => ({
       insumoID: insumo.id,
@@ -120,8 +130,10 @@ const handleCreate = () => {
       categoria: insumo.categoria,
     })),
   });
+
   resetForm();
 };
+
 
   /* ───── Agregar insumo ───── */
   const agregarInsumo = () => {

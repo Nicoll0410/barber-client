@@ -124,33 +124,44 @@ const EditarServicio = ({
     return nuevosErrores;
   };
 
-  /* ───── Guardar cambios ───── */
-  const handleUpdate = () => {
-    const erroresValidacion = validarCampos();
-    if (Object.keys(erroresValidacion).length > 0) {
-      setErrores(erroresValidacion);
-      setMostrarError(true);
-      setPaso(1);
-      return;
-    }
+const handleUpdate = () => {
+  const erroresValidacion = validarCampos();
+  if (Object.keys(erroresValidacion).length > 0) {
+    setErrores(erroresValidacion);
+    setMostrarError(true);
+    setPaso(1);
+    return;
+  }
 
-    const duracionMaximaConvertido = formatTime(duracionMaxima);
+  // Normalizar la duración a formato HH:MM:SS
+  let duracionSQL = duracionMaxima;
+  if (duracionMaxima && !duracionMaxima.includes(":")) {
+    // Si alguien escribe solo "30" → "00:30:00"
+    duracionSQL = `00:${duracionMaxima.padStart(2, "0")}:00`;
+  } else if (duracionMaxima && duracionMaxima.split(":").length === 2) {
+    // Si escriben "01:30" → "01:30:00"
+    duracionSQL = `${duracionMaxima}:00`;
+  }
 
-    onUpdate({
-      id: servicio.id,
-      nombre,
-      descripcion,
-      duracionMaxima,
-      duracionMaximaConvertido,
-      precio: parseInt(precio),
-      insumos: insumos.map((insumo) => ({
-        insumoID: insumo.id,
-        unidades: parseInt(insumo.cantidad),
-        categoria: insumo.categoria,
-      })),
-    });
-    onClose();
-  };
+  const duracionMaximaConvertido = formatTime(duracionSQL);
+
+  onUpdate({
+    id: servicio.id,
+    nombre,
+    descripcion,
+    duracionMaxima: duracionSQL, // ✅ siempre en HH:MM:SS
+    duracionMaximaConvertido,
+    precio: parseInt(precio),
+    insumos: insumos.map((insumo) => ({
+      insumoID: insumo.id,
+      unidades: parseInt(insumo.cantidad),
+      categoria: insumo.categoria,
+    })),
+  });
+
+  onClose();
+};
+
 
   /* ───── Agregar insumo ───── */
   const agregarInsumo = () => {

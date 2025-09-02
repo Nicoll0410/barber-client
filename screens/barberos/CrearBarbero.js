@@ -16,10 +16,10 @@ import {
   ActivityIndicator,
   Platform,
 } from "react-native";
-import Calendar from '../../components/Calendar';
 import { MaterialIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { BlurView } from "expo-blur";
+import { Calendar, LocaleConfig } from "react-native-calendars";
 import { Picker } from "@react-native-picker/picker";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -609,171 +609,205 @@ const CrearBarbero = ({ visible, onClose, onCreate }) => {
       </View>
 
       {/* ─── date‑picker modal ─── */}
-{showDatePicker && (
-  <View style={styles.datePickerOverlay}>
-    <View style={styles.datePickerCard}>
-      {/* header mes / año */}
-      <View style={styles.datePickerHeader}>
-        <TouchableOpacity
-          onPress={() => changeMonth(-1)}
-          disabled={
-            pickerField === "contratacion" 
-              ? calendarYear === currentYear - 15 && calendarMonth === 0
-              : calendarYear === currentYear - 80 && calendarMonth === 0
-          }
-        >
-          <MaterialIcons 
-            name="chevron-left" 
-            size={24} 
-            color={
-              pickerField === "contratacion" 
-                ? calendarYear === currentYear - 15 && calendarMonth === 0 ? "#ccc" : "#333"
-                : calendarYear === currentYear - 80 && calendarMonth === 0 ? "#ccc" : "#333"
-            } 
-          />
-        </TouchableOpacity>
-        
-        <View style={styles.monthYearSelector}>
-          <Text style={styles.monthYearText}>
-            {months[calendarMonth]} de {calendarYear}
-          </Text>
+      {showDatePicker && (
+        <View style={styles.datePickerOverlay}>
+          <View style={styles.datePickerCard}>
+            {/* header mes / año */}
+            <View style={styles.datePickerHeader}>
+              <TouchableOpacity
+                onPress={() => changeMonth(-1)}
+                disabled={
+                  pickerField === "contratacion" 
+                    ? calendarYear === currentYear - 15 && calendarMonth === 0
+                    : calendarYear === currentYear - 80 && calendarMonth === 0
+                }
+              >
+                <MaterialIcons 
+                  name="chevron-left" 
+                  size={24} 
+                  color={
+                    pickerField === "contratacion" 
+                      ? calendarYear === currentYear - 15 && calendarMonth === 0 ? "#ccc" : "#333"
+                      : calendarYear === currentYear - 80 && calendarMonth === 0 ? "#ccc" : "#333"
+                  } 
+                />
+              </TouchableOpacity>
+              
+              <View style={styles.monthYearSelector}>
+                <Text style={styles.monthYearText}>
+                  {months[calendarMonth]} de {calendarYear}
+                </Text>
+              </View>
+              
+              <TouchableOpacity
+                onPress={() => changeMonth(1)}
+                disabled={calendarYear === currentYear && calendarMonth === new Date().getMonth()}
+              >
+                <MaterialIcons 
+                  name="chevron-right" 
+                  size={24} 
+                  color={
+                    calendarYear === currentYear && calendarMonth === new Date().getMonth() 
+                      ? "#ccc" 
+                      : "#333"
+                  } 
+                />
+              </TouchableOpacity>
+            </View>
+            
+            {/* Selector de años con flechas */}
+            <View style={styles.yearSelectorContainer}>
+              <TouchableOpacity 
+                onPress={() => changeYear(-10)}
+                disabled={
+                  pickerField === "contratacion" 
+                    ? calendarYear - 10 < currentYear - 15
+                    : calendarYear - 10 < currentYear - 80
+                }
+                style={styles.yearArrowButton}
+              >
+                <MaterialIcons 
+                  name="keyboard-double-arrow-left" 
+                  size={20} 
+                  color={
+                    pickerField === "contratacion" 
+                      ? calendarYear - 10 < currentYear - 15 ? "#ccc" : "#333"
+                      : calendarYear - 10 < currentYear - 80 ? "#ccc" : "#333"
+                  } 
+                />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                onPress={() => changeYear(-1)}
+                disabled={
+                  pickerField === "contratacion" 
+                    ? calendarYear - 1 < currentYear - 15
+                    : calendarYear - 1 < currentYear - 80
+                }
+                style={styles.yearArrowButton}
+              >
+                <MaterialIcons 
+                  name="chevron-left" 
+                  size={20} 
+                  color={
+                    pickerField === "contratacion" 
+                      ? calendarYear - 1 < currentYear - 15 ? "#ccc" : "#333"
+                      : calendarYear - 1 < currentYear - 80 ? "#ccc" : "#333"
+                  } 
+                />
+              </TouchableOpacity>
+              
+              <View style={styles.yearDisplay}>
+                <Text style={styles.yearText}>{calendarYear}</Text>
+              </View>
+              
+              <TouchableOpacity 
+                onPress={() => changeYear(1)}
+                disabled={calendarYear + 1 > currentYear}
+                style={styles.yearArrowButton}
+              >
+                <MaterialIcons 
+                  name="chevron-right" 
+                  size={20} 
+                  color={calendarYear + 1 > currentYear ? "#ccc" : "#333"} 
+                />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                onPress={() => changeYear(10)}
+                disabled={calendarYear + 10 > currentYear}
+                style={styles.yearArrowButton}
+              >
+                <MaterialIcons 
+                  name="keyboard-double-arrow-right" 
+                  size={20} 
+                  color={calendarYear + 10 > currentYear ? "#ccc" : "#333"} 
+                />
+              </TouchableOpacity>
+            </View>
+            
+            {/* calendario */}
+            <View style={styles.calendarContainer}>
+              <Calendar
+                key={`${calendarYear}-${calendarMonth}`}
+                current={`${calendarYear}-${String(calendarMonth + 1).padStart(2, "0")}-01`}
+                minDate={pickerField === "contratacion" ? `${currentYear - 15}-01-01` : `${currentYear - 80}-01-01`}
+                maxDate={new Date().toISOString().split("T")[0]}
+                onDayPress={handleDayPress}
+                monthFormat={"MMMM yyyy"}
+                hideArrows={true}
+                hideExtraDays={true}
+                disableMonthChange={true}
+                markedDates={{
+                  ...getDisabledDates(),
+                  [formData[pickerField === "nacimiento" ? "fechaNacimiento" : "fechaContratacion"] 
+                    ? formatDateString(formData[pickerField === "nacimiento" ? "fechaNacimiento" : "fechaContratacion"]) 
+                    : ""]: {
+                    selected: true,
+                    selectedColor: "#424242",
+                    selectedTextColor: "#fff"
+                  },
+                  [new Date().toISOString().split("T")[0]]: {
+                    marked: true,
+                    dotColor: "#424242"
+                  }
+                }}
+                theme={{
+                  calendarBackground: "transparent",
+                  textSectionTitleColor: "#666",
+                  dayTextColor: "#333",
+                  todayTextColor: "#424242",
+                  selectedDayTextColor: "#fff",
+                  selectedDayBackgroundColor: "#424242",
+                  arrowColor: "#424242",
+                  monthTextColor: "#333",
+                  textDayFontWeight: "400",
+                  textMonthFontWeight: "bold",
+                  textDayHeaderFontWeight: "500",
+                  textDayFontSize: 12,
+                  textMonthFontSize: 14,
+                  textDayHeaderFontSize: 12,
+                  "stylesheet.calendar.header": {
+                    week: {
+                      marginTop: 5,
+                      flexDirection: "row",
+                      justifyContent: "space-between"
+                    }
+                  },
+                  disabledDayTextColor: "#d9d9d9"
+                }}
+                style={styles.calendar}
+                disableAllTouchEventsForDisabledDays={true}
+              />
+            </View>
+            
+            <View style={styles.datePickerActions}>
+              <TouchableOpacity
+                style={styles.datePickerButton}
+                onPress={() => {
+                  const today = new Date();
+                  handleChange(
+                    pickerField === "nacimiento" ? "fechaNacimiento" : "fechaContratacion",
+                    today
+                  );
+                  setCalendarMonth(today.getMonth());
+                  setCalendarYear(today.getFullYear());
+                  setShowDatePicker(false);
+                }}
+              >
+                <Text style={styles.datePickerButtonText}>Hoy</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setShowDatePicker(false)}
+              >
+                <Text style={styles.closeButtonText}>Cerrar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-        
-        <TouchableOpacity
-          onPress={() => changeMonth(1)}
-          disabled={calendarYear === currentYear && calendarMonth === new Date().getMonth()}
-        >
-          <MaterialIcons 
-            name="chevron-right" 
-            size={24} 
-            color={
-              calendarYear === currentYear && calendarMonth === new Date().getMonth() 
-                ? "#ccc" 
-                : "#333"
-            } 
-          />
-        </TouchableOpacity>
-      </View>
-      
-      {/* Selector de años con flechas */}
-      <View style={styles.yearSelectorContainer}>
-        <TouchableOpacity 
-          onPress={() => changeYear(-10)}
-          disabled={
-            pickerField === "contratacion" 
-              ? calendarYear - 10 < currentYear - 15
-              : calendarYear - 10 < currentYear - 80
-          }
-          style={styles.yearArrowButton}
-        >
-          <MaterialIcons 
-            name="keyboard-double-arrow-left" 
-            size={20} 
-            color={
-              pickerField === "contratacion" 
-                ? calendarYear - 10 < currentYear - 15 ? "#ccc" : "#333"
-                : calendarYear - 10 < currentYear - 80 ? "#ccc" : "#333"
-            } 
-          />
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          onPress={() => changeYear(-1)}
-          disabled={
-            pickerField === "contratacion" 
-              ? calendarYear - 1 < currentYear - 15
-              : calendarYear - 1 < currentYear - 80
-          }
-          style={styles.yearArrowButton}
-        >
-          <MaterialIcons 
-            name="chevron-left" 
-            size={20} 
-            color={
-              pickerField === "contratacion" 
-                ? calendarYear - 1 < currentYear - 15 ? "#ccc" : "#333"
-                : calendarYear - 1 < currentYear - 80 ? "#ccc" : "#333"
-            } 
-          />
-        </TouchableOpacity>
-        
-        <View style={styles.yearDisplay}>
-          <Text style={styles.yearText}>{calendarYear}</Text>
-        </View>
-        
-        <TouchableOpacity 
-          onPress={() => changeYear(1)}
-          disabled={calendarYear + 1 > currentYear}
-          style={styles.yearArrowButton}
-        >
-          <MaterialIcons 
-            name="chevron-right" 
-            size={20} 
-            color={calendarYear + 1 > currentYear ? "#ccc" : "#333"} 
-          />
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          onPress={() => changeYear(10)}
-          disabled={calendarYear + 10 > currentYear}
-          style={styles.yearArrowButton}
-        >
-          <MaterialIcons 
-            name="keyboard-double-arrow-right" 
-            size={20} 
-            color={calendarYear + 10 > currentYear ? "#ccc" : "#333"} 
-          />
-        </TouchableOpacity>
-      </View>
-      
-      {/* calendario - REEMPLAZADO CON NUESTRO COMPONENTE */}
-      <View style={styles.calendarContainer}>
-        <Calendar
-          selectedDate={formData[pickerField === "nacimiento" ? "fechaNacimiento" : "fechaContratacion"] ? 
-            formatDateString(formData[pickerField === "nacimiento" ? "fechaNacimiento" : "fechaContratacion"]) : 
-            null}
-          onDateChange={(date) => {
-            const selectedDate = new Date(date);
-            handleChange(
-              pickerField === "nacimiento" ? "fechaNacimiento" : "fechaContratacion",
-              selectedDate
-            );
-            setShowDatePicker(false);
-          }}
-          minDate={pickerField === "contratacion" ? `${currentYear - 15}-01-01` : `${currentYear - 80}-01-01`}
-          maxDate={new Date().toISOString().split("T")[0]}
-          markedDates={getDisabledDates()}
-        />
-      </View>
-      
-      <View style={styles.datePickerActions}>
-        <TouchableOpacity
-          style={styles.datePickerButton}
-          onPress={() => {
-            const today = new Date();
-            handleChange(
-              pickerField === "nacimiento" ? "fechaNacimiento" : "fechaContratacion",
-              today
-            );
-            setCalendarMonth(today.getMonth());
-            setCalendarYear(today.getFullYear());
-            setShowDatePicker(false);
-          }}
-        >
-          <Text style={styles.datePickerButtonText}>Hoy</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={styles.closeButton}
-          onPress={() => setShowDatePicker(false)}
-        >
-          <Text style={styles.closeButtonText}>Cerrar</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  </View>
-)}
-
+      )}
 
       {/* Modal de éxito */}
       <Modal

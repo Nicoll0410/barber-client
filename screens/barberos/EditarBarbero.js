@@ -13,10 +13,10 @@ import {
   Platform,
   ActivityIndicator,
 } from "react-native";
-import Calendar from '../../components/Calendar';
 import { MaterialIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { BlurView } from "expo-blur";
+import { Calendar, LocaleConfig } from "react-native-calendars";
 import { Picker } from "@react-native-picker/picker";
 import axios from "axios";
 import HorarioBarbero from '../../components/HorarioBarbero';
@@ -465,91 +465,113 @@ const EditarBarbero = ({ visible, onClose, barbero, onUpdate }) => {
       </View>
 
       {/* ─── date‑picker ─── */}
-{showPicker && (
-  <View style={styles.datePickerOverlay}>
-    <View style={styles.datePickerCard}>
-      <View style={styles.datePickerHeader}>
-        <TouchableOpacity
-          onPress={() => {
-            if (calYear > currentYear - 80 || calMonth > 0) {
-              setCalMonth((m) => (m + 11) % 12);
-              if (calMonth === 0) setCalYear((y) => y - 1);
-            }
-          }}
-        >
-          <MaterialIcons name="chevron-left" size={24} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.monthYearText}>
-          {months[calMonth]} de {calYear}
-        </Text>
-        <TouchableOpacity
-          onPress={() => {
-            if (calYear < currentYear || calMonth < 11) {
-              setCalMonth((m) => (m + 1) % 12);
-              if (calMonth === 11) setCalYear((y) => y + 1);
-            }
-          }}
-        >
-          <MaterialIcons name="chevron-right" size={24} color="#333" />
-        </TouchableOpacity>
-      </View>
+      {showPicker && (
+        <View style={styles.datePickerOverlay}>
+          <View style={styles.datePickerCard}>
+            <View style={styles.datePickerHeader}>
+              <TouchableOpacity
+                onPress={() => {
+                  if (calYear > currentYear - 80 || calMonth > 0) {
+                    setCalMonth((m) => (m + 11) % 12);
+                    if (calMonth === 0) setCalYear((y) => y - 1);
+                  }
+                }}
+              >
+                <MaterialIcons name="chevron-left" size={24} color="#333" />
+              </TouchableOpacity>
+              <Text style={styles.monthYearText}>
+                {months[calMonth]} de {calYear}
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  if (calYear < currentYear || calMonth < 11) {
+                    setCalMonth((m) => (m + 1) % 12);
+                    if (calMonth === 11) setCalYear((y) => y + 1);
+                  }
+                }}
+              >
+                <MaterialIcons name="chevron-right" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={{ marginVertical: 8 }}
-      >
-        {years.map((y) => (
-          <TouchableOpacity
-            key={y}
-            style={[
-              styles.yearBox,
-              y === calYear && styles.yearBoxSelected,
-            ]}
-            onPress={() => setCalYear(y)}
-          >
-            <Text
-              style={[
-                styles.yearText,
-                y === calYear && styles.yearTextSelected,
-              ]}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ marginVertical: 8 }}
             >
-              {y}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+              {years.map((y) => (
+                <TouchableOpacity
+                  key={y}
+                  style={[
+                    styles.yearBox,
+                    y === calYear && styles.yearBoxSelected,
+                  ]}
+                  onPress={() => setCalYear(y)}
+                >
+                  <Text
+                    style={[
+                      styles.yearText,
+                      y === calYear && styles.yearTextSelected,
+                    ]}
+                  >
+                    {y}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
 
-      {/* REEMPLAZAMOS EL CALENDARIO CON NUESTRO COMPONENTE */}
-      <Calendar
-        selectedDate={formData[pickerField === "nacimiento" ? "fechaNacimiento" : "fechaContratacion"] ? 
-          toISODate(formData[pickerField === "nacimiento" ? "fechaNacimiento" : "fechaContratacion"]) : 
-          null}
-        onDateChange={(date) => {
-          const selectedDate = new Date(date);
-          handleChange(
-            pickerField === "nacimiento" ? "fechaNacimiento" : "fechaContratacion",
-            selectedDate
-          );
-          setShowPicker(false);
-        }}
-        minDate={`${currentYear - 80}-01-01`}
-        maxDate={new Date().toISOString().split("T")[0]}
-        markedDates={disabledObj()}
-      />
+            <Calendar
+              key={`${calYear}-${calMonth}`}
+              current={`${calYear}-${String(calMonth + 1).padStart(
+                2,
+                "0"
+              )}-01`}
+              hideExtraDays
+              hideArrows
+              disableMonthChange
+              minDate={`${currentYear - 80}-01-01`}
+              maxDate={new Date().toISOString().split("T")[0]}
+              onDayPress={onDaySelect}
+              markedDates={{
+                ...disabledObj(),
+                ...(formData[
+                  pickerField === "nacimiento"
+                    ? "fechaNacimiento"
+                    : "fechaContratacion"
+                ]
+                  ? {
+                      [toISODate(
+                        formData[
+                          pickerField === "nacimiento"
+                            ? "fechaNacimiento"
+                            : "fechaContratacion"
+                        ]
+                      )]: {
+                        selected: true,
+                        selectedColor: "#424242",
+                        selectedTextColor: "#fff",
+                      },
+                    }
+                  : {}),
+              }}
+              theme={{
+                todayTextColor: "#424242",
+                selectedDayBackgroundColor: "#424242",
+              }}
+              style={{ alignSelf: "center" }}
+            />
 
-      <View style={styles.datePickerActions}>
-        <TouchableOpacity
-          style={styles.datePickerBtn}
-          onPress={() => setShowPicker(false)}
-        >
-          <Text style={styles.datePickerBtnText}>Cerrar</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  </View>
-)}
-
+            <View style={styles.datePickerActions}>
+              <TouchableOpacity
+                style={styles.datePickerBtn}
+                onPress={() => setShowPicker(false)}
+              >
+                <Text style={styles.datePickerBtnText}>Cerrar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
       <HorarioBarbero 
         barberoId={barbero?.id} 
         visible={showHorarioModal} 

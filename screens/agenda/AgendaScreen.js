@@ -740,13 +740,9 @@ const fetchCitas = async () => {
                 <View style={styles.timeCellMobile}>
                   <Text style={styles.horaText}>{slot.displayTime}</Text>
                 </View>
-                <ScrollView 
-                  horizontal 
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.barberosSlotsScrollContent}
-                >
+                <View style={styles.barberosSlotsContainer}>
                   {barberos.map(b => renderBarberoSlot(slot, b))}
-                </ScrollView>
+                </View>
               </View>
             ))}
           </ScrollView>
@@ -798,8 +794,21 @@ const fetchCitas = async () => {
         </View>
       </View>
 
-      {renderBarberosHeader()}
-      {renderMainContent()}
+      {/* Contenedor principal con scroll horizontal general */}
+      <View style={styles.agendaContainer}>
+        {renderBarberosHeader()}
+        
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={true}
+          style={styles.horizontalScroll}
+          contentContainerStyle={styles.horizontalScrollContent}
+        >
+          <View style={styles.agendaContent}>
+            {renderMainContent()}
+          </View>
+        </ScrollView>
+      </View>
 
       <Modal visible={showCalendar} animationType="fade" transparent>
         <BlurView intensity={15} tint="light" style={StyleSheet.absoluteFill} />
@@ -921,6 +930,20 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff'
   },
+  agendaContainer: {
+    flex: 1,
+    marginBottom: 60
+  },
+  horizontalScroll: {
+    flex: 1,
+  },
+  horizontalScrollContent: {
+    flexGrow: 1,
+  },
+  agendaContent: {
+    flex: 1,
+    minWidth: '100%',
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -1012,7 +1035,6 @@ const styles = StyleSheet.create({
   },
   mainContent: {
     flex: 1,
-    marginBottom: 60
   },
   // Filas para web
   row: {
@@ -1042,11 +1064,12 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderRightColor: '#000'
   },
+  barberosSlotsContainer: {
+    flexDirection: 'row',
+    flex: 1,
+  },
   horaText: {
     fontSize: 14
-  },
-  barberosSlotsScrollContent: {
-    flexDirection: 'row'
   },
   // Slots para web
   slotContainer: {

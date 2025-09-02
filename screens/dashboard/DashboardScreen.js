@@ -22,9 +22,9 @@ const DashboardScreen = () => {
     topHoras: [],
     topServicios: [],
     tiposDeUsuarios: [
-      { name: 'Clientes', population: 0, color: '#3498db', legendFontColor: '#7F7F7F', legendFontSize: 15 },
-      { name: 'Barberos', population: 0, color: '#e74c3c', legendFontColor: '#7F7F7F', legendFontSize: 15 },
-      { name: 'Administradores', population: 0, color: '#044c68ff', legendFontColor: '#7F7F7F', legendFontSize: 15 }
+      { name: 'Clientes', population: 0, color: '#3498db', legendFontColor: '#7F7F7F', legendFontSize: 15 },  // Azul
+      { name: 'Barberos', population: 0, color: '#e74c3c', legendFontColor: '#7F7F7F', legendFontSize: 15 },  // Rojo
+      { name: 'Admin', population: 0, color: '#044c68ff', legendFontColor: '#7F7F7F', legendFontSize: 15 }  // Verde
     ],
     totalUsuarios: 0,
     topBarberos: [],
@@ -49,7 +49,7 @@ const DashboardScreen = () => {
       const tiposProcesados = [
         { name: 'Clientes', population: 0, color: '#3498db', legendFontColor: '#7F7F7F', legendFontSize: 15 },
         { name: 'Barberos', population: 0, color: '#e74c3c', legendFontColor: '#7F7F7F', legendFontSize: 15 },
-        { name: 'Administradores', population: 0, color: '#044c68ff', legendFontColor: '#7F7F7F', legendFontSize: 15 }
+        { name: 'Admin', population: 0, color: '#044c68ff', legendFontColor: '#7F7F7F', legendFontSize: 15 }
       ];
 
       tiposUsuarios.forEach(item => {
@@ -189,12 +189,12 @@ const DashboardScreen = () => {
 
   return (
     <View style={styles.mainContainer}>
-      <ScrollView contentContainerStyle={[styles.container, !isMobile && styles.webContainer]}>
+      <ScrollView contentContainerStyle={styles.container}>
         <Text style={[styles.title, isMobile && styles.titleMobile]}>Dashboard</Text>
 
         {/* Tarjetas de resumen mejoradas */}
         <View style={[styles.summaryContainer, isMobile && styles.summaryContainerMobile]}>
-          <TouchableOpacity style={[styles.summaryCard, styles.summaryCardPrimary, isMobile && styles.summaryCardMobile]}>
+          <TouchableOpacity style={[styles.summaryCard, styles.summaryCardPrimary]}>
             <LinearGradient
               colors={['#e74c3c', '#c0392b']}
               style={styles.gradient}
@@ -210,7 +210,7 @@ const DashboardScreen = () => {
             </LinearGradient>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.summaryCard, styles.summaryCardSecondary, isMobile && styles.summaryCardMobile]}>
+          <TouchableOpacity style={[styles.summaryCard, styles.summaryCardSecondary]}>
             <LinearGradient
               colors={['#3498db', '#2980b9']}
               style={styles.gradient}
@@ -235,35 +235,28 @@ const DashboardScreen = () => {
               <Icon name="access-time" size={20} color="#e74c3c" />
               <Text style={styles.chartTitle}>Horas con más citas</Text>
             </View>
-            {dashboardData.topHoras.length > 0 ? (
-              <BarChart
-                data={{
-                  labels: dashboardData.topHoras.map(item => item.label),
-                  datasets: [{
-                    data: dashboardData.topHoras.map(item => item.value),
-                    color: (opacity = 1) => `rgba(231, 76, 60, ${opacity})`,
-                    colors: dashboardData.topHoras.map((_, index) => 
-                      (opacity = 1) => `rgba(231, 76, 60, ${0.7 + (index * 0.05)})`
-                    )
-                  }]
-                }}
-                width={isMobile ? dimensions.width * 0.85 : dimensions.width * 0.42}
-                height={220}
-                chartConfig={chartConfig}
-                style={styles.chart}
-                fromZero
-                showValuesOnTopOfBars
-                withCustomBarColorFromData
-                flatColor
-                yAxisLabel=""
-                yAxisSuffix=""
-              />
-            ) : (
-              <View style={styles.noDataContainer}>
-                <Icon name="info-outline" size={24} color="#9e9e9e" />
-                <Text style={styles.noDataText}>No hay datos disponibles</Text>
-              </View>
-            )}
+            <BarChart
+              data={{
+                labels: dashboardData.topHoras.map(item => item.label),
+                datasets: [{
+                  data: dashboardData.topHoras.map(item => item.value),
+                  color: (opacity = 1) => `rgba(231, 76, 60, ${opacity})`,
+                  colors: dashboardData.topHoras.map((_, index) => 
+                    (opacity = 1) => `rgba(231, 76, 60, ${0.7 + (index * 0.05)})`
+                  )
+                }]
+              }}
+              width={isMobile ? dimensions.width * 0.9 : dimensions.width * 0.45}
+              height={220}
+              chartConfig={chartConfig}
+              style={styles.chart}
+              fromZero
+              showValuesOnTopOfBars
+              withCustomBarColorFromData
+              flatColor
+              yAxisLabel=""
+              yAxisSuffix=""
+            />
           </View>
 
           {/* Servicios más solicitados */}
@@ -272,35 +265,28 @@ const DashboardScreen = () => {
               <Icon name="content-cut" size={20} color="#3498db" />
               <Text style={styles.chartTitle}>Servicios más solicitados</Text>
             </View>
-            {dashboardData.topServicios.length > 0 ? (
-              <BarChart
-                data={{
-                  labels: dashboardData.topServicios.map(item => item.label),
-                  datasets: [{
-                    data: dashboardData.topServicios.map(item => item.value),
-                    color: (opacity = 1) => `rgba(52, 152, 219, ${opacity})`,
-                    colors: dashboardData.topServicios.map((_, index) => 
-                      (opacity = 1) => `rgba(52, 152, 219, ${0.7 + (index * 0.05)})`
-                    )
-                  }]
-                }}
-                width={isMobile ? dimensions.width * 0.85 : dimensions.width * 0.42}
-                height={220}
-                chartConfig={chartConfig}
-                style={styles.chart}
-                fromZero
-                showValuesOnTopOfBars
-                withCustomBarColorFromData
-                flatColor
-                yAxisLabel=""
-                yAxisSuffix=""
-              />
-            ) : (
-              <View style={styles.noDataContainer}>
-                <Icon name="info-outline" size={24} color="#9e9e9e" />
-                <Text style={styles.noDataText}>No hay datos disponibles</Text>
-              </View>
-            )}
+            <BarChart
+              data={{
+                labels: dashboardData.topServicios.map(item => item.label),
+                datasets: [{
+                  data: dashboardData.topServicios.map(item => item.value),
+                  color: (opacity = 1) => `rgba(52, 152, 219, ${opacity})`,
+                  colors: dashboardData.topServicios.map((_, index) => 
+                    (opacity = 1) => `rgba(52, 152, 219, ${0.7 + (index * 0.05)})`
+                  )
+                }]
+              }}
+              width={isMobile ? dimensions.width * 0.9 : dimensions.width * 0.45}
+              height={220}
+              chartConfig={chartConfig}
+              style={styles.chart}
+              fromZero
+              showValuesOnTopOfBars
+              withCustomBarColorFromData
+              flatColor
+              yAxisLabel=""
+              yAxisSuffix=""
+            />
           </View>
         </View>
 
@@ -313,24 +299,17 @@ const DashboardScreen = () => {
               <Text style={styles.chartTitle}>Distribución de usuarios</Text>
               <Text style={styles.chartSubtitle}>Total: {formatNumber(dashboardData.totalUsuarios)}</Text>
             </View>
-            {dashboardData.tiposDeUsuarios.some(item => item.population > 0) ? (
-              <PieChart
-                data={dashboardData.tiposDeUsuarios}
-                width={isMobile ? dimensions.width * 0.85 : dimensions.width * 0.42}
-                height={200}
-                chartConfig={pieChartConfig}
-                accessor="population"
-                backgroundColor="transparent"
-                paddingLeft="15"
-                absolute
-                hasLegend
-              />
-            ) : (
-              <View style={styles.noDataContainer}>
-                <Icon name="info-outline" size={24} color="#9e9e9e" />
-                <Text style={styles.noDataText}>No hay datos disponibles</Text>
-              </View>
-            )}
+            <PieChart
+              data={dashboardData.tiposDeUsuarios}
+              width={isMobile ? dimensions.width * 0.9 : dimensions.width * 0.45}
+              height={200}
+              chartConfig={pieChartConfig}
+              accessor="population"
+              backgroundColor="transparent"
+              paddingLeft="15"
+              absolute
+              hasLegend
+            />
           </View>
 
           {/* Top barberos */}
@@ -341,36 +320,27 @@ const DashboardScreen = () => {
               <Text style={styles.chartSubtitle}>Por citas atendidas</Text>
             </View>
             <View style={styles.barberosContainer}>
-              {dashboardData.topBarberos.length > 0 ? (
-                dashboardData.topBarberos.map((barbero, index) => (
-                  <TouchableOpacity key={barbero.id || index} style={styles.barberoItem}>
-                    <View style={styles.barberoInfo}>
-                      <View style={styles.barberoRank}>
-                        <Text style={styles.barberoRankText}>{index + 1}</Text>
+              {dashboardData.topBarberos.map((barbero, index) => (
+                <TouchableOpacity key={barbero.id} style={styles.barberoItem}>
+                  <View style={styles.barberoInfo}>
+                    <View style={styles.barberoRank}>
+                      <Text style={styles.barberoRankText}>{index + 1}</Text>
+                    </View>
+                    {barbero.avatar ? (
+                      <Image source={{ uri: barbero.avatar }} style={styles.avatar} />
+                    ) : (
+                      <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                        <Text style={styles.avatarText}>{barbero.nombre.charAt(0)}</Text>
                       </View>
-                      {barbero.avatar ? (
-                        <Image source={{ uri: barbero.avatar }} style={styles.avatar} />
-                      ) : (
-                        <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                          <Text style={styles.avatarText}>{barbero.nombre ? barbero.nombre.charAt(0) : 'B'}</Text>
-                        </View>
-                      )}
-                      <Text style={styles.barberoName} numberOfLines={1}>
-                        {barbero.nombre || `Barbero ${index + 1}`}
-                      </Text>
-                    </View>
-                    <View style={styles.barberoStats}>
-                      <Text style={styles.barberoCitas}>{barbero.citas || 0} citas</Text>
-                      <Icon name="chevron-right" size={20} color="#9e9e9e" />
-                    </View>
-                  </TouchableOpacity>
-                ))
-              ) : (
-                <View style={styles.noDataContainer}>
-                  <Icon name="info-outline" size={24} color="#9e9e9e" />
-                  <Text style={styles.noDataText}>No hay datos disponibles</Text>
-                </View>
-              )}
+                    )}
+                    <Text style={styles.barberoName}>{barbero.nombre}</Text>
+                  </View>
+                  <View style={styles.barberoStats}>
+                    <Text style={styles.barberoCitas}>{barbero.citas} citas</Text>
+                    <Icon name="chevron-right" size={20} color="#9e9e9e" />
+                  </View>
+                </TouchableOpacity>
+              ))}
             </View>
           </View>
         </View>
@@ -381,6 +351,7 @@ const DashboardScreen = () => {
   );
 };
 
+// Los estilos permanecen exactamente iguales
 const styles = StyleSheet.create({
   mainContainer: { 
     flex: 1, 
@@ -389,11 +360,6 @@ const styles = StyleSheet.create({
   container: { 
     padding: 16, 
     paddingBottom: 80 
-  },
-  webContainer: {
-    maxWidth: 1200,
-    alignSelf: 'center',
-    width: '100%'
   },
   loadingContainer: { 
     flex: 1, 
@@ -448,8 +414,7 @@ const styles = StyleSheet.create({
   summaryContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 20,
-    flexWrap: 'wrap'
+    marginBottom: 20
   },
   summaryContainerMobile: {
     flexDirection: 'column',
@@ -502,8 +467,7 @@ const styles = StyleSheet.create({
   chartsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 20,
-    flexWrap: 'wrap'
+    marginBottom: 20
   },
   chartsRowMobile: {
     flexDirection: 'column',
@@ -520,7 +484,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
-    marginBottom: 16
   },
   chartContainerMobile: {
     width: '100%'
@@ -544,16 +507,6 @@ const styles = StyleSheet.create({
   chart: {
     borderRadius: 12,
     marginLeft: -10
-  },
-  noDataContainer: {
-    height: 200,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  noDataText: {
-    marginTop: 10,
-    color: '#9e9e9e',
-    fontSize: 14
   },
   barberosContainer: {
     marginTop: 10

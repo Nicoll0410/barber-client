@@ -32,7 +32,7 @@ const Footer = () => {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#ffffff',
-    paddingVertical: 12,
+    paddingVertical: 8,
     borderTopWidth: 1,
     borderTopColor: '#e0e0e0',
     shadowColor: '#000',
@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     alignItems: 'flex-start',
     marginLeft: 4,
-    marginTop: 4,
+    marginTop: 2,
   },
   authorLink: {
     flexDirection: 'row',

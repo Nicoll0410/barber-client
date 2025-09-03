@@ -43,7 +43,7 @@ LocaleConfig.locales.es = {
 LocaleConfig.defaultLocale = "es";
 
 /* ─── helpers constantes ─── */
-const { width, height } = Dimensions.get("window");
+const { width } = Dimensions.get("window");
 const currentYear = new Date().getFullYear();
 const months = [
   "Enero","Febrero","Marzo","Abril","Mayo","Junio",
@@ -211,11 +211,41 @@ const CrearBarbero = ({ visible, onClose, onCreate }) => {
       fechaContratacion: toISODate(formData.fechaContratacion),
     });
     setShowSuccess(true);
-    onClose();
     resetForm();
   };
 
   /* ─── calendario ─── */
+  const disabledDays = (d) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return (
+      d > today ||
+      (calendarYear === currentYear && calendarMonth > today.getMonth()) ||
+      d.getFullYear() < currentYear - 80
+    );
+  };
+
+  const disabledObj = () => {
+    const obj = {};
+    const start = new Date(calendarYear, calendarMonth, 1);
+    const end = new Date(calendarYear, calendarMonth + 1, 0);
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      if (disabledDays(new Date(d))) {
+        obj[toISODate(new Date(d))] = { disabled: true, disableTouchEvent: true };
+      }
+    }
+    return obj;
+  };
+
+  const onDaySelect = (day) => {
+    const sel = new Date(day.year, day.month - 1, day.day);
+    handleChange(
+      pickerField === "nacimiento" ? "fechaNacimiento" : "fechaContratacion",
+      sel
+    );
+    setShowDatePicker(false);
+  };
+
   const changeMonth = (increment) => {
     const today = new Date();
     let newMonth = calendarMonth + increment;
@@ -240,40 +270,6 @@ const CrearBarbero = ({ visible, onClose, onCreate }) => {
       }
       setCalendarYear(newYear);
     }
-  };
-
-  const handleDayPress = (day) => {
-    const selectedDate = new Date(day.year, day.month - 1, day.day);
-    handleChange(
-      pickerField === "nacimiento" ? "fechaNacimiento" : "fechaContratacion",
-      selectedDate
-    );
-    setShowDatePicker(false);
-  };
-
-  const getDisabledDates = () => {
-    const disabledDates = {};
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const startDate = new Date(calendarYear, calendarMonth, 1);
-    const endDate = new Date(calendarYear, calendarMonth + 1, 0);
-    const tempDate = new Date(startDate);
-    
-    while (tempDate <= endDate) {
-      const dateString = formatDateString(tempDate);
-      const isFutureDate = tempDate > today;
-      
-      if (isFutureDate) {
-        disabledDates[dateString] = { 
-          disabled: true, 
-          disableTouchEvent: true 
-        };
-      }
-      tempDate.setDate(tempDate.getDate() + 1);
-    }
-    
-    return disabledDates;
   };
 
   /* ───────── UI ───────── */
@@ -661,8 +657,8 @@ const CrearBarbero = ({ visible, onClose, onCreate }) => {
                   <TouchableOpacity
                     key={year}
                     style={[
-                      styles.yearBtn,
-                      year === calendarYear && styles.yearBtnSel,
+                      styles.yearBox,
+                      year === calendarYear && styles.yearBoxSelected,
                     ]}
                     onPress={() => {
                       const today = new Date();
@@ -675,7 +671,7 @@ const CrearBarbero = ({ visible, onClose, onCreate }) => {
                     <Text
                       style={[
                         styles.yearText,
-                        year === calendarYear && styles.yearTextSel,
+                        year === calendarYear && styles.yearTextSelected,
                       ]}
                     >
                       {year}
@@ -686,82 +682,42 @@ const CrearBarbero = ({ visible, onClose, onCreate }) => {
             </View>
             
             {/* calendario */}
-            <View style={styles.calendarContainer}>
-              <Calendar
-                key={`${calendarYear}-${calendarMonth}`}
-                current={`${calendarYear}-${String(calendarMonth + 1).padStart(2, "0")}-01`}
-                minDate={pickerField === "contratacion" ? `${currentYear - 15}-01-01` : `${currentYear - 80}-01-01`}
-                maxDate={new Date().toISOString().split("T")[0]}
-                onDayPress={handleDayPress}
-                monthFormat={"MMMM yyyy"}
-                hideArrows={true}
-                hideExtraDays={true}
-                disableMonthChange={true}
-                markedDates={{
-                  ...getDisabledDates(),
-                  [formData[pickerField === "nacimiento" ? "fechaNacimiento" : "fechaContratacion"] 
-                    ? formatDateString(formData[pickerField === "nacimiento" ? "fechaNacimiento" : "fechaContratacion"]) 
-                    : ""]: {
-                    selected: true,
-                    selectedColor: "#424242",
-                    selectedTextColor: "#fff"
-                  },
-                  [new Date().toISOString().split("T")[0]]: {
-                    marked: true,
-                    dotColor: "#424242"
-                  }
-                }}
-                theme={{
-                  calendarBackground: "transparent",
-                  textSectionTitleColor: "#666",
-                  dayTextColor: "#333",
-                  todayTextColor: "#424242",
-                  selectedDayTextColor: "#fff",
-                  selectedDayBackgroundColor: "#424242",
-                  arrowColor: "#424242",
-                  monthTextColor: "#333",
-                  textDayFontWeight: "400",
-                  textMonthFontWeight: "bold",
-                  textDayHeaderFontWeight: "500",
-                  textDayFontSize: 14,
-                  textMonthFontSize: 16,
-                  textDayHeaderFontSize: 14,
-                  "stylesheet.calendar.header": {
-                    week: {
-                      marginTop: 5,
-                      flexDirection: "row",
-                      justifyContent: "space-between"
+            <Calendar
+              key={`${calendarYear}-${calendarMonth}`}
+              current={`${calendarYear}-${String(calendarMonth + 1).padStart(2, "0")}-01`}
+              minDate={pickerField === "contratacion" ? `${currentYear - 15}-01-01` : `${currentYear - 80}-01-01`}
+              maxDate={new Date().toISOString().split("T")[0]}
+              onDayPress={onDaySelect}
+              hideExtraDays
+              hideArrows
+              disableMonthChange
+              markedDates={{
+                ...disabledObj(),
+                ...(formData[pickerField === "nacimiento" ? "fechaNacimiento" : "fechaContratacion"]
+                  ? {
+                      [toISODate(
+                        formData[pickerField === "nacimiento" ? "fechaNacimiento" : "fechaContratacion"]
+                      )]: {
+                        selected: true,
+                        selectedColor: "#424242",
+                        selectedTextColor: "#fff",
+                      },
                     }
-                  },
-                  disabledDayTextColor: "#d9d9d9"
-                }}
-                style={styles.calendar}
-                disableAllTouchEventsForDisabledDays={true}
-              />
-            </View>
-            
+                  : {}),
+              }}
+              theme={{
+                todayTextColor: "#424242",
+                selectedDayBackgroundColor: "#424242",
+              }}
+              style={{ alignSelf: "center" }}
+            />
+
             <View style={styles.datePickerActions}>
               <TouchableOpacity
-                style={styles.datePickerButton}
-                onPress={() => {
-                  const today = new Date();
-                  handleChange(
-                    pickerField === "nacimiento" ? "fechaNacimiento" : "fechaContratacion",
-                    today
-                  );
-                  setCalendarMonth(today.getMonth());
-                  setCalendarYear(today.getFullYear());
-                  setShowDatePicker(false);
-                }}
-              >
-                <Text style={styles.datePickerButtonText}>Hoy</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={styles.closeButton}
+                style={styles.datePickerBtn}
                 onPress={() => setShowDatePicker(false)}
               >
-                <Text style={styles.closeButtonText}>Cerrar</Text>
+                <Text style={styles.datePickerBtnText}>Cerrar</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -786,7 +742,10 @@ const CrearBarbero = ({ visible, onClose, onCreate }) => {
             </Text>
             <TouchableOpacity
               style={styles.successModalButton}
-              onPress={() => setShowSuccess(false)}
+              onPress={() => {
+                setShowSuccess(false);
+                onClose();
+              }}
             >
               <Text style={styles.successModalButtonText}>Entendido</Text>
             </TouchableOpacity>
@@ -904,39 +863,40 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(0,0,0,0.45)",
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 1000,
   },
   datePickerCard: {
-    width: width * 0.85,
-    maxWidth: 350,
-    backgroundColor: "white",
+    width: width * 0.9,
+    maxWidth: 380,
+    backgroundColor: "#fff",
     borderRadius: 10,
-    padding: 15,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-    maxHeight: "80%",
+    padding: 16,
   },
   datePickerHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
   },
-  monthYearSelector: {
-    flex: 1,
-    alignItems: "center",
+  monthYearText: { fontSize: 18, fontWeight: "bold", color: "#333" },
+  yearBox: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginHorizontal: 4,
+    borderRadius: 12,
   },
-  monthYearText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
+  yearBoxSelected: { backgroundColor: "#424242" },
+  yearText: { color: "#333" },
+  yearTextSelected: { color: "#fff", fontWeight: "600" },
+  datePickerActions: { marginTop: 10, alignItems: "flex-end" },
+  datePickerBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    backgroundColor: "#424242",
+    borderRadius: 10,
   },
+  datePickerBtnText: { color: "#fff", fontWeight: "600" },
   yearsScrollContainer: {
     height: 50,
     marginVertical: 10,
@@ -945,53 +905,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     alignItems: "center",
   },
-  yearBtn: {
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    marginHorizontal: 5,
-    borderRadius: 15,
-    justifyContent: "center",
+  monthYearSelector: {
+    flex: 1,
     alignItems: "center",
-    minWidth: 70,
   },
-  yearBtnSel: {
-    backgroundColor: "#424242",
-  },
-  yearText: {
-    color: "#666",
-    fontSize: 14,
-  },
-  yearTextSel: {
-    color: "#fff",
-  },
-  calendarContainer: {
-    height: 280,
-    overflow: "hidden",
-  },
-  calendar: {
-    marginBottom: 10,
-  },
-  datePickerActions: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  datePickerButton: {
-    padding: 10,
-    borderRadius: 5,
-  },
-  datePickerButtonText: {
-    color: "#424242",
-    fontWeight: "bold",
-  },
-  closeButton: {
-    padding: 10,
-    borderRadius: 5,
-    backgroundColor: "#424242",
-  },
-  closeButtonText: {
-    color: "white",
-    fontWeight: "bold",
-  },
+
   // Estilos para el modal de éxito
   successModalOverlay: {
     flex: 1,

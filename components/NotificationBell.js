@@ -1,21 +1,17 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 
 const NotificationBell = ({ navigation }) => {
   const { unreadCount, fetchNotifications, socket } = useAuth();
-  const [badgeVisible, setBadgeVisible] = useState(unreadCount > 0);
-
-  useEffect(() => {
-    setBadgeVisible(unreadCount > 0);
-  }, [unreadCount]);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // Escuchar notificaciones en tiempo real
   useEffect(() => {
     if (socket) {
       const handleNuevaNotificacion = () => {
-        // Forzar actualización del contador
+        console.log("🔄 Actualizando notificaciones por socket");
         fetchNotifications();
       };
 
@@ -28,12 +24,17 @@ const NotificationBell = ({ navigation }) => {
   }, [socket, fetchNotifications]);
 
   const handlePress = async () => {
+    if (isUpdating) return;
+    
+    setIsUpdating(true);
     try {
       await fetchNotifications();
       navigation.navigate('Notificaciones');
     } catch (error) {
-      console.error('Error navegando a notificaciones:', error);
+      console.error('Error:', error);
       navigation.navigate('Notificaciones');
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -41,9 +42,14 @@ const NotificationBell = ({ navigation }) => {
     <TouchableOpacity 
       onPress={handlePress}
       style={styles.container}
+      disabled={isUpdating}
     >
-      <Ionicons name="notifications-outline" size={26} color="black" />
-      {badgeVisible && unreadCount > 0 && (
+      <Ionicons 
+        name="notifications-outline" 
+        size={26} 
+        color="black" 
+      />
+      {unreadCount > 0 && (
         <View style={styles.badge}>
           <Text style={styles.badgeText}>
             {unreadCount > 9 ? '9+' : unreadCount}

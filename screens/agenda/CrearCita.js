@@ -46,6 +46,7 @@ const CrearCita = ({
   const scrollViewRef = useRef(null);
   const nombreInputRef = useRef(null);
   const telefonoInputRef = useRef(null);
+  const searchInputRef = useRef(null);
 
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
@@ -83,6 +84,19 @@ const CrearCita = ({
   const handleClose = () => {
     reset();
     onClose();
+  };
+
+  // Función para manejar toques en el BlurView sin cerrar el teclado
+  const handleBlurPress = (e) => {
+    // Prevenir el cierre del teclado solo si el toque NO es en un input
+    const isInputTouch = 
+      e.target === searchInputRef.current ||
+      e.target === nombreInputRef.current ||
+      e.target === telefonoInputRef.current;
+    
+    if (!isInputTouch) {
+      Keyboard.dismiss();
+    }
   };
 
   const convertirHora24 = (horaStr) => {
@@ -215,7 +229,6 @@ const CrearCita = ({
         
         const citaId = response.data.cita.id;
         
-        // Intentar crear notificaciones (no crítico si falla)
         try {
           const usuarioIDActual = await obtenerUsuarioActual(token);
           if (usuarioIDActual) {
@@ -319,6 +332,7 @@ const CrearCita = ({
             <View style={styles.searchBox}>
               <MaterialIcons name="search" size={20} color="#666" style={{ marginRight: 10 }} />
               <TextInput
+                ref={searchInputRef}
                 style={styles.searchInput}
                 placeholder="Buscar por nombre"
                 value={busqueda}
@@ -465,42 +479,54 @@ const CrearCita = ({
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
-      <BlurView intensity={20} tint="light" style={styles.blur}>
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={styles.keyboardAvoiding}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
-        >
-          <View style={[styles.modal, keyboardVisible && styles.modalWithKeyboard]}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {step === 1 ? "Seleccionar servicio" : step === 2 ? "Seleccionar cliente" : "Confirmar cita"}
-              </Text>
-              <TouchableOpacity onPress={handleClose}>
-                <MaterialIcons name="close" size={24} color="#000" />
-              </TouchableOpacity>
+      <TouchableOpacity 
+        style={styles.blurContainer}
+        activeOpacity={1}
+        onPress={handleBlurPress}
+      >
+        <BlurView intensity={20} tint="light" style={styles.blur}>
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={styles.keyboardAvoiding}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
+          >
+            <View style={[styles.modal, keyboardVisible && styles.modalWithKeyboard]}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>
+                  {step === 1 ? "Seleccionar servicio" : step === 2 ? "Seleccionar cliente" : "Confirmar cita"}
+                </Text>
+                <TouchableOpacity onPress={handleClose}>
+                  <MaterialIcons name="close" size={24} color="#000" />
+                </TouchableOpacity>
+              </View>
+              
+              <ScrollView
+                ref={scrollViewRef}
+                style={styles.scrollView}
+                contentContainerStyle={styles.scrollContent}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
+                {renderStep()}
+              </ScrollView>
             </View>
-            
-            <ScrollView
-              ref={scrollViewRef}
-              style={styles.scrollView}
-              contentContainerStyle={styles.scrollContent}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
-              {renderStep()}
-            </ScrollView>
-          </View>
-        </KeyboardAvoidingView>
-      </BlurView>
+          </KeyboardAvoidingView>
+        </BlurView>
+      </TouchableOpacity>
     </Modal>
   );
 };
 
 const { width, height } = Dimensions.get('window');
 const styles = StyleSheet.create({
-  blur: {
+  blurContainer: {
     flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  blur: {
+    width: '100%',
+    height: '100%',
     justifyContent: "center",
     alignItems: "center",
   },

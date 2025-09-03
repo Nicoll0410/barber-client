@@ -63,20 +63,6 @@ const VerifyEmailScreen = () => {
     checkParams();
   }, [route.params]);
 
-  // Redirigir después de verificación exitosa
-  useEffect(() => {
-    if (isVerified) {
-      const timer = setTimeout(() => {
-        setIsVerified(false);
-        navigation.navigate('Login', { 
-          verifiedEmail: email,
-          message: '¡Cuenta verificada exitosamente! Ya puedes iniciar sesión.' 
-        });
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [isVerified, navigation, email]);
-
   const handleVerify = async (isAutoVerify = false) => {
     if (!code || code.length !== 6) {
       if (!isAutoVerify) {
@@ -94,11 +80,7 @@ const VerifyEmailScreen = () => {
 
       if (response.data.success) {
         setIsVerified(true);
-        
-        if (isAutoVerify) {
-          // Si es auto-verificación, mostrar mensaje de éxito
-          showModal('¡Éxito!', 'Tu cuenta ha sido verificada correctamente.', 'success');
-        }
+        showModal('¡Éxito!', 'Tu cuenta ha sido verificada correctamente.', 'success');
       } else {
         showModal('Error', response.data.mensaje || 'Error al verificar la cuenta', 'error');
       }
@@ -140,6 +122,13 @@ const VerifyEmailScreen = () => {
     }
   };
 
+  const handleGoToLogin = () => {
+    navigation.navigate('Login', { 
+      verifiedEmail: email,
+      message: '¡Cuenta verificada exitosamente! Ya puedes iniciar sesión.' 
+    });
+  };
+
   return (
     <KeyboardAvoidingView 
       style={styles.container}
@@ -160,9 +149,15 @@ const VerifyEmailScreen = () => {
             <>
               <Text style={styles.title}>¡Verificación Exitosa!</Text>
               <Text style={styles.subtitle}>
-                Tu cuenta ha sido verificada correctamente.
+                Tu cuenta ha sido verificada correctamente. Ahora puedes iniciar sesión.
               </Text>
-              <ActivityIndicator size="large" color="#424242" style={styles.loader} />
+              
+              <TouchableOpacity
+                style={[styles.button, styles.successButton]}
+                onPress={handleGoToLogin}
+              >
+                <Text style={styles.buttonText}>Ir al Inicio de Sesión</Text>
+              </TouchableOpacity>
             </>
           ) : (
             <>
@@ -249,7 +244,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     textAlign: 'center',
-    marginBottom: 5,
+    marginBottom: 20,
     color: '#666',
     lineHeight: 22,
   },
@@ -280,6 +275,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
+  successButton: {
+    backgroundColor: '#2e7d32', // Verde para indicar éxito
+  },
   buttonDisabled: {
     opacity: 0.6,
   },
@@ -294,9 +292,6 @@ const styles = StyleSheet.create({
   resendText: {
     color: '#424242',
     textDecorationLine: 'underline',
-  },
-  loader: {
-    marginTop: 20,
   },
 });
 

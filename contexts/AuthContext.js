@@ -264,50 +264,69 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const initializeSocket = useCallback(() => {
-    // Cerrar socket existente si hay uno
-    if (socketRef.current) {
-      socketRef.current.disconnect();
-      socketRef.current = null;
-    }
+const initializeSocket = useCallback(() => {
+  // Cerrar socket existente si hay uno
+  if (socketRef.current) {
+    socketRef.current.disconnect();
+    socketRef.current = null;
+  }
 
-    // Inicializar nuevo socket solo si el usuario está logueado
-    if (authState.isLoggedIn && authState.user) {
-      console.log("Inicializando socket...");
-      socketRef.current = io(BASE_URL, { transports: ["websocket"] });
+  // Inicializar nuevo socket solo si el usuario está logueado
+  if (authState.isLoggedIn && authState.user) {
+    console.log("Inicializando socket...");
+    
+    // Obtener el token para autenticar el socket
+    const token = authState.token;
+    
+    socketRef.current = io(BASE_URL, {
+      transports: ["websocket"],
+      auth: {
+        token: token
+      }
+    });
 
-      // Unirse al room del usuario
-      socketRef.current.emit('join-user-room', authState.user.userId);
+    // Configurar handlers de eventos
+    socketRef.current.on("connect", () => {
+      console.log("✅ Conectado al servidor de sockets");
+    });
 
-      // Configurar handler de notificaciones
-      notificationHandlerRef.current = (data) => {
-        console.log("📩 Notificación recibida vía socket:", data);
+    socketRef.current.on("disconnect", () => {
+      console.log("❌ Desconectado del servidor de sockets");
+    });
 
-        // Verificar si la notificación es para el usuario actual
-        if (authState.user && data.usuarioID === authState.user.userId) {
-          setAuthState((prev) => {
-            // Evitar duplicados por ID
-            const exists = prev.notifications.some((n) => n.id === data.notificacion.id);
-            if (exists) return prev;
+    socketRef.current.on("connect_error", (error) => {
+      console.error("Error de conexión con socket:", error);
+    });
 
-            return {
-              ...prev,
-              notifications: [data.notificacion, ...prev.notifications],
-              unreadCount: prev.unreadCount + 1,
-              lastNotification: data.notificacion,
-            };
-          });
+    // Handler para notificaciones
+    notificationHandlerRef.current = (data) => {
+      console.log("📩 Notificación recibida vía socket:", data);
 
-          playNotificationSound();
-          
-          // Actualizar badge en el dispositivo
-          Notifications.setBadgeCountAsync(authState.unreadCount + 1);
-        }
-      };
+      // Verificar si la notificación es para el usuario actual
+      if (authState.user && data.usuarioID === authState.user.userId) {
+        setAuthState((prev) => {
+          // Evitar duplicados por ID
+          const exists = prev.notifications.some((n) => n.id === data.id);
+          if (exists) return prev;
 
-      socketRef.current.on("nueva_notificacion", notificationHandlerRef.current);
-    }
-  }, [authState.isLoggedIn, authState.user]);
+          return {
+            ...prev,
+            notifications: [data, ...prev.notifications],
+            unreadCount: prev.unreadCount + 1,
+            lastNotification: data,
+          };
+        });
+
+        playNotificationSound();
+        
+        // Actualizar badge en el dispositivo
+        Notifications.setBadgeCountAsync(authState.unreadCount + 1);
+      }
+    };
+
+    socketRef.current.on("nueva_notificacion", notificationHandlerRef.current);
+  }
+}, [authState.isLoggedIn, authState.user, authState.token]);
 
   const initializeAuth = useCallback(async () => {
     try {

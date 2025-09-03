@@ -2,24 +2,56 @@ if (Platform.OS === 'web') {
   require('./webPolyfills');
 }
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Platform, Alert, LogBox, AppState, Linking } from "react-native";
 import * as Notifications from "expo-notifications";
 import * as Device from 'expo-device';
 import Constants from "expo-constants";
 import AppNavigator from "./navigation/AppNavigator";
-import { AuthProvider } from "./contexts/AuthContext";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { NavigationContainer } from "@react-navigation/native";
 import { configurePushNotifications } from './utils/notifications';
+import { Audio } from 'expo-av';
+import io from 'socket.io-client';
 
 // Configuración completa de notificaciones
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
+  handleNotification: async (notification) => {
+    // Reproducir sonido
+    try {
+      const { sound } = await Audio.Sound.createAsync(
+        require('./assets/sound/notification.mp3')
+      );
+      await sound.playAsync();
+      setTimeout(() => sound.unloadAsync(), 2000);
+    } catch (error) {
+      console.error('Error reproduciendo sonido:', error);
+    }
+
+    return {
+      shouldShowAlert: true,
+      shouldPlaySound: false, // Ya lo manejamos nosotros
+      shouldSetBadge: true,
+    };
+  },
 });
+
+// Handler para cuando se recibe una notificación en primer plano
+const handleReceivedNotification = (notification) => {
+  console.log('Notificación recibida:', notification);
+  // Aquí puedes actualizar el estado de tu app con la nueva notificación
+};
+
+// Handler para cuando el usuario toca una notificación
+const handleSelectedNotification = (response) => {
+  const data = response.notification.request.content.data;
+  console.log('Usuario interactuó con notificación:', data);
+  
+  // Navegar a la pantalla correspondiente
+  if (data.screen === 'DetalleCita' && data.citaId) {
+    navigationRef.current?.navigate('DetalleCita', { id: data.citaId });
+  }
+};
 
 // Configurar el canal de notificaciones para Android (canal "default")
 async function setupNotificationChannel() {
@@ -50,6 +82,34 @@ function MainApp() {
   const responseListener = useRef();
   const appState = useRef(AppState.currentState);
   const navigationRef = useRef();
+  const socketRef = useRef(null);
+  const [notificationSound, setNotificationSound] = useState(null);
+  const { authState } = useAuth();
+
+  // Cargar sonido de notificación
+  const loadNotificationSound = async () => {
+    try {
+      console.log("Cargando sonido de notificación...");
+      const { sound } = await Audio.Sound.createAsync(
+        require('../assets/sound/notification.mp3')
+      );
+      setNotificationSound(sound);
+    } catch (error) {
+      console.error("Error cargando sonido:", error);
+    }
+  };
+
+  // Reproducir sonido de notificación
+  const playNotificationSound = async () => {
+    try {
+      console.log("Reproduciendo sonido de notificación...");
+      if (notificationSound) {
+        await notificationSound.replayAsync();
+      }
+    } catch (error) {
+      console.error("Error reproduciendo sonido:", error);
+    }
+  };
 
   // Función para manejar deep links
   const handleDeepLink = (event) => {
@@ -148,68 +208,208 @@ function MainApp() {
     appState.current = nextAppState;
   };
 
+  // USE EFFECT CORREGIDO - Manejo de sockets y notificaciones
   useEffect(() => {
-    // Configurar el canal de notificaciones
-    setupNotificationChannel();
-    
-    if (Platform.OS === 'web') {
-      const link = document.createElement('link');
-      link.rel = 'icon';
-      link.href = '/favicon.ico';
-      document.head.appendChild(link);
-    }
-    
-    // Configurar push notifications
-    configurePushNotifications();
+    let socket;
+    let notificationSubscription;
+    let responseSubscription;
+    let appStateSubscription;
+    let linkingSubscription;
 
-    // Registrar el token push
-    registerForPushNotifications();
+    const initializeSocket = async () => {
+      try {
+        // Obtener el token de autenticación
+        const token = await AsyncStorage.getItem("token");
+        
+        if (!token) {
+          console.log("No hay token, no se inicializará socket");
+          return;
+        }
 
-    // Configurar listeners de notificaciones
-    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-      console.log('Notificación recibida en primer plano:', notification);
-      
-      // Aquí puedes actualizar el estado de tu app
-      // Ejemplo: incrementar el contador de notificaciones no leídas
-    });
+        const BASE_URL = Platform.OS === "android" 
+          ? "https://barber-server-6kuo.onrender.com" 
+          : "https://barber-server-6kuo.onrender.com";
 
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-      const data = response.notification.request.content.data;
-      console.log('Usuario interactuó con notificación:', data);
-      
-      // Navegar a pantallas específicas basadas en los datos de la notificación
-      // Ejemplo:
-      // if (data.screen === 'DetalleCita') {
-      //   navigation.navigate('DetalleCita', { id: data.citaId });
-      // }
-    });
+        // Configurar Socket.IO con autenticación
+        socket = io(BASE_URL, {
+          transports: ["websocket", "polling"],
+          auth: {
+            token: token
+          }
+        });
 
-    // Configurar listener para deep links
-    const linkingSubscription = Linking.addEventListener('url', handleDeepLink);
+        // Eventos de conexión
+        socket.on("connect", () => {
+          console.log("✅ Conectado al servidor de sockets");
+          
+          // Unirse a la sala del usuario después de conectar
+          if (authState.user?.userId) {
+            socket.emit("join-user-room");
+            console.log("✅ Unido a la sala del usuario");
+          }
+        });
 
-    // Manejar el deep link inicial si la app fue abierta desde un link
-    Linking.getInitialURL().then(url => {
-      if (url) {
-        console.log('App abierta desde deep link:', url);
-        handleDeepLink({ url });
+        socket.on("disconnect", (reason) => {
+          console.log("❌ Desconectado del servidor de sockets:", reason);
+        });
+
+        socket.on("connect_error", (error) => {
+          console.error("❌ Error de conexión con socket:", error);
+          
+          // Intentar reconectar después de un delay
+          setTimeout(() => {
+            if (socket && !socket.connected) {
+              console.log("🔄 Intentando reconectar...");
+              socket.connect();
+            }
+          }, 3000);
+        });
+
+        // Manejar notificaciones en tiempo real
+        socket.on("nueva_notificacion", (notificationData) => {
+          console.log("📩 Notificación recibida vía socket:", notificationData);
+          
+          // Verificar si la notificación es para el usuario actual
+          if (authState.user && notificationData.usuarioID === authState.user.userId) {
+            // Actualizar estado con la nueva notificación
+            setAuthState(prev => {
+              // Evitar duplicados
+              const exists = prev.notifications.some(n => n.id === notificationData.id);
+              if (exists) return prev;
+
+              return {
+                ...prev,
+                notifications: [notificationData, ...prev.notifications],
+                unreadCount: prev.unreadCount + 1,
+                lastNotification: notificationData
+              };
+            });
+
+            // Reproducir sonido de notificación
+            playNotificationSound();
+            
+            // Mostrar alerta nativa (opcional)
+            if (notificationData.sound) {
+              Notifications.scheduleNotificationAsync({
+                content: {
+                  title: notificationData.titulo,
+                  body: notificationData.cuerpo,
+                  data: notificationData
+                },
+                trigger: null
+              });
+            }
+          }
+        });
+
+        // Guardar la referencia al socket
+        socketRef.current = socket;
+
+      } catch (error) {
+        console.error("Error inicializando socket:", error);
       }
-    }).catch(err => console.error('Error obteniendo URL inicial:', err));
-
-    // Escuchar cambios en el estado de la app
-    const appStateSubscription = AppState.addEventListener('change', handleAppStateChange);
-
-    return () => {
-      // Limpiar listeners
-      if (notificationListener.current) {
-        notificationListener.current.remove();
-      }
-      if (responseListener.current) {
-        responseListener.current.remove();
-      }
-      linkingSubscription.remove();
-      appStateSubscription.remove();
     };
-  }, []);
+
+    // Configurar handlers de notificaciones
+    const setupNotificationHandlers = () => {
+      // Notificación recibida en primer plano
+      notificationSubscription = Notifications.addNotificationReceivedListener(notification => {
+        console.log('Notificación recibida:', notification);
+        
+        // Actualizar badge count
+        Notifications.getBadgeCountAsync().then(count => {
+          setAuthState(prev => ({
+            ...prev,
+            unreadCount: count || 0
+          }));
+        });
+      });
+
+      // Usuario tocó la notificación
+      responseSubscription = Notifications.addNotificationResponseReceivedListener(response => {
+        const data = response.notification.request.content.data;
+        console.log('Usuario interactuó con notificación:', data);
+        
+        // Navegar a la pantalla correspondiente
+        if (data.screen === 'DetalleCita' && data.citaId) {
+          navigationRef.current?.navigate('DetalleCita', { id: data.citaId });
+        }
+      });
+    };
+
+    // Inicializar
+    const initialize = async () => {
+      try {
+        await loadNotificationSound();
+        await setupNotificationChannel();
+        setupNotificationHandlers();
+        
+        // Configurar push notifications
+        configurePushNotifications();
+
+        // Registrar el token push
+        await registerForPushNotifications();
+        
+        // Solo inicializar socket si el usuario está autenticado
+        if (authState.isLoggedIn && authState.token) {
+          await initializeSocket();
+        }
+
+        // Configurar listener para deep links
+        linkingSubscription = Linking.addEventListener('url', handleDeepLink);
+
+        // Manejar el deep link inicial si la app fue abierta desde un link
+        Linking.getInitialURL().then(url => {
+          if (url) {
+            console.log('App abierta desde deep link:', url);
+            handleDeepLink({ url });
+          }
+        }).catch(err => console.error('Error obteniendo URL inicial:', err));
+
+        // Escuchar cambios en el estado de la app
+        appStateSubscription = AppState.addEventListener('change', handleAppStateChange);
+
+      } catch (error) {
+        console.error("Error en inicialización:", error);
+      }
+    };
+
+    initialize();
+
+    // Cleanup function
+    return () => {
+      console.log("🛑 Limpiando recursos de notificaciones y socket");
+      
+      // Limpiar socket
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+      
+      // Limpiar suscripciones de notificaciones
+      if (notificationSubscription) {
+        notificationSubscription.remove();
+      }
+      
+      if (responseSubscription) {
+        responseSubscription.remove();
+      }
+      
+      // Limpiar listeners
+      if (linkingSubscription) {
+        linkingSubscription.remove();
+      }
+      
+      if (appStateSubscription) {
+        appStateSubscription.remove();
+      }
+      
+      // Limpiar sonido
+      if (notificationSound) {
+        notificationSound.unloadAsync();
+      }
+    };
+  }, [authState.isLoggedIn, authState.token, authState.user]); // Dependencias relevantes
 
   return (
     <NavigationContainer

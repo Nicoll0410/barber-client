@@ -11,11 +11,17 @@ const NotificationBell = ({ navigation }) => {
     fetchNotifications();
   }, [fetchNotifications]);
 
-  const handlePress = async () => {
-    // Forzar actualización antes de navegar
-    await fetchNotifications();
-    navigation.navigate('Notificaciones');
-  };
+const handlePress = async () => {
+    try {
+        // Forzar actualización antes de navegar
+        await fetchNotifications();
+        navigation.navigate('Notificaciones');
+    } catch (error) {
+        console.error('Error navegando a notificaciones:', error);
+        // Navegar igualmente aunque falle la actualización
+        navigation.navigate('Notificaciones');
+    }
+};
 
   return (
     <TouchableOpacity 

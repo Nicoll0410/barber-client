@@ -1,14 +1,14 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 const Footer = () => {
   const { width } = useWindowDimensions();
-  const isMobile = width < 768; // Consideramos tablet/móvil por debajo de 768px
+  const isMobile = width < 768;
 
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
+    <View style={[styles.container, isMobile && styles.mobileContainer]}>
+      <View style={[styles.content, isMobile && styles.mobileContent]}>
         <Text style={styles.text}>© 2025.</Text>
         
         <View style={[styles.authors, isMobile && styles.authorsMobile]}>
@@ -20,7 +20,7 @@ const Footer = () => {
           {!isMobile && <Text style={styles.text}> | </Text>}
           
           <TouchableOpacity style={styles.authorLink}>
-            <Ionicons name="person" size={14} color="#6c757d" /> {/* Icono siempre visible */}
+            <Ionicons name="person" size={14} color="#6c757d" />
             <Text style={[styles.text, styles.highlight]}> Luis Miguel Chica Ruíz.</Text>
           </TouchableOpacity>
         </View>
@@ -31,10 +31,21 @@ const Footer = () => {
 
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+    // Estilos para web
+    ...Platform.select({
+      web: {
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+      },
+      default: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+      }
+    }),
     backgroundColor: '#ffffff',
     paddingVertical: 12,
     borderTopWidth: 1,
@@ -46,12 +57,19 @@ const styles = StyleSheet.create({
     elevation: 2,
     zIndex: 1000,
   },
+  mobileContainer: {
+    // Estilos específicos para móvil
+    paddingVertical: 10,
+  },
   content: {
     flexDirection: 'row',
     justifyContent: 'flex-start',
     alignItems: 'center',
     paddingHorizontal: 16,
     flexWrap: 'wrap',
+  },
+  mobileContent: {
+    justifyContent: 'center',
   },
   authors: {
     flexDirection: 'row',
@@ -60,8 +78,8 @@ const styles = StyleSheet.create({
   },
   authorsMobile: {
     flexDirection: 'column',
-    alignItems: 'flex-start',
-    marginLeft: 4,
+    alignItems: 'center',
+    marginLeft: 0,
     marginTop: 4,
   },
   authorLink: {

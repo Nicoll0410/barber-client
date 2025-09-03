@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect, useCallback, useRef } from "react";
+import React, { useState, useContext, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -12,14 +12,15 @@ import {
   Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  Dimensions,
+  Keyboard,
+  TouchableWithoutFeedback
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { AuthContext } from "../../contexts/AuthContext";
-import { jwtDecode } from "jwt-decode";
 
 const CrearCita = ({
   visible,
@@ -40,29 +41,33 @@ const CrearCita = ({
   const [temporalNombre, setTemporalNombre] = useState("");
   const [temporalTelefono, setTemporalTelefono] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
 
-  // Referencias para los inputs
+  const scrollViewRef = useRef(null);
   const nombreInputRef = useRef(null);
   const telefonoInputRef = useRef(null);
-  const lastFocusedInput = useRef(null);
 
   useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      () => setKeyboardVisible(true)
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
+      () => setKeyboardVisible(false)
+    );
+
     return () => {
-      reset();
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
     };
   }, []);
 
   useEffect(() => {
-    if (visible && step === 2 && isTemporal) {
-      // Enfocar el input de nombre cuando se selecciona cliente nuevo
-      setTimeout(() => {
-        if (nombreInputRef.current) {
-          nombreInputRef.current.focus();
-          lastFocusedInput.current = 'nombre';
-        }
-      }, 100);
+    if (!visible) {
+      reset();
     }
-  }, [visible, step, isTemporal]);
+  }, [visible]);
 
   const reset = () => {
     setServicioSel(null);
@@ -73,7 +78,6 @@ const CrearCita = ({
     setTemporalNombre("");
     setTemporalTelefono("");
     setIsLoading(false);
-    lastFocusedInput.current = null;
   };
 
   const handleClose = () => {
@@ -81,59 +85,32 @@ const CrearCita = ({
     onClose();
   };
 
-  const mantenerFocoEnInput = (inputType) => {
-    lastFocusedInput.current = inputType;
-  };
-
-  const restaurarFoco = () => {
-    if (lastFocusedInput.current === 'nombre' && nombreInputRef.current) {
-      nombreInputRef.current.focus();
-    } else if (lastFocusedInput.current === 'telefono' && telefonoInputRef.current) {
-      telefonoInputRef.current.focus();
-    }
-  };
-
   const convertirHora24 = (horaStr) => {
     horaStr = horaStr.trim().toUpperCase();
-
-    if (/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(horaStr)) {
-      return horaStr;
-    }
-
+    if (/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(horaStr)) return horaStr;
     if (/^([0-9]|1[0-2]):[0-5][0-9] [AP]M$/.test(horaStr)) {
       const [time, period] = horaStr.split(" ");
       let [hours, minutes] = time.split(":");
-
       hours = parseInt(hours, 10);
       if (period === "PM" && hours < 12) hours += 12;
       if (period === "AM" && hours === 12) hours = 0;
-
       return `${hours.toString().padStart(2, "0")}:${minutes}`;
     }
-
     throw new Error("Formato de hora no válido");
   };
 
   const calcularHoraFin = (horaInicio, duracionMinutos) => {
     const [hours, minutes] = horaInicio.split(":").map(Number);
     const totalMinutes = hours * 60 + minutes + duracionMinutos;
-
     const endHours = Math.floor(totalMinutes / 60) % 24;
     const endMinutes = totalMinutes % 60;
-
-    return `${endHours.toString().padStart(2, "0")}:${endMinutes
-      .toString()
-      .padStart(2, "0")}`;
+    return `${endHours.toString().padStart(2, "0")}:${endMinutes.toString().padStart(2, "0")}`;
   };
 
   const convertirDuracionAMinutos = (duracionStr) => {
     if (!duracionStr) return 60;
-
     const partes = duracionStr.split(":");
-    if (partes.length >= 2) {
-      return parseInt(partes[0]) * 60 + parseInt(partes[1]);
-    }
-
+    if (partes.length >= 2) return parseInt(partes[0]) * 60 + parseInt(partes[1]);
     return parseInt(duracionStr) || 60;
   };
 
@@ -146,8 +123,6 @@ const CrearCita = ({
 
   const obtenerUsuarioActual = async (token) => {
     try {
-      console.log("Obteniendo información del usuario actual...");
-      
       const response = await axios.get(
         'https://barber-server-6kuo.onrender.com/auth/user-info',
         {
@@ -159,11 +134,9 @@ const CrearCita = ({
       );
 
       if (response.data?.success && response.data.user?.id) {
-        console.log("✅ UserId obtenido:", response.data.user.id);
         return response.data.user.id;
       }
       
-      console.log("❌ No se pudo obtener userId del backend");
       return null;
     } catch (error) {
       console.error("Error obteniendo información del usuario:", error);
@@ -173,8 +146,6 @@ const CrearCita = ({
 
   const crearNotificacion = async (token, notificacionData) => {
     try {
-      console.log("Creando notificación:", notificacionData);
-      
       const response = await axios.post(
         'https://barber-server-6kuo.onrender.com/notifications',
         notificacionData,
@@ -185,8 +156,6 @@ const CrearCita = ({
           }
         }
       );
-
-      console.log("✅ Notificación creada:", response.data);
       return true;
     } catch (error) {
       console.error("Error creando notificación:", error);
@@ -195,36 +164,19 @@ const CrearCita = ({
   };
 
   const handleCrear = async () => {
-    console.log("Iniciando creación de cita...");
-    
     try {
       setIsLoading(true);
 
-      if (!servicioSel || !barbero) {
-        throw new Error("Falta información del servicio o barbero");
-      }
+      if (!servicioSel || !barbero) throw new Error("Falta información del servicio o barbero");
+      if (!isTemporal && !clienteSel) throw new Error("Debes seleccionar un cliente");
+      if (isTemporal && !temporalNombre.trim()) throw new Error("El nombre del cliente temporal es requerido");
 
-      if (!isTemporal && !clienteSel) {
-        throw new Error("Debes seleccionar un cliente");
-      }
-      if (isTemporal && !temporalNombre.trim()) {
-        throw new Error("El nombre del cliente temporal es requerido");
-      }
-
-      const fechaFormateada = `${fecha.getFullYear()}-${(fecha.getMonth() + 1)
-        .toString()
-        .padStart(2, "0")}-${fecha.getDate().toString().padStart(2, "0")}`;
-
+      const fechaFormateada = `${fecha.getFullYear()}-${(fecha.getMonth() + 1).toString().padStart(2, "0")}-${fecha.getDate().toString().padStart(2, "0")}`;
       let horaInicio24 = convertirHora24(slot.displayTime);
-      if (!horaInicio24.includes(":")) {
-        horaInicio24 = `${horaInicio24}:00`;
-      } else if (horaInicio24.split(":").length === 2) {
-        horaInicio24 = `${horaInicio24}:00`;
-      }
+      if (!horaInicio24.includes(":")) horaInicio24 = `${horaInicio24}:00`;
+      else if (horaInicio24.split(":").length === 2) horaInicio24 = `${horaInicio24}:00`;
 
-      const duracionMinutos = convertirDuracionAMinutos(
-        servicioSel.duracionMaxima
-      );
+      const duracionMinutos = convertirDuracionAMinutos(servicioSel.duracionMaxima);
       const horaFin24 = calcularHoraFin(horaInicio24, duracionMinutos);
 
       const citaData = {
@@ -236,53 +188,35 @@ const CrearCita = ({
         direccion: "En barbería",
         estado: "Pendiente",
         duracionReal: servicioSel.duracionMaxima || "00:30:00",
-        duracionRedondeada: `${Math.floor(duracionMinutos / 60)}:${(
-          duracionMinutos % 60
-        )
-          .toString()
-          .padStart(2, "0")}:00`,
+        duracionRedondeada: `${Math.floor(duracionMinutos / 60)}:${(duracionMinutos % 60).toString().padStart(2, "0")}:00`,
       };
 
       if (isTemporal) {
         citaData.pacienteTemporalNombre = temporalNombre.trim();
-        if (temporalTelefono.trim()) {
-          citaData.pacienteTemporalTelefono = temporalTelefono.trim();
-        }
+        if (temporalTelefono.trim()) citaData.pacienteTemporalTelefono = temporalTelefono.trim();
       } else {
         citaData.pacienteID = clienteSel.id;
       }
 
       const token = await AsyncStorage.getItem("token");
-      if (!token) {
-        throw new Error("No se encontró el token de autenticación");
-      }
+      if (!token) throw new Error("No se encontró el token de autenticación");
 
-      console.log("Enviando datos al servidor:", JSON.stringify(citaData, null, 2));
-      
       const response = await axios.post(
         "https://barber-server-6kuo.onrender.com/citas",
         citaData,
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
           timeout: 15000,
         }
       );
-
-      console.log("Respuesta del servidor:", response.data);
 
       if (response.data && response.data.mensaje === 'Cita creada exitosamente') {
         Alert.alert('Éxito', 'Cita creada correctamente');
         
         const citaId = response.data.cita.id;
-        const clienteNombre = isTemporal ? temporalNombre : clienteSel?.nombre;
         
-        // ✅ SISTEMA DE RESPALDO: Intentar crear notificaciones desde el frontend
-        // pero no bloquear la operación si falla (el backend es la fuente principal)
+        // Intentar crear notificaciones (no crítico si falla)
         try {
-          // 1. Notificación para el usuario actual (confirmación)
           const usuarioIDActual = await obtenerUsuarioActual(token);
           if (usuarioIDActual) {
             await crearNotificacion(token, {
@@ -294,20 +228,10 @@ const CrearCita = ({
             });
           }
           
-          // 2. Forzar actualización de notificaciones
-          if (authContext?.fetchNotifications) {
-            console.log("Actualizando notificaciones...");
-            await authContext.fetchNotifications();
-          }
-          
-          // 3. Reproducir sonido
-          if (authContext?.playNotificationSound) {
-            console.log("Reproduciendo sonido de notificación...");
-            await authContext.playNotificationSound();
-          }
+          if (authContext?.fetchNotifications) await authContext.fetchNotifications();
+          if (authContext?.playNotificationSound) await authContext.playNotificationSound();
         } catch (notifError) {
-          console.warn("⚠️ Error en notificaciones del frontend (no crítico):", notifError);
-          // No mostramos alerta al usuario porque el backend debería encargarse
+          console.warn("⚠️ Error en notificaciones del frontend:", notifError);
         }
         
         handleClose();
@@ -320,13 +244,9 @@ const CrearCita = ({
       console.error("Error completo al crear cita:", error);
 
       let mensajeError = "Error al crear la cita";
-      if (error.response?.data?.mensaje) {
-        mensajeError = error.response.data.mensaje;
-      } else if (error.response?.data?.error) {
-        mensajeError = error.response.data.error;
-      } else if (error.message) {
-        mensajeError = error.message;
-      }
+      if (error.response?.data?.mensaje) mensajeError = error.response.data.mensaje;
+      else if (error.response?.data?.error) mensajeError = error.response.data.error;
+      else if (error.message) mensajeError = error.message;
 
       Alert.alert("Error", mensajeError);
     } finally {
@@ -334,44 +254,21 @@ const CrearCita = ({
     }
   };
 
-  // Usar useCallback para evitar recrear funciones en cada render
-  const handleSetTemporalNombre = useCallback((text) => {
-    setTemporalNombre(text);
-    // Restaurar el foco después de actualizar el estado
-    setTimeout(restaurarFoco, 50);
-  }, []);
-
-  const handleSetTemporalTelefono = useCallback((text) => {
-    setTemporalTelefono(text);
-    // Restaurar el foco después de actualizar el estado
-    setTimeout(restaurarFoco, 50);
-  }, []);
-
-  const handleSetBusqueda = useCallback((text) => {
-    setBusqueda(text);
-  }, []);
-
   const Paso1 = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.subtitle}>
-        Selecciona el servicio que se realizará en la cita
-      </Text>
+      <Text style={styles.subtitle}>Selecciona el servicio que se realizará en la cita</Text>
       <FlatList
         data={servicios}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={[
-              styles.servicioItem,
-              servicioSel?.id === item.id && styles.servicioSel,
-            ]}
+            style={[styles.servicioItem, servicioSel?.id === item.id && styles.servicioSel]}
             onPress={() => setServicioSel(item)}
           >
             <View>
               <Text style={styles.servicioNombre}>{item.nombre}</Text>
               <Text style={styles.servicioDuracion}>
                 Duración: {item.duracionMaxima || "1 hora"}
-                (Bloquea todo el horario necesario)
               </Text>
             </View>
             <Text style={styles.servicioPrecio}>${item.precio || "0"}</Text>
@@ -380,11 +277,7 @@ const CrearCita = ({
       />
       <View style={styles.centeredBtn}>
         <TouchableOpacity
-          style={[
-            styles.btnPrimary,
-            styles.btnWide,
-            !servicioSel && styles.btnDisabled,
-          ]}
+          style={[styles.btnPrimary, styles.btnWide, !servicioSel && styles.btnDisabled]}
           onPress={() => setStep(2)}
           disabled={!servicioSel}
         >
@@ -402,56 +295,20 @@ const CrearCita = ({
     return (
       <View style={styles.stepContainer}>
         <Text style={styles.subtitle}>Selecciona el cliente</Text>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            marginBottom: 12,
-          }}
-        >
+        <View style={styles.toggleContainer}>
           <TouchableOpacity
-            style={[
-              styles.optionToggle,
-              !isTemporal && styles.optionToggleActive,
-            ]}
-            onPress={() => {
-              setIsTemporal(false);
-              setClienteSel(null);
-              setTemporalNombre("");
-              setTemporalTelefono("");
-            }}
+            style={[styles.optionToggle, !isTemporal && styles.optionToggleActive]}
+            onPress={() => setIsTemporal(false)}
           >
-            <Text
-              style={[
-                styles.optionText,
-                !isTemporal && styles.optionTextActive,
-              ]}
-            >
+            <Text style={[styles.optionText, !isTemporal && styles.optionTextActive]}>
               Cliente existente
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[
-              styles.optionToggle,
-              isTemporal && styles.optionToggleActive,
-              { marginLeft: 10 },
-            ]}
-            onPress={() => {
-              setIsTemporal(true);
-              setClienteSel(null);
-              setBusqueda("");
-              // Enfocar el input de nombre
-              setTimeout(() => {
-                if (nombreInputRef.current) {
-                  nombreInputRef.current.focus();
-                  lastFocusedInput.current = 'nombre';
-                }
-              }, 100);
-            }}
+            style={[styles.optionToggle, isTemporal && styles.optionToggleActive, { marginLeft: 10 }]}
+            onPress={() => setIsTemporal(true)}
           >
-            <Text
-              style={[styles.optionText, isTemporal && styles.optionTextActive]}
-            >
+            <Text style={[styles.optionText, isTemporal && styles.optionTextActive]}>
               Cliente nuevo
             </Text>
           </TouchableOpacity>
@@ -460,38 +317,28 @@ const CrearCita = ({
         {!isTemporal ? (
           <>
             <View style={styles.searchBox}>
-              <MaterialIcons
-                name="search"
-                size={20}
-                color="#666"
-                style={{ marginRight: 10 }}
-              />
+              <MaterialIcons name="search" size={20} color="#666" style={{ marginRight: 10 }} />
               <TextInput
                 style={styles.searchInput}
                 placeholder="Buscar por nombre"
                 value={busqueda}
-                onChangeText={handleSetBusqueda}
-                autoFocus={true}
+                onChangeText={setBusqueda}
+                autoCorrect={false}
+                autoCapitalize="words"
               />
             </View>
             <FlatList
               data={filtrados}
-              keyExtractor={(item) => item.id}
+              keyExtractor={(item) => item.id.toString()}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={[
-                    styles.clienteItem,
-                    clienteSel?.id === item.id && styles.clienteSel,
-                  ]}
+                  style={[styles.clienteItem, clienteSel?.id === item.id && styles.clienteSel]}
                   onPress={() => setClienteSel(item)}
                 >
                   <Image source={item.avatar} style={styles.clienteAvatar} />
                   <Text style={styles.clienteNombre}>{item.nombre}</Text>
                 </TouchableOpacity>
               )}
-              initialNumToRender={10}
-              maxToRenderPerBatch={5}
-              windowSize={5}
             />
           </>
         ) : (
@@ -502,16 +349,11 @@ const CrearCita = ({
               style={styles.input}
               placeholder="Ej. Juan Pérez"
               value={temporalNombre}
-              onChangeText={handleSetTemporalNombre}
-              onFocus={() => mantenerFocoEnInput('nombre')}
+              onChangeText={setTemporalNombre}
+              autoCorrect={false}
+              autoCapitalize="words"
               returnKeyType="next"
-              onSubmitEditing={() => {
-                if (telefonoInputRef.current) {
-                  telefonoInputRef.current.focus();
-                  lastFocusedInput.current = 'telefono';
-                }
-              }}
-              blurOnSubmit={false}
+              onSubmitEditing={() => telefonoInputRef.current?.focus()}
             />
             <Text style={styles.inputLabel}>Teléfono (opcional)</Text>
             <TextInput
@@ -519,33 +361,25 @@ const CrearCita = ({
               style={styles.input}
               placeholder="Ej. 3001234567"
               value={temporalTelefono}
+              onChangeText={setTemporalTelefono}
               keyboardType="phone-pad"
-              onChangeText={handleSetTemporalTelefono}
-              onFocus={() => mantenerFocoEnInput('telefono')}
               returnKeyType="done"
             />
           </>
         )}
 
         <View style={styles.navBtns}>
-          <TouchableOpacity
-            style={styles.btnSecondary}
-            onPress={() => setStep(1)}
-          >
+          <TouchableOpacity style={styles.btnSecondary} onPress={() => setStep(1)}>
             <Text style={styles.btnSecondaryText}>Volver</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[
               styles.btnPrimary,
-              !isTemporal && !clienteSel && styles.btnDisabled,
-              isTemporal && !temporalNombre.trim() && styles.btnDisabled,
               { width: "45%" },
+              ((!isTemporal && !clienteSel) || (isTemporal && !temporalNombre.trim())) && styles.btnDisabled
             ]}
             onPress={() => setStep(3)}
-            disabled={
-              (!isTemporal && !clienteSel) ||
-              (isTemporal && !temporalNombre.trim())
-            }
+            disabled={(!isTemporal && !clienteSel) || (isTemporal && !temporalNombre.trim())}
           >
             <Text style={styles.btnPrimaryText}>Siguiente</Text>
           </TouchableOpacity>
@@ -555,15 +389,11 @@ const CrearCita = ({
   };
 
   const Paso3 = () => {
-    const duracionMinutos = convertirDuracionAMinutos(
-      servicioSel?.duracionMaxima || "01:00:00"
-    );
+    const duracionMinutos = convertirDuracionAMinutos(servicioSel?.duracionMaxima || "01:00:00");
     const horasCompletas = Math.floor(duracionMinutos / 60);
     const minutosRestantes = duracionMinutos % 60;
     const duracionFormateada = `${
-      horasCompletas > 0
-        ? `${horasCompletas} hora${horasCompletas > 1 ? "s" : ""}`
-        : ""
+      horasCompletas > 0 ? `${horasCompletas} hora${horasCompletas > 1 ? "s" : ""}` : ""
     } ${minutosRestantes > 0 ? `${minutosRestantes} minutos` : ""}`.trim();
 
     const horaInicio24 = convertirHora24(slot.displayTime);
@@ -585,12 +415,10 @@ const CrearCita = ({
             {isTemporal && " (Temporal)"}
           </Text>
 
-          {isTemporal && (
+          {isTemporal && temporalTelefono && (
             <>
               <Text style={styles.infoLabel}>Teléfono</Text>
-              <Text style={styles.infoText}>
-                {temporalTelefono || "No especificado"}
-              </Text>
+              <Text style={styles.infoText}>{temporalTelefono}</Text>
             </>
           )}
 
@@ -605,41 +433,21 @@ const CrearCita = ({
           </Text>
 
           <Text style={styles.infoLabel}>Hora de inicio</Text>
-          <Text style={styles.infoText}>
-            {formatearHoraParaMostrar(horaInicio24)}
-          </Text>
+          <Text style={styles.infoText}>{formatearHoraParaMostrar(horaInicio24)}</Text>
 
           <Text style={styles.infoLabel}>Hora de finalización</Text>
-          <Text style={styles.infoText}>
-            {formatearHoraParaMostrar(horaFin24)}
-          </Text>
+          <Text style={styles.infoText}>{formatearHoraParaMostrar(horaFin24)}</Text>
 
           <Text style={styles.infoLabel}>Duración total</Text>
           <Text style={styles.infoText}>{duracionFormateada}</Text>
-
-          <Text style={[styles.infoLabel, { color: "#E53935", marginTop: 20 }]}>
-            ¡Todo este horario será reservado!
-          </Text>
         </View>
 
         <View style={styles.navBtns}>
-          <TouchableOpacity
-            style={styles.btnSecondary}
-            onPress={() => setStep(2)}
-            disabled={isLoading}
-          >
+          <TouchableOpacity style={styles.btnSecondary} onPress={() => setStep(2)} disabled={isLoading}>
             <Text style={styles.btnSecondaryText}>Volver</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.btnPrimary, isLoading && styles.btnDisabled]}
-            onPress={handleCrear}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.btnPrimaryText}>Confirmar cita</Text>
-            )}
+          <TouchableOpacity style={[styles.btnPrimary, isLoading && styles.btnDisabled]} onPress={handleCrear} disabled={isLoading}>
+            {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnPrimaryText}>Confirmar cita</Text>}
           </TouchableOpacity>
         </View>
       </View>
@@ -648,92 +456,105 @@ const CrearCita = ({
 
   const renderStep = () => {
     switch (step) {
-      case 1:
-        return <Paso1 />;
-      case 2:
-        return <Paso2 />;
-      case 3:
-        return <Paso3 />;
-      default:
-        return <Paso1 />;
+      case 1: return <Paso1 />;
+      case 2: return <Paso2 />;
+      case 3: return <Paso3 />;
+      default: return <Paso1 />;
     }
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent>
-      <BlurView intensity={20} tint="light" style={styles.blur}>
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={styles.keyboardAvoiding}
-        >
-          <View style={styles.modal}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {step === 1
-                  ? "Seleccionar servicio"
-                  : step === 2
-                  ? "Seleccionar cliente"
-                  : "Revisa y confirma"}
-              </Text>
-              <TouchableOpacity onPress={handleClose}>
-                <MaterialIcons name="close" size={24} color="#000" />
-              </TouchableOpacity>
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <View style={styles.overlay}>
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={styles.keyboardAvoiding}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
+          >
+            <View style={[styles.modal, keyboardVisible && styles.modalWithKeyboard]}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>
+                  {step === 1 ? "Seleccionar servicio" : step === 2 ? "Seleccionar cliente" : "Confirmar cita"}
+                </Text>
+                <TouchableOpacity onPress={handleClose}>
+                  <MaterialIcons name="close" size={24} color="#000" />
+                </TouchableOpacity>
+              </View>
+              
+              <ScrollView
+                ref={scrollViewRef}
+                style={styles.scrollView}
+                contentContainerStyle={styles.scrollContent}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
+                showsVerticalScrollIndicator={false}
+              >
+                {renderStep()}
+              </ScrollView>
             </View>
-            <ScrollView 
-              contentContainerStyle={{ flexGrow: 1 }}
-              keyboardShouldPersistTaps="handled"
-            >
-              {renderStep()}
-            </ScrollView>
-          </View>
-        </KeyboardAvoidingView>
-      </BlurView>
+          </KeyboardAvoidingView>
+        </View>
+      </TouchableWithoutFeedback>
     </Modal>
   );
 };
 
+const { width, height } = Dimensions.get('window');
 const styles = StyleSheet.create({
-  blur: {
+  overlay: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   keyboardAvoiding: {
     width: '100%',
     alignItems: 'center',
-    justifyContent: 'center',
   },
   modal: {
-    width: "95%",
-    maxWidth: 600,
-    maxHeight: "85%",
+    width: width * 0.95,
+    maxWidth: 500,
+    maxHeight: height * 0.85,
     backgroundColor: "#fff",
     borderRadius: 15,
-    paddingVertical: 20,
-    paddingHorizontal: 25,
-    elevation: 5,
+    padding: 20,
+  },
+  modalWithKeyboard: {
+    maxHeight: height * 0.7,
   },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: 15,
     paddingBottom: 15,
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
-    marginBottom: 10,
   },
   modalTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "700",
     color: "#222",
   },
-  stepContainer: {
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
     flexGrow: 1,
-    paddingBottom: 10,
+  },
+  stepContainer: {
+    flex: 1,
+    minHeight: 300,
   },
   subtitle: {
-    fontSize: 15,
-    color: "#555",
+    fontSize: 16,
+    color: "#666",
+    marginBottom: 16,
+  },
+  toggleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 16,
   },
   servicioItem: {
@@ -745,7 +566,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "##FAFAFA",
+    backgroundColor: "#FAFAFA",
   },
   servicioSel: {
     borderColor: "#424242",
@@ -775,10 +596,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     marginBottom: 15,
     backgroundColor: "#fafafa",
+    height: 50,
   },
   searchInput: {
     flex: 1,
-    height: 42,
     fontSize: 16,
     color: "#333",
   },
@@ -808,25 +629,24 @@ const styles = StyleSheet.create({
     color: "#222",
   },
   infoBox: {
-    marginTop: 10,
-    marginBottom: 18,
+    marginBottom: 20,
   },
   infoLabel: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "700",
-    marginTop: 14,
-    marginBottom: 6,
+    marginTop: 12,
+    marginBottom: 4,
     color: "#222",
   },
   infoText: {
     fontSize: 16,
     color: "#555",
-    marginBottom: 6,
+    marginBottom: 8,
   },
   navBtns: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 18,
+    marginTop: 20,
   },
   btnPrimary: {
     backgroundColor: "#424242",
@@ -839,7 +659,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     color: "#fff",
-    textAlign: "center",
   },
   btnSecondary: {
     backgroundColor: "#fff",
@@ -861,7 +680,7 @@ const styles = StyleSheet.create({
   },
   centeredBtn: {
     alignItems: "center",
-    marginTop: 18,
+    marginTop: 20,
   },
   btnWide: {
     width: "80%",
@@ -877,11 +696,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 8,
-    padding: 10,
+    padding: 12,
     marginBottom: 15,
     backgroundColor: "#fafafa",
     fontSize: 16,
-    height: 44,
+    height: 50,
   },
   optionToggle: {
     paddingVertical: 8,
@@ -897,6 +716,8 @@ const styles = StyleSheet.create({
   },
   optionText: {
     color: "#333",
+    fontSize: 14,
+    fontWeight: "500",
   },
   optionTextActive: {
     color: "#fff",

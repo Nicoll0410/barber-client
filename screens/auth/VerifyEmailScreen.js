@@ -151,13 +151,6 @@ const VerifyEmailScreen = () => {
               <Text style={styles.subtitle}>
                 Tu cuenta ha sido verificada correctamente. Ahora puedes iniciar sesión.
               </Text>
-              
-              <TouchableOpacity
-                style={[styles.button, styles.successButton]}
-                onPress={handleGoToLogin}
-              >
-                <Text style={styles.buttonText}>Ir al Inicio de Sesión</Text>
-              </TouchableOpacity>
             </>
           ) : (
             <>
@@ -274,9 +267,6 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: 'center',
     marginBottom: 20,
-  },
-  successButton: {
-    backgroundColor: '#2e7d32', // Verde para indicar éxito
   },
   buttonDisabled: {
     opacity: 0.6,

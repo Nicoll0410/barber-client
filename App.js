@@ -91,7 +91,7 @@ function MainApp() {
     try {
       console.log("Cargando sonido de notificación...");
       const { sound } = await Audio.Sound.createAsync(
-        require('../assets/sound/notification.mp3')
+        require('./assets/sound/notification.mp3')
       );
       setNotificationSound(sound);
     } catch (error) {

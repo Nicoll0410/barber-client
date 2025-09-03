@@ -86,4 +86,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Footer;}
+export default Footer;

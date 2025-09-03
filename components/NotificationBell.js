@@ -6,10 +6,22 @@ import { useAuth } from '../contexts/AuthContext';
 const NotificationBell = ({ navigation }) => {
   const { unreadCount = 0, fetchNotifications } = useAuth();
 
-  useEffect(() => {
-    // Cargar notificaciones al montar el componente
-    fetchNotifications();
-  }, [fetchNotifications]);
+// Modificar el useEffect para escuchar notificaciones:
+useEffect(() => {
+  if (socket) {
+    const handleNuevaNotificacion = (data) => {
+      playNotificationSound();
+      setUnreadCount(prev => prev + 1);
+      setNotificaciones(prev => [data, ...prev]);
+    };
+
+    socket.on('nueva_notificacion', handleNuevaNotificacion);
+
+    return () => {
+      socket.off('nueva_notificacion', handleNuevaNotificacion);
+    };
+  }
+}, [socket]);
 
 const handlePress = async () => {
     try {

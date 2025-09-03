@@ -6,6 +6,7 @@ import axios from "axios";
 import * as Notifications from "expo-notifications";
 import { Audio } from "expo-av";
 import io from "socket.io-client";
+import { Socket } from "socket.io-client/debug";
 
 const BASE_URL =
   Platform.OS === "android" ? "https://barber-server-6kuo.onrender.com" : "https://barber-server-6kuo.onrender.com";
@@ -41,6 +42,86 @@ export const AuthProvider = ({ children }) => {
       console.error("Error cargando sonido:", error);
     }
   };
+  // Agregar esta función para configurar el socket
+const setupSocket = useCallback(async () => {
+  try {
+    console.log("🔌 Configurando socket...");
+    
+    // Cerrar socket existente si hay uno
+    if (socketRef.current) {
+      if (notificationHandlerRef.current) {
+        socketRef.current.off("nueva_notificacion", notificationHandlerRef.current);
+      }
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+
+    // Solo configurar socket si está logueado
+    if (authState.isLoggedIn && authState.token && authState.user) {
+      console.log("🔄 Inicializando conexión socket...");
+      
+      socketRef.current = io(BASE_URL, { 
+        transports: ["websocket", "polling"],
+        auth: {
+          token: authState.token
+        }
+      });
+
+      // Eventos del socket
+      socketRef.current.on("connect", () => {
+        console.log("✅ Conectado al servidor Socket.io");
+        
+        // Unirse a la sala del usuario
+        socketRef.current.emit("unir_usuario", authState.user.userId || authState.user.id);
+      });
+
+      socketRef.current.on("disconnect", (reason) => {
+        console.log("❌ Desconectado del servidor Socket.io:", reason);
+      });
+
+      socketRef.current.on("connect_error", (error) => {
+        console.error("❌ Error de conexión socket:", error);
+      });
+
+      // Handler para notificaciones
+      notificationHandlerRef.current = async (data) => {
+        console.log("📩 Notificación recibida vía socket:", data);
+        
+        // Verificar si la notificación es para este usuario
+        const isForCurrentUser = authState.user && 
+          (data.usuarioID === authState.user.userId || data.usuarioID === authState.user.id);
+        
+        if (isForCurrentUser) {
+          // Reproducir sonido
+          await playNotificationSound();
+          
+          // Actualizar estado
+          setAuthState(prev => {
+            // Evitar duplicados
+            const exists = prev.notifications.some(n => n.id === data.id);
+            if (exists) return prev;
+
+            return {
+              ...prev,
+              notifications: [data, ...prev.notifications],
+              unreadCount: prev.unreadCount + 1,
+              lastNotification: data
+            };
+          });
+
+          // Actualizar badge
+          await Notifications.setBadgeCountAsync(prev => prev + 1);
+        }
+      };
+
+      // Escuchar notificaciones
+      socketRef.current.on("nueva_notificacion", notificationHandlerRef.current);
+    }
+  } catch (error) {
+    console.error("❌ Error configurando socket:", error);
+  }
+}, [authState.isLoggedIn, authState.token, authState.user]);
+
 
   const setupNotifications = useCallback(async () => {
     console.log("Configurando notificaciones...");
@@ -413,10 +494,10 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
-  // Efecto separado para manejar cambios en el estado de autenticación
-  useEffect(() => {
-    initializeSocket();
-  }, [authState.isLoggedIn, authState.user, initializeSocket]);
+// Agregar este useEffect para manejar cambios en la autenticación
+useEffect(() => {
+  setupSocket();
+}, [authState.isLoggedIn, setupSocket]);
 
   const login = async (token, additionalData = {}) => {
     try {
@@ -570,6 +651,7 @@ export const AuthProvider = ({ children }) => {
     fetchNotifications,
     markNotificationsAsRead,
     playNotificationSound,
+    socket: socketRef.current,
   };
 
   return (

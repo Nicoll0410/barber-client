@@ -105,7 +105,7 @@ const CrearCita = ({
       let [hours, minutes] = time.split(":");
 
       hours = parseInt(hours, 10);
-      if (period === "PM" && homes < 12) hours += 12;
+      if (period === "PM" && hours < 12) hours += 12;
       if (period === "AM" && hours === 12) hours = 0;
 
       return `${hours.toString().padStart(2, "0")}:${minutes}`;

@@ -4,11 +4,11 @@ import { Ionicons } from '@expo/vector-icons';
 
 const Footer = () => {
   const { width } = useWindowDimensions();
-  const isMobile = width < 768;
+  const isMobile = width < 768; // Consideramos tablet/móvil por debajo de 768px
 
   return (
     <View style={[styles.container, isMobile && styles.mobileContainer]}>
-      <View style={[styles.content, isMobile && styles.mobileContent]}>
+      <View style={styles.content}>
         <Text style={styles.text}>© 2025.</Text>
         
         <View style={[styles.authors, isMobile && styles.authorsMobile]}>
@@ -20,7 +20,7 @@ const Footer = () => {
           {!isMobile && <Text style={styles.text}> | </Text>}
           
           <TouchableOpacity style={styles.authorLink}>
-            <Ionicons name="person" size={14} color="#6c757d" />
+            <Ionicons name="person" size={14} color="#6c757d" /> {/* Icono siempre visible */}
             <Text style={[styles.text, styles.highlight]}> Luis Miguel Chica Ruíz.</Text>
           </TouchableOpacity>
         </View>
@@ -31,21 +31,6 @@ const Footer = () => {
 
 const styles = StyleSheet.create({
   container: {
-    // Estilos para web
-    ...Platform.select({
-      web: {
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-      },
-      default: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-      }
-    }),
     backgroundColor: '#ffffff',
     paddingVertical: 12,
     borderTopWidth: 1,
@@ -58,8 +43,10 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   mobileContainer: {
-    // Estilos específicos para móvil
-    paddingVertical: 10,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
   content: {
     flexDirection: 'row',
@@ -68,9 +55,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     flexWrap: 'wrap',
   },
-  mobileContent: {
-    justifyContent: 'center',
-  },
   authors: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -78,8 +62,8 @@ const styles = StyleSheet.create({
   },
   authorsMobile: {
     flexDirection: 'column',
-    alignItems: 'center',
-    marginLeft: 0,
+    alignItems: 'flex-start',
+    marginLeft: 4,
     marginTop: 4,
   },
   authorLink: {

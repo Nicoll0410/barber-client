@@ -261,9 +261,11 @@ const CrearBarbero = ({ visible, onClose, onCreate }) => {
     const tempDate = new Date(startDate);
     
     while (tempDate <= endDate) {
-      if (tempDate > today || 
-          (calendarYear === currentYear && calendarMonth > today.getMonth())) {
-        disabledDates[formatDateString(tempDate)] = { 
+      const dateString = formatDateString(tempDate);
+      const isFutureDate = tempDate > today;
+      
+      if (isFutureDate) {
+        disabledDates[dateString] = { 
           disabled: true, 
           disableTouchEvent: true 
         };

@@ -264,50 +264,90 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const initializeSocket = useCallback(() => {
-    // Cerrar socket existente si hay uno
+  // En initializeSocket, agregar manejo de notificaciones de citas
+const initializeSocket = useCallback(() => {
     if (socketRef.current) {
-      socketRef.current.disconnect();
-      socketRef.current = null;
+        socketRef.current.disconnect();
+        socketRef.current = null;
     }
 
-    // Inicializar nuevo socket solo si el usuario está logueado
     if (authState.isLoggedIn && authState.user) {
-      console.log("Inicializando socket...");
-      socketRef.current = io(BASE_URL, { transports: ["websocket"] });
+        console.log("Inicializando socket...");
+        socketRef.current = io(BASE_URL, { 
+            transports: ["websocket"],
+            auth: {
+                token: authState.token
+            }
+        });
 
-      // Unirse al room del usuario
-      socketRef.current.emit('join-user-room', authState.user.userId);
+        // Unirse al room del usuario
+        socketRef.current.emit('join-user-room', {
+            userId: authState.user.userId,
+            rol: authState.userRole
+        });
 
-      // Configurar handler de notificaciones
-      notificationHandlerRef.current = (data) => {
-        console.log("📩 Notificación recibida vía socket:", data);
+        // Handler para notificaciones de sistema
+        notificationHandlerRef.current = (data) => {
+            console.log("📩 Notificación recibida vía socket:", data);
+            // ... código existente ...
+        };
 
-        // Verificar si la notificación es para el usuario actual
-        if (authState.user && data.usuarioID === authState.user.userId) {
-          setAuthState((prev) => {
-            // Evitar duplicados por ID
-            const exists = prev.notifications.some((n) => n.id === data.notificacion.id);
-            if (exists) return prev;
+        // 👇 NUEVO: Handler específico para notificaciones de citas
+        socketRef.current.on("nueva_cita", (data) => {
+            console.log("📅 Notificación de cita recibida:", data);
+            
+            // Verificar si la notificación es para este usuario
+            const esParaEsteUsuario = 
+                (authState.userRole === 'barbero' && data.tipo.includes('barbero')) ||
+                (authState.userRole === 'cliente' && data.tipo.includes('cliente')) ||
+                (authState.userRole === 'administrador' && data.tipo.includes('administrador'));
+            
+            if (esParaEsteUsuario) {
+                // Crear notificación local
+                const nuevaNotificacion = {
+                    id: Date.now(), // ID temporal
+                    titulo: data.mensaje,
+                    cuerpo: `Cita: ${data.cita.servicio?.nombre || 'Servicio'}`,
+                    tipo: 'cita',
+                    relacionId: data.cita.id,
+                    leido: false,
+                    createdAt: new Date()
+                };
 
-            return {
-              ...prev,
-              notifications: [data.notificacion, ...prev.notifications],
-              unreadCount: prev.unreadCount + 1,
-              lastNotification: data.notificacion,
-            };
-          });
+                setAuthState((prev) => ({
+                    ...prev,
+                    notifications: [nuevaNotificacion, ...prev.notifications],
+                    unreadCount: prev.unreadCount + 1,
+                    lastNotification: nuevaNotificacion
+                }));
 
-          playNotificationSound();
-          
-          // Actualizar badge en el dispositivo
-          Notifications.setBadgeCountAsync(authState.unreadCount + 1);
-        }
-      };
+                // Reproducir sonido
+                playNotificationSound();
+                
+                // Actualizar badge
+                Notifications.setBadgeCountAsync(authState.unreadCount + 1);
+                
+                // Mostrar alerta (opcional)
+                if (Platform.OS !== 'web') {
+                    Notifications.scheduleNotificationAsync({
+                        content: {
+                            title: nuevaNotificacion.titulo,
+                            body: nuevaNotificacion.cuerpo,
+                            data: { 
+                                type: 'cita', 
+                                citaId: data.cita.id,
+                                screen: 'DetalleCita'
+                            }
+                        },
+                        trigger: null
+                    });
+                }
+            }
+        });
 
-      socketRef.current.on("newNotification", notificationHandlerRef.current);
+        socketRef.current.on("newNotification", notificationHandlerRef.current);
     }
-  }, [authState.isLoggedIn, authState.user]);
+}, [authState.isLoggedIn, authState.user, authState.userRole]);
 
   const initializeAuth = useCallback(async () => {
     try {

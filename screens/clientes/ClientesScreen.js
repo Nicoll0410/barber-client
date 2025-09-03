@@ -23,7 +23,6 @@ import {
   Ionicons,
 } from '@expo/vector-icons';
 
-
 import Paginacion from '../../components/Paginacion';
 import Buscador from '../../components/Buscador';
 import CrearCliente from './CrearCliente';
@@ -31,25 +30,20 @@ import DetalleCliente from './DetalleCliente';
 import EditarCliente from './EditarCliente';
 import Footer from '../../components/Footer';
 
-
 import ConfirmarModal from '../../components/ConfirmarModal';
 import InfoModal from '../../components/InfoModal';
 
-
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-
 
 /* --- medidas responsivas --- */
 const { width } = Dimensions.get('window');
 const isMobile = width < 768;
 
-
 // Definir BASE_URL
 const BASE_URL = Platform.OS === 'android'
   ? 'https://barber-server-6kuo.onrender.com'
   : 'https://barber-server-6kuo.onrender.com';
-
 
 /* ╔══════════════╗
    ║  Sub‑componentes  ║
@@ -89,7 +83,6 @@ const Avatar = ({ nombre, avatar }) => {
   );
 };
 
-
 const EstadoVerificacion = ({ verificado }) => (
   <View
     style={[
@@ -115,7 +108,6 @@ const EstadoVerificacion = ({ verificado }) => (
   </View>
 );
 
-
 const ClienteCard = ({
   item,
   onVer,
@@ -132,7 +124,6 @@ const ClienteCard = ({
       </View>
     </View>
 
-
     <View style={styles.cardDetails}>
       <View style={styles.detailRow}>
         <MaterialIcons
@@ -147,7 +138,6 @@ const ClienteCard = ({
         <EstadoVerificacion verificado={item.estaVerificado} />
       </View>
     </View>
-
 
     <View style={styles.cardActions}>
       <TouchableOpacity
@@ -180,7 +170,6 @@ const ClienteCard = ({
   </View>
 );
 
-
 /* ╔════════════════════════════════╗
    ║  Pantalla principal de Clientes  ║
    ╚════════════════════════════════╝ */
@@ -191,7 +180,6 @@ const ClientesScreen = () => {
   const [paginaActual, setPaginaActual] = useState(1);
   const [clientesPorPagina] = useState(4);
   const [busqueda, setBusqueda] = useState('');
-
 
   /* --------- modales --------- */
   const [modalCrearVisible, setModalCrearVisible] = useState(false);
@@ -205,13 +193,11 @@ const ClientesScreen = () => {
   const [infoMsg, setInfoMsg] = useState('');
   const [infoType, setInfoType] = useState('info');
 
-
   /* --------- estados de carga --------- */
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-
 
   /* --------- helper InfoModal --------- */
   const showInfo = (title, message, type = 'info') => {
@@ -221,81 +207,77 @@ const ClientesScreen = () => {
     setInfoVisible(true);
   };
 
-
   /* ═════════════════════════════════╗
      ║  Cargar clientes desde backend  ║
      ╚════════════════════════════════╝ */
-const fetchClientes = async () => {
-  try {
-    if (!refreshing) setLoading(true);
-    const token = await AsyncStorage.getItem('token');
-    const { data } = await axios.get(`${BASE_URL}/clientes`, {
-      headers: { Authorization: `Bearer ${token}` },
-      params: {  // Usar params para query parameters
-        all: true,
-        search: busqueda
-      }
-    });
-    // En ClientesScreen.js, justo después de recibir los datos del backend
-console.log('Datos recibidos del backend:', JSON.stringify(data, null, 2));
-console.log('Avatar del primer cliente:', data.clientes[0]?.avatar?.substring(0, 100) + '...');
+  const fetchClientes = async () => {
+    try {
+      if (!refreshing) setLoading(true);
+      const token = await AsyncStorage.getItem('token');
+      const { data } = await axios.get(`${BASE_URL}/clientes`, {
+        headers: { Authorization: `Bearer ${token}` },
+        params: {  // Usar params para query parameters
+          all: true,
+          search: busqueda
+        }
+      });
+      
+      console.log('Datos recibidos del backend:', JSON.stringify(data, null, 2));
+      console.log('Avatar del primer cliente:', data.clientes[0]?.avatar?.substring(0, 100) + '...');
 
-
-    console.log('Datos recibidos del backend:', data.clientes.map(c => ({
-      id: c.id,
-      nombre: c.nombre,
-      avatarLength: c.avatar?.length || 0
-    })));
-   
-    const listaClientes = data.clientes || data;
-    const clientesFinales = Array.isArray(listaClientes) ?
-      listaClientes :
-      listaClientes.clientes || [];
-   
-    console.log('Clientes con avatares:', clientesFinales.map(c => ({
-      id: c.id,
-      nombre: c.nombre,
-      avatar: c.avatar
-    })));
-   
-const list = clientesFinales.map(c => {
-  // Limpiar avatar si es inválido - mejor detección
-  let avatar = c.avatar;
-  if (avatar && (
-      typeof avatar !== 'string' || 
-      avatar.includes('undefined') ||
-      (avatar.length < 100 && !avatar.startsWith('data:image/')) ||
-      avatar.endsWith('//CABEIAgACUQMBIgACEQEDEQH/')
-  )) {
-    avatar = null;
-  }
-  
-  return {
-    ...c,
-    avatar: avatar,
-    estaVerificado: c.usuario?.estaVerificado || false,
-    email: c.usuario?.email || '',
-    usuarioID: c.usuario?.id || null,
+      console.log('Datos recibidos del backend:', data.clientes.map(c => ({
+        id: c.id,
+        nombre: c.nombre,
+        avatarLength: c.avatar?.length || 0
+      })));
+     
+      const listaClientes = data.clientes || data;
+      const clientesFinales = Array.isArray(listaClientes) ?
+        listaClientes :
+        listaClientes.clientes || [];
+     
+      console.log('Clientes con avatares:', clientesFinales.map(c => ({
+        id: c.id,
+        nombre: c.nombre,
+        avatar: c.avatar
+      })));
+     
+      const list = clientesFinales.map(c => {
+        // Limpiar avatar si es inválido - mejor detección
+        let avatar = c.avatar;
+        if (avatar && (
+            typeof avatar !== 'string' || 
+            avatar.includes('undefined') ||
+            (avatar.length < 100 && !avatar.startsWith('data:image/')) ||
+            avatar.endsWith('//CABEIAgACUQMBIgACEQEDEQH/')
+        )) {
+          avatar = null;
+        }
+        
+        return {
+          ...c,
+          avatar: avatar,
+          estaVerificado: c.usuario?.estaVerificado || false,
+          email: c.usuario?.email || '',
+          usuarioID: c.usuario?.id || null,
+        };
+      });
+     
+      setClientes(list);
+      setClientesFiltrados(list);
+    } catch (err) {
+      console.error('Error al cargar clientes:', err);
+      showInfo('Error', 'No se pudieron cargar los clientes', 'error');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
-});
-   
-    setClientes(list);
-    setClientesFiltrados(list);
-  } catch (err) {
-    console.error('Error al cargar clientes:', err);
-    showInfo('Error', 'No se pudieron cargar los clientes', 'error');
-  } finally {
-    setLoading(false);
-    setRefreshing(false);
-  }
-};
-
 
   /* --- cargar al montar y al cambiar búsqueda --- */
   useEffect(() => {
     fetchClientes();
   }, [busqueda]);
-
 
   /* --- recargar al volver a la pantalla --- */
   useFocusEffect(
@@ -304,13 +286,11 @@ const list = clientesFinales.map(c => {
     }, [])
   );
 
-
   /* --- pull to refresh manual --- */
   const onRefresh = () => {
     setRefreshing(true);
     fetchClientes();
   };
-
 
   /* --- reajuste de página si quedó vacía (desktop) --- */
   useEffect(() => {
@@ -320,7 +300,6 @@ const list = clientesFinales.map(c => {
     );
     if (paginaActual > total) setPaginaActual(total);
   }, [clientesFiltrados, clientesPorPagina, paginaActual]);
-
 
   /* ╔════════════════════╗
      ║  Paginación & filtros ║
@@ -336,26 +315,23 @@ const list = clientesFinales.map(c => {
     if (p > 0 && p <= totalPaginas) setPaginaActual(p);
   };
 
-
   /* ╔═══════════╗
      ║  CRUD acciones  ║
      ╚═══════════╝ */
   const crearCliente = () => setModalCrearVisible(true);
   const handleSearchChange = t => setBusqueda(t);
 
-
-const handleCreateCliente = async () => {
-  try {
-    // 🔥 En vez de hacer el POST aquí,
-    // simplemente refrescamos desde el backend
-    await fetchClientes();
-    setModalCrearVisible(false);
-  } catch (error) {
-    console.error("Error al refrescar clientes:", error);
-    showInfo("Error", "No se pudo refrescar la lista de clientes", "error");
-  }
-};
-
+  const handleCreateCliente = async () => {
+    try {
+      // 🔥 En vez de hacer el POST aquí,
+      // simplemente refrescamos desde el backend
+      await fetchClientes();
+      setModalCrearVisible(false);
+    } catch (error) {
+      console.error("Error al refrescar clientes:", error);
+      showInfo("Error", "No se pudo refrescar la lista de clientes", "error");
+    }
+  };
 
   /* --- ver, editar y actualizar cliente --- */
   const verCliente = async id => {
@@ -384,7 +360,6 @@ const handleCreateCliente = async () => {
     }
   };
 
-
   const editarCliente = async id => {
     try {
       const token = await AsyncStorage.getItem('token');
@@ -411,74 +386,72 @@ const handleCreateCliente = async () => {
     }
   };
 
+  const handleUpdateCliente = async (clienteActualizado) => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      
+      // Preparar los datos para enviar al backend
+      const datosActualizacion = {
+        nombre: clienteActualizado.nombre,
+        telefono: clienteActualizado.telefono,
+        fecha_nacimiento: clienteActualizado.fechaNacimiento?.toISOString().split('T')[0],
+        email: clienteActualizado.email,
+      };
 
-const handleUpdateCliente = async (clienteActualizado) => {
-  try {
-    const token = await AsyncStorage.getItem('token');
-    
-    // Preparar los datos para enviar al backend
-    const datosActualizacion = {
-      nombre: clienteActualizado.nombre,
-      telefono: clienteActualizado.telefono,
-      fecha_nacimiento: clienteActualizado.fechaNacimiento?.toISOString().split('T')[0],
-      email: clienteActualizado.email,
-    };
-
-    // Solo agregar avatarBase64 si existe y es válido (diferente del original)
-    if (clienteActualizado.avatar && 
-        typeof clienteActualizado.avatar === 'string' && 
-        clienteActualizado.avatar.startsWith('data:image/') &&
-        clienteActualizado.avatar !== clienteSeleccionado?.avatar) {
-      datosActualizacion.avatarBase64 = clienteActualizado.avatar;
-    }
-
-    console.log('Enviando datos de actualización:', {
-      ...datosActualizacion,
-      avatarBase64: datosActualizacion.avatarBase64 ? '[...imagen base64...]' : null
-    });
-
-    // Hacer la petición PUT
-    const response = await axios.put(
-      `${BASE_URL}/clientes/${clienteActualizado.id}`,
-      datosActualizacion,
-      { 
-        headers: { Authorization: `Bearer ${token}` },
-        timeout: 30000
+      // Solo agregar avatarBase64 si existe y es válido (diferente del original)
+      if (clienteActualizado.avatar && 
+          typeof clienteActualizado.avatar === 'string' && 
+          clienteActualizado.avatar.startsWith('data:image/') &&
+          clienteActualizado.avatar !== clienteSeleccionado?.avatar) {
+        datosActualizacion.avatarBase64 = clienteActualizado.avatar;
       }
-    );
 
-    // Actualizar el estado local con los nuevos datos del response
-    if (response.data.cliente) {
-      const nuevosClientes = clientes.map(c =>
-        c.id === clienteActualizado.id
-          ? {
-              ...c,
-              ...response.data.cliente,
-              estaVerificado: response.data.cliente.usuario?.estaVerificado || false,
-              email: response.data.cliente.usuario?.email || '',
-            }
-          : c
+      console.log('Enviando datos de actualización:', {
+        ...datosActualizacion,
+        avatarBase64: datosActualizacion.avatarBase64 ? '[...imagen base64...]' : null
+      });
+
+      // Hacer la petición PUT
+      const response = await axios.put(
+        `${BASE_URL}/clientes/${clienteActualizado.id}`,
+        datosActualizacion,
+        { 
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 30000
+        }
       );
 
-      setClientes(nuevosClientes);
-      setClientesFiltrados(nuevosClientes);
+      // Actualizar el estado local con los nuevos datos del response
+      if (response.data.cliente) {
+        const nuevosClientes = clientes.map(c =>
+          c.id === clienteActualizado.id
+            ? {
+                ...c,
+                ...response.data.cliente,
+                estaVerificado: response.data.cliente.usuario?.estaVerificado || false,
+                email: response.data.cliente.usuario?.email || '',
+              }
+            : c
+        );
+
+        setClientes(nuevosClientes);
+        setClientesFiltrados(nuevosClientes);
+      }
+
+      setModalEditarVisible(false);
+      
+      showInfo('✅ Cliente actualizado', 'Datos modificados correctamente', 'success');
+    } catch (error) {
+      console.error('Error al actualizar cliente:', error);
+      console.error('Respuesta del error:', error.response?.data);
+      
+      showInfo(
+        'Error',
+        error.response?.data?.mensaje || 'Error al actualizar el cliente',
+        'error'
+      );
     }
-
-    setModalEditarVisible(false);
-    
-    showInfo('✅ Cliente actualizado', 'Datos modificados correctamente', 'success');
-  } catch (error) {
-    console.error('Error al actualizar cliente:', error);
-    console.error('Respuesta del error:', error.response?.data);
-    
-    showInfo(
-      'Error',
-      error.response?.data?.mensaje || 'Error al actualizar el cliente',
-      'error'
-    );
-  }
-};
-
+  };
 
   const reenviarEmailVerificacion = async (id, email) => {
     try {
@@ -505,12 +478,10 @@ const handleUpdateCliente = async (clienteActualizado) => {
     }
   };
 
-
   const eliminarCliente = id => {
     setIdAEliminar(id);
     setConfirmVisible(true);
   };
-
 
   const confirmarEliminacion = async () => {
     setConfirmVisible(false);
@@ -546,6 +517,11 @@ const handleUpdateCliente = async (clienteActualizado) => {
     }
   };
 
+  // Función para cancelar eliminación
+  const cancelarEliminacion = () => {
+    setConfirmVisible(false);
+    setIdAEliminar(null);
+  };
 
   /* ╔══════════╗
      ║  Render  ║
@@ -573,13 +549,11 @@ const handleUpdateCliente = async (clienteActualizado) => {
             </TouchableOpacity>
           </View>
 
-
           <Buscador
             placeholder="Buscar clientes"
             value={busqueda}
             onChangeText={handleSearchChange}
           />
-
 
           {/* --- listado --- */}
           {loading ? (
@@ -609,7 +583,6 @@ const handleUpdateCliente = async (clienteActualizado) => {
                     <Text style={styles.headerText}>Acciones</Text>
                   </View>
                 </View>
-
 
                 <FlatList
                   data={clientesMostrar}
@@ -706,7 +679,6 @@ const handleUpdateCliente = async (clienteActualizado) => {
                 />
               </View>
 
-
               {totalPaginas > 1 && (
                 <View style={styles.paginationContainer}>
                   <Paginacion
@@ -743,13 +715,11 @@ const handleUpdateCliente = async (clienteActualizado) => {
           )}
         </View>
 
-
         {/* --- footer --- */}
         <View style={styles.footerContainer}>
           <Footer />
         </View>
       </View>
-
 
       {/* --- modales CRUD e info --- */}
       <CrearCliente
@@ -758,13 +728,11 @@ const handleUpdateCliente = async (clienteActualizado) => {
         onCreate={handleCreateCliente}
       />
 
-
       <DetalleCliente
         visible={modalDetalleVisible}
         onClose={() => setModalDetalleVisible(false)}
         cliente={clienteSeleccionado}
       />
-
 
       <EditarCliente
         visible={modalEditarVisible}
@@ -773,15 +741,13 @@ const handleUpdateCliente = async (clienteActualizado) => {
         onUpdate={handleUpdateCliente}
       />
 
-
       <ConfirmarModal
         visible={confirmVisible}
-        onCancel={() => setConfirmVisible(false)}
+        onCancel={cancelarEliminacion} // CORRECCIÓN: Usar la función correcta
         onConfirm={confirmarEliminacion}
         title="Eliminar cliente"
         message="¿Estás seguro de eliminar este cliente?"
       />
-
 
       <InfoModal
         visible={infoVisible}
@@ -794,7 +760,6 @@ const handleUpdateCliente = async (clienteActualizado) => {
   );
 };
 
-
 /* ╔═════════╗
    ║  Estilos ║
    ╚═════════╝ */
@@ -806,11 +771,9 @@ const styles = StyleSheet.create({
   footerContainer: { paddingHorizontal: 16, paddingBottom: 16 },
   paginationContainer: { paddingBottom: 16 },
 
-
   /* Loading */
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { marginTop: 10, color: '#424242' },
-
 
   /* Header */
   header: {
@@ -839,7 +802,6 @@ const styles = StyleSheet.create({
   },
   addButtonText: { marginLeft: 8, color: '#fff', fontWeight: '500', fontSize: 14 },
 
-
   /* Tabla desktop */
   table: { borderWidth: 1, borderColor: '#e0e0e0', borderRadius: 8, overflow: 'hidden' },
   tableHeader: { flexDirection: 'row', backgroundColor: '#424242', paddingVertical: 12 },
@@ -864,7 +826,6 @@ const styles = StyleSheet.create({
   emailText: { fontSize: 14, color: '#424242' },
   actionsContainer: { flexDirection: 'row' },
   actionIcon: { marginHorizontal: 6, padding: 4 },
-
 
   /* Cards mobile */
   scrollContainer: { flex: 1 },
@@ -893,7 +854,6 @@ const styles = StyleSheet.create({
   cardActions: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 },
   actionButton: { marginLeft: 12, padding: 8, borderRadius: 20, backgroundColor: '#f5f5f5' },
 
-
   /* Avatar */
   avatarContainer: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
   avatarText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
@@ -904,7 +864,6 @@ const styles = StyleSheet.create({
     resizeMode: 'cover'
   },
 
-
   /* Estado */
   estadoContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 4, paddingHorizontal: 8, borderRadius: 12, alignSelf: 'center' },
   verificado: { backgroundColor: '#E8F5E9' },
@@ -913,6 +872,5 @@ const styles = StyleSheet.create({
   textoVerificado: { color: '#2e7d32' },
   textoNoVerificado: { color: '#d32f2f' },
 });
-
 
 export default ClientesScreen;

@@ -279,31 +279,35 @@ export const AuthProvider = ({ children }) => {
       // Unirse al room del usuario
       socketRef.current.emit('join-user-room', authState.user.userId);
 
-      // Configurar handler de notificaciones
-      notificationHandlerRef.current = (data) => {
-        console.log("📩 Notificación recibida vía socket:", data);
+    // Configurar handler de notificaciones de citas
+    socketRef.current.on("nueva_cita", (data) => {
+      console.log("📅 Notificación de cita recibida:", data);
+      
+      // Verificar si la notificación es para el usuario actual
+      if (authState.user && data.usuarioID === authState.user.userId) {
+        // Crear notificación local
+        const nuevaNotificacion = {
+          id: Date.now().toString(),
+          titulo: data.tipo === 'creacion' ? '📅 Nueva cita' : '❌ Cita cancelada',
+          cuerpo: data.mensaje,
+          tipo: 'cita',
+          relacionId: data.cita.id,
+          leido: false,
+          createdAt: new Date()
+        };
 
-        // Verificar si la notificación es para el usuario actual
-        if (authState.user && data.usuarioID === authState.user.userId) {
-          setAuthState((prev) => {
-            // Evitar duplicados por ID
-            const exists = prev.notifications.some((n) => n.id === data.notificacion.id);
-            if (exists) return prev;
+        setAuthState((prev) => ({
+          ...prev,
+          notifications: [nuevaNotificacion, ...prev.notifications],
+          unreadCount: prev.unreadCount + 1,
+          lastNotification: nuevaNotificacion,
+        }));
 
-            return {
-              ...prev,
-              notifications: [data.notificacion, ...prev.notifications],
-              unreadCount: prev.unreadCount + 1,
-              lastNotification: data.notificacion,
-            };
-          });
+        playNotificationSound();
+        Notifications.setBadgeCountAsync(authState.unreadCount + 1);
+      }
+    });
 
-          playNotificationSound();
-          
-          // Actualizar badge en el dispositivo
-          Notifications.setBadgeCountAsync(authState.unreadCount + 1);
-        }
-      };
 
       socketRef.current.on("newNotification", notificationHandlerRef.current);
     }

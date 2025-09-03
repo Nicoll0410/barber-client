@@ -223,151 +223,124 @@ const CrearCita = ({
     }
   };
 
-  const handleCrear = async () => {
-    console.log("Iniciando creación de cita...");
-    
-    try {
-      setIsLoading(true);
+const handleCrear = async () => {
+  console.log("Iniciando creación de cita...");
+  
+  try {
+    setIsLoading(true);
 
-      if (!servicioSel || !barbero) {
-        throw new Error("Falta información del servicio o barbero");
-      }
-
-      if (!isTemporal && !clienteSel) {
-        throw new Error("Debes seleccionar un cliente");
-      }
-      if (isTemporal && !temporalNombre.trim()) {
-        throw new Error("El nombre del cliente temporal es requerido");
-      }
-
-      const fechaFormateada = `${fecha.getFullYear()}-${(fecha.getMonth() + 1)
-        .toString()
-        .padStart(2, "0")}-${fecha.getDate().toString().padStart(2, "0")}`;
-
-      let horaInicio24 = convertirHora24(slot.displayTime);
-      if (!horaInicio24.includes(":")) {
-        horaInicio24 = `${horaInicio24}:00`;
-      } else if (horaInicio24.split(":").length === 2) {
-        horaInicio24 = `${horaInicio24}:00`;
-      }
-
-      const duracionMinutos = convertirDuracionAMinutos(
-        servicioSel.duracionMaxima
-      );
-      const horaFin24 = calcularHoraFin(horaInicio24, duracionMinutos);
-
-      const citaData = {
-        barberoID: barbero.id,
-        servicioID: servicioSel.id,
-        fecha: fechaFormateada,
-        hora: horaInicio24,
-        horaFin: `${horaFin24}:00`,
-        direccion: "En barbería",
-        estado: "Pendiente",
-        duracionReal: servicioSel.duracionMaxima || "00:30:00",
-        duracionRedondeada: `${Math.floor(duracionMinutos / 60)}:${(
-          duracionMinutos % 60
-        )
-          .toString()
-          .padStart(2, "0")}:00`,
-      };
-
-      if (isTemporal) {
-        citaData.pacienteTemporalNombre = temporalNombre.trim();
-        if (temporalTelefono.trim()) {
-          citaData.pacienteTemporalTelefono = temporalTelefono.trim();
-        }
-      } else {
-        citaData.pacienteID = clienteSel.id;
-      }
-
-      const token = await AsyncStorage.getItem("token");
-      if (!token) {
-        throw new Error("No se encontró el token de autenticación");
-      }
-
-      console.log("Enviando datos al servidor:", JSON.stringify(citaData, null, 2));
-      
-      const response = await axios.post(
-        "https://barber-server-6kuo.onrender.com/citas",
-        citaData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          timeout: 15000,
-        }
-      );
-
-      console.log("Respuesta del servidor:", response.data);
-
-      if (response.data && response.data.mensaje === 'Cita creada exitosamente') {
-        Alert.alert('Éxito', 'Cita creada correctamente');
-        
-        // Crear notificaciones
-        const citaId = response.data.cita.id;
-        const clienteNombre = isTemporal ? temporalNombre : clienteSel?.nombre;
-        
-        // 1. Crear notificación para el barbero
-        const usuarioIDBarbero = await obtenerUsuarioIdDelBarbero(token, barbero.id);
-        if (usuarioIDBarbero) {
-          await crearNotificacion(token, {
-            usuarioID: usuarioIDBarbero,
-            titulo: "📅 Nueva cita agendada",
-            cuerpo: `El cliente ${clienteNombre} ha agendado una cita para el ${fecha.toLocaleDateString('es-ES')} a las ${slot.displayTime}`,
-            tipo: "cita_creada",
-            relacionId: citaId
-          });
-        }
-        
-        // 2. Crear notificación para el usuario actual
-        const usuarioIDActual = await obtenerUsuarioActual(token);
-        if (usuarioIDActual) {
-          await crearNotificacion(token, {
-            usuarioID: usuarioIDActual,
-            titulo: "📅 Cita agendada",
-            cuerpo: `Agendaste una cita para ${fecha.toLocaleDateString('es-ES')} a las ${slot.displayTime} con ${barbero.nombre}`,
-            tipo: "cita_creada",
-            relacionId: citaId
-          });
-        }
-        
-        // Forzar actualización de notificaciones
-        if (authContext?.fetchNotifications) {
-          console.log("Actualizando notificaciones...");
-          await authContext.fetchNotifications();
-        }
-        
-        // Reproducir sonido
-        if (authContext?.playNotificationSound) {
-          console.log("Reproduciendo sonido de notificación...");
-          await authContext.playNotificationSound();
-        }
-        
-        handleClose();
-        if (onCreate) onCreate();
-        return;
-      }
-      
-      throw new Error(response.data?.mensaje || "Error al crear la cita");
-    } catch (error) {
-      console.error("Error completo al crear cita:", error);
-
-      let mensajeError = "Error al crear la cita";
-      if (error.response?.data?.mensaje) {
-        mensajeError = error.response.data.mensaje;
-      } else if (error.response?.data?.error) {
-        mensajeError = error.response.data.error;
-      } else if (error.message) {
-        mensajeError = error.message;
-      }
-
-      Alert.alert("Error", mensajeError);
-    } finally {
-      setIsLoading(false);
+    if (!servicioSel || !barbero) {
+      throw new Error("Falta información del servicio o barbero");
     }
-  };
+
+    if (!isTemporal && !clienteSel) {
+      throw new Error("Debes seleccionar un cliente");
+    }
+    if (isTemporal && !temporalNombre.trim()) {
+      throw new Error("El nombre del cliente temporal es requerido");
+    }
+
+    const fechaFormateada = `${fecha.getFullYear()}-${(fecha.getMonth() + 1)
+      .toString()
+      .padStart(2, "0")}-${fecha.getDate().toString().padStart(2, "0")}`;
+
+    let horaInicio24 = convertirHora24(slot.displayTime);
+    if (!horaInicio24.includes(":")) {
+      horaInicio24 = `${horaInicio24}:00`;
+    } else if (horaInicio24.split(":").length === 2) {
+      horaInicio24 = `${horaInicio24}:00`;
+    }
+
+    const duracionMinutos = convertirDuracionAMinutos(
+      servicioSel.duracionMaxima
+    );
+    const horaFin24 = calcularHoraFin(horaInicio24, duracionMinutos);
+
+    const citaData = {
+      barberoID: barbero.id,
+      servicioID: servicioSel.id,
+      fecha: fechaFormateada,
+      hora: horaInicio24,
+      horaFin: `${horaFin24}:00`,
+      direccion: "En barbería",
+      estado: "Pendiente",
+      duracionReal: servicioSel.duracionMaxima || "00:30:00",
+      duracionRedondeada: `${Math.floor(duracionMinutos / 60)}:${(
+        duracionMinutos % 60
+      )
+        .toString()
+        .padStart(2, "0")}:00`,
+    };
+
+    if (isTemporal) {
+      citaData.pacienteTemporalNombre = temporalNombre.trim();
+      if (temporalTelefono.trim()) {
+        citaData.pacienteTemporalTelefono = temporalTelefono.trim();
+      }
+    } else {
+      citaData.pacienteID = clienteSel.id;
+    }
+
+    const token = await AsyncStorage.getItem("token");
+    if (!token) {
+      throw new Error("No se encontró el token de autenticación");
+    }
+
+    console.log("Enviando datos al servidor:", JSON.stringify(citaData, null, 2));
+    
+    const response = await axios.post(
+      "https://barber-server-6kuo.onrender.com/citas",
+      citaData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        timeout: 15000,
+      }
+    );
+
+    console.log("Respuesta del servidor:", response.data);
+
+    if (response.data && response.data.mensaje === 'Cita creada exitosamente') {
+      Alert.alert('Éxito', 'Cita creada correctamente');
+      
+      // Forzar actualización de notificaciones en tiempo real
+      if (authContext?.fetchNotifications) {
+        console.log("Actualizando notificaciones...");
+        await authContext.fetchNotifications();
+      }
+      
+      // Reproducir sonido de notificación
+      if (authContext?.playNotificationSound) {
+        console.log("Reproduciendo sonido de notificación...");
+        await authContext.playNotificationSound();
+      }
+      
+      // Cerrar modal y resetear estado
+      handleClose();
+      if (onCreate) onCreate();
+      return;
+    }
+    
+    throw new Error(response.data?.mensaje || "Error al crear la cita");
+  } catch (error) {
+    console.error("Error completo al crear cita:", error);
+
+    let mensajeError = "Error al crear la cita";
+    if (error.response?.data?.mensaje) {
+      mensajeError = error.response.data.mensaje;
+    } else if (error.response?.data?.error) {
+      mensajeError = error.response.data.error;
+    } else if (error.message) {
+      mensajeError = error.message;
+    }
+
+    Alert.alert("Error", mensajeError);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   // Usar useCallback para evitar recrear funciones en cada render
   const handleSetTemporalNombre = useCallback((text) => {

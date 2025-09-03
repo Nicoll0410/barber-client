@@ -1,39 +1,41 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 
 const NotificationBell = ({ navigation }) => {
-  const { unreadCount = 0, fetchNotifications } = useAuth();
+  const { unreadCount, fetchNotifications, socket } = useAuth();
+  const [badgeVisible, setBadgeVisible] = useState(unreadCount > 0);
 
-// Modificar el useEffect para escuchar notificaciones:
-useEffect(() => {
-  if (socket) {
-    const handleNuevaNotificacion = (data) => {
-      playNotificationSound();
-      setUnreadCount(prev => prev + 1);
-      setNotificaciones(prev => [data, ...prev]);
-    };
+  useEffect(() => {
+    setBadgeVisible(unreadCount > 0);
+  }, [unreadCount]);
 
-    socket.on('nueva_notificacion', handleNuevaNotificacion);
+  // Escuchar notificaciones en tiempo real
+  useEffect(() => {
+    if (socket) {
+      const handleNuevaNotificacion = () => {
+        // Forzar actualización del contador
+        fetchNotifications();
+      };
 
-    return () => {
-      socket.off('nueva_notificacion', handleNuevaNotificacion);
-    };
-  }
-}, [socket]);
+      socket.on('nueva_notificacion', handleNuevaNotificacion);
 
-const handlePress = async () => {
-    try {
-        // Forzar actualización antes de navegar
-        await fetchNotifications();
-        navigation.navigate('Notificaciones');
-    } catch (error) {
-        console.error('Error navegando a notificaciones:', error);
-        // Navegar igualmente aunque falle la actualización
-        navigation.navigate('Notificaciones');
+      return () => {
+        socket.off('nueva_notificacion', handleNuevaNotificacion);
+      };
     }
-};
+  }, [socket, fetchNotifications]);
+
+  const handlePress = async () => {
+    try {
+      await fetchNotifications();
+      navigation.navigate('Notificaciones');
+    } catch (error) {
+      console.error('Error navegando a notificaciones:', error);
+      navigation.navigate('Notificaciones');
+    }
+  };
 
   return (
     <TouchableOpacity 
@@ -41,7 +43,7 @@ const handlePress = async () => {
       style={styles.container}
     >
       <Ionicons name="notifications-outline" size={26} color="black" />
-      {unreadCount > 0 && (
+      {badgeVisible && unreadCount > 0 && (
         <View style={styles.badge}>
           <Text style={styles.badgeText}>
             {unreadCount > 9 ? '9+' : unreadCount}

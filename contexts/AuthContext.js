@@ -42,21 +42,18 @@ export const AuthProvider = ({ children }) => {
       console.error("Error cargando sonido:", error);
     }
   };
-  // Agregar esta función para configurar el socket
+// Agrega esta función para configurar el socket
 const setupSocket = useCallback(async () => {
   try {
     console.log("🔌 Configurando socket...");
     
     // Cerrar socket existente si hay uno
     if (socketRef.current) {
-      if (notificationHandlerRef.current) {
-        socketRef.current.off("nueva_notificacion", notificationHandlerRef.current);
-      }
       socketRef.current.disconnect();
       socketRef.current = null;
     }
 
-    // Solo configurar socket si está logueado
+    // Solo configurar socket si está logueado y tiene token
     if (authState.isLoggedIn && authState.token && authState.user) {
       console.log("🔄 Inicializando conexión socket...");
       
@@ -72,7 +69,8 @@ const setupSocket = useCallback(async () => {
         console.log("✅ Conectado al servidor Socket.io");
         
         // Unirse a la sala del usuario
-        socketRef.current.emit("unir_usuario", authState.user.userId || authState.user.id);
+        const userId = authState.user.userId || authState.user.id;
+        socketRef.current.emit("unir_usuario", userId);
       });
 
       socketRef.current.on("disconnect", (reason) => {
@@ -83,19 +81,21 @@ const setupSocket = useCallback(async () => {
         console.error("❌ Error de conexión socket:", error);
       });
 
-      // Handler para notificaciones
-      notificationHandlerRef.current = async (data) => {
+      // Handler para notificaciones en tiempo real
+      socketRef.current.on("nueva_notificacion", async (data) => {
         console.log("📩 Notificación recibida vía socket:", data);
         
         // Verificar si la notificación es para este usuario
-        const isForCurrentUser = authState.user && 
-          (data.usuarioID === authState.user.userId || data.usuarioID === authState.user.id);
+        const userId = authState.user.userId || authState.user.id;
+        const isForCurrentUser = data.usuarioID === userId;
         
         if (isForCurrentUser) {
-          // Reproducir sonido
+          console.log("🎯 Notificación para usuario actual");
+          
+          // Reproducir sonido inmediatamente
           await playNotificationSound();
           
-          // Actualizar estado
+          // Actualizar estado en tiempo real
           setAuthState(prev => {
             // Evitar duplicados
             const exists = prev.notifications.some(n => n.id === data.id);
@@ -109,18 +109,32 @@ const setupSocket = useCallback(async () => {
             };
           });
 
-          // Actualizar badge
-          await Notifications.setBadgeCountAsync(prev => prev + 1);
+          // Actualizar badge en el dispositivo
+          const newCount = authState.unreadCount + 1;
+          await Notifications.setBadgeCountAsync(newCount);
+          
+          // Mostrar alerta nativa
+          Alert.alert(
+            data.titulo,
+            data.cuerpo,
+            [
+              {
+                text: 'Ver',
+                onPress: () => {
+                  // Navegar a la notificación si es necesario
+                }
+              },
+              { text: 'OK' }
+            ]
+          );
         }
-      };
+      });
 
-      // Escuchar notificaciones
-      socketRef.current.on("nueva_notificacion", notificationHandlerRef.current);
     }
   } catch (error) {
     console.error("❌ Error configurando socket:", error);
   }
-}, [authState.isLoggedIn, authState.token, authState.user]);
+}, [authState.isLoggedIn, authState.token, authState.user, authState.unreadCount]);
 
 
   const setupNotifications = useCallback(async () => {
@@ -216,64 +230,50 @@ const setupSocket = useCallback(async () => {
     }
   }, []);
 
-  const fetchNotifications = useCallback(async () => {
-    try {
-      console.log("Obteniendo notificaciones...");
+// Actualiza la función fetchNotifications para forzar actualización
+const fetchNotifications = useCallback(async () => {
+  try {
+    console.log("🔄 Obteniendo notificaciones...");
 
-      const token = await AsyncStorage.getItem("token");
-      if (!token) {
-        console.log("No hay token en AsyncStorage, abortando fetch");
-        setAuthState((prev) => ({
-          ...prev,
-          notifications: [],
-          unreadCount: 0,
-        }));
-        return [];
-      }
+    const token = await AsyncStorage.getItem("token");
+    if (!token) {
+      console.log("No hay token, abortando fetch");
+      setAuthState(prev => ({
+        ...prev,
+        notifications: [],
+        unreadCount: 0,
+      }));
+      return [];
+    }
 
-      const response = await axios.get(`${BASE_URL}/notifications`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        timeout: 10000,
-      });
+    const response = await axios.get(`${BASE_URL}/notifications`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      timeout: 10000,
+    });
 
-      console.log("Respuesta de notificaciones:", response.data);
-
-      if (!response.data?.success) {
-        throw new Error(response.data?.message || "Error al obtener notificaciones");
-      }
-
+    if (response.data?.success) {
       const notificationsData = response.data.data?.notifications || [];
       const unreadCount = response.data.data?.unreadCount || 0;
 
-      setAuthState((prev) => ({
+      setAuthState(prev => ({
         ...prev,
         notifications: notificationsData,
         unreadCount: unreadCount,
       }));
 
       await Notifications.setBadgeCountAsync(unreadCount);
-
-      console.log("Notificaciones obtenidas:", notificationsData.length);
       return notificationsData;
-    } catch (error) {
-      console.error("Error obteniendo notificaciones:", error);
-      if (error.response?.status === 401) {
-        console.log("Token expirado, cerrando sesión");
-        await AsyncStorage.removeItem("token");
-        setAuthState((prev) => ({
-          ...prev,
-          token: null,
-          user: null,
-          notifications: [],
-          unreadCount: 0,
-        }));
-      }
-      return [];
     }
-  }, []);
+    
+    return [];
+  } catch (error) {
+    console.error("Error obteniendo notificaciones:", error);
+    return [];
+  }
+}, []);
 
   const markNotificationsAsRead = useCallback(async () => {
     try {
@@ -494,9 +494,17 @@ const setupSocket = useCallback(async () => {
     };
   }, []);
 
-// Agregar este useEffect para manejar cambios en la autenticación
+// Agrega este useEffect para manejar cambios en la autenticación
 useEffect(() => {
   setupSocket();
+  
+  return () => {
+    // Limpiar socket al desmontar
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+  };
 }, [authState.isLoggedIn, setupSocket]);
 
   const login = async (token, additionalData = {}) => {

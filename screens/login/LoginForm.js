@@ -17,7 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import { AuthContext } from "../../contexts/AuthContext";
-import Footer from "./Footer"; // Asegúrate de importar el Footer
+import Footer from "../../components/Footer"; // Asegúrate de importar el Footer
 
 const { width } = Dimensions.get("window");
 const isDesktop = width >= 1024;

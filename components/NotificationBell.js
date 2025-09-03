@@ -5,14 +5,15 @@ import { useAuth } from '../contexts/AuthContext';
 
 const NotificationBell = ({ navigation }) => {
   const { unreadCount, fetchNotifications, socket } = useAuth();
-  const [isUpdating, setIsUpdating] = useState(false);
+  const [forceUpdate, setForceUpdate] = useState(0);
 
-  // Escuchar notificaciones en tiempo real
+  // Escuchar notificaciones en tiempo real y forzar actualización
   useEffect(() => {
     if (socket) {
       const handleNuevaNotificacion = () => {
-        console.log("🔄 Actualizando notificaciones por socket");
+        console.log("🔄 Notificación recibida - Forzando actualización de badge");
         fetchNotifications();
+        setForceUpdate(prev => prev + 1); // Forzar re-render
       };
 
       socket.on('nueva_notificacion', handleNuevaNotificacion);
@@ -24,31 +25,17 @@ const NotificationBell = ({ navigation }) => {
   }, [socket, fetchNotifications]);
 
   const handlePress = async () => {
-    if (isUpdating) return;
-    
-    setIsUpdating(true);
-    try {
-      await fetchNotifications();
-      navigation.navigate('Notificaciones');
-    } catch (error) {
-      console.error('Error:', error);
-      navigation.navigate('Notificaciones');
-    } finally {
-      setIsUpdating(false);
-    }
+    await fetchNotifications();
+    navigation.navigate('Notificaciones');
   };
 
   return (
     <TouchableOpacity 
       onPress={handlePress}
       style={styles.container}
-      disabled={isUpdating}
+      key={forceUpdate} // 🔥 Forzar re-render cuando cambie
     >
-      <Ionicons 
-        name="notifications-outline" 
-        size={26} 
-        color="black" 
-      />
+      <Ionicons name="notifications-outline" size={26} color="black" />
       {unreadCount > 0 && (
         <View style={styles.badge}>
           <Text style={styles.badgeText}>

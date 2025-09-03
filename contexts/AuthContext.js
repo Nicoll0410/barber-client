@@ -27,7 +27,6 @@ export const AuthProvider = ({ children }) => {
 
   const socketRef = useRef(null);
   const notificationSoundRef = useRef(null);
-  const notificationHandlerRef = useRef(null);
 
   // Cargar sonido de notificación
   const loadNotificationSound = useCallback(async () => {
@@ -48,6 +47,7 @@ export const AuthProvider = ({ children }) => {
   // Reproducir sonido de notificación
   const playNotificationSound = useCallback(async () => {
     try {
+      console.log("🔊 Reproduciendo sonido de notificación");
       if (notificationSoundRef.current) {
         await notificationSoundRef.current.replayAsync();
       } else {
@@ -127,14 +127,7 @@ export const AuthProvider = ({ children }) => {
   const fetchNotifications = useCallback(async () => {
     try {
       const token = await AsyncStorage.getItem("token");
-      if (!token) {
-        setAuthState(prev => ({
-          ...prev,
-          notifications: [],
-          unreadCount: 0,
-        }));
-        return [];
-      }
+      if (!token) return [];
 
       const response = await axios.get(`${BASE_URL}/notifications`, {
         headers: {
@@ -241,8 +234,11 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // Configurar Socket.io
+  // Configurar Socket.io de manera robusta
   const setupSocket = useCallback(async () => {
     try {
+      console.log("🔌 Configurando socket...");
+      
       // Cerrar socket existente
       if (socketRef.current) {
         socketRef.current.removeAllListeners();
@@ -254,6 +250,8 @@ export const AuthProvider = ({ children }) => {
         return;
       }
 
+      console.log("🔄 Inicializando conexión socket para usuario:", authState.user.id);
+      
       socketRef.current = io(BASE_URL, {
         transports: ['websocket', 'polling'],
         auth: {
@@ -270,6 +268,11 @@ export const AuthProvider = ({ children }) => {
         
         const userId = authState.user.userId || authState.user.id;
         socketRef.current.emit("unir_usuario", userId);
+        console.log("📨 Uniendo usuario a sala:", userId);
+      });
+
+      socketRef.current.on("usuario_unido", (data) => {
+        console.log("✅ Usuario unido a sala:", data);
       });
 
       socketRef.current.on("disconnect", (reason) => {
@@ -280,22 +283,31 @@ export const AuthProvider = ({ children }) => {
         console.error("❌ Error de conexión:", error.message);
       });
 
-      // Handler para notificaciones
-      notificationHandlerRef.current = async (data) => {
-        console.log("📩 Notificación recibida:", data);
+      // 🎯 HANDLER PRINCIPAL - NOTIFICACIONES EN TIEMPO REAL
+      socketRef.current.on("nueva_notificacion", async (data) => {
+        console.log("📩 Notificación recibida por socket:", data);
         
-        const userId = authState.user.userId || authState.user.id;
-        if (data.usuarioID === userId) {
-          // Reproducir sonido inmediatamente
+        // ✅ Verificar si la notificación es para este usuario
+        const currentUserId = authState.user.userId || authState.user.id;
+        if (data.usuarioID === currentUserId) {
+          console.log("🎯 Notificación para usuario actual - Actualizando estado");
+          
+          // 1. Reproducir sonido inmediatamente
           await playNotificationSound();
           
-          // Actualizar estado
+          // 2. Actualizar estado en tiempo real
           setAuthState(prev => {
+            // Evitar duplicados
             const exists = prev.notifications.some(n => n.id === data.id);
-            if (exists) return prev;
+            if (exists) {
+              console.log("⚠️ Notificación duplicada, ignorando");
+              return prev;
+            }
 
             const newUnreadCount = prev.unreadCount + 1;
+            console.log("🔄 Nuevo conteo de notificaciones:", newUnreadCount);
             
+            // Actualizar badge (solo en mobile)
             if (Platform.OS !== 'web') {
               Notifications.setBadgeCountAsync(newUnreadCount).catch(console.error);
             }
@@ -308,7 +320,7 @@ export const AuthProvider = ({ children }) => {
             };
           });
 
-          // Mostrar alerta
+          // 3. Mostrar alerta
           Alert.alert(
             data.titulo,
             data.cuerpo,
@@ -323,15 +335,16 @@ export const AuthProvider = ({ children }) => {
             ],
             { cancelable: true }
           );
+        } else {
+          console.log("❌ Notificación no es para este usuario:", data.usuarioID, "!=", currentUserId);
         }
-      };
-
-      socketRef.current.on("nueva_notificacion", notificationHandlerRef.current);
+      });
 
     } catch (error) {
       console.error("❌ Error configurando socket:", error);
     }
   }, [authState.isLoggedIn, authState.token, authState.user, playNotificationSound]);
+
 
   // Inicializar autenticación
   const initializeAuth = useCallback(async () => {
@@ -383,7 +396,7 @@ export const AuthProvider = ({ children }) => {
   // Efectos principales
   useEffect(() => {
     initializeAuth();
-  }, [initializeAuth]);
+  }, []);
 
   useEffect(() => {
     setupSocket();
@@ -399,6 +412,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextAppState) => {
       if (nextAppState === 'active') {
+        console.log("🔄 App en primer plano - Reconectando socket");
         setupSocket();
         fetchNotifications();
       }

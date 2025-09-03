@@ -82,15 +82,16 @@ export const AuthProvider = ({ children }) => {
     console.log("Usuario interactuó con notificación:", response);
   };
 
-const playNotificationSound = async () => {
-  try {
-    if (notificationSound) {
-      await notificationSound.replayAsync();
+  const playNotificationSound = async () => {
+    try {
+      console.log("Reproduciendo sonido de notificación...");
+      if (notificationSound) {
+        await notificationSound.replayAsync();
+      }
+    } catch (error) {
+      console.error("Error reproduciendo sonido:", error);
     }
-  } catch (error) {
-    console.error('Error reproduciendo sonido:', error);
-  }
-};
+  };
 
   const normalizeRole = (rawRole) => {
     if (!rawRole) return null;
@@ -193,28 +194,34 @@ const playNotificationSound = async () => {
     }
   }, []);
 
-const markNotificationsAsRead = async (notificacionId) => {
-  try {
-    setAuthState(prev => ({
-      ...prev,
-      notifications: prev.notifications.map(n => 
-        n.id === notificacionId ? { ...n, leido: true } : n
-      ),
-      unreadCount: Math.max(0, prev.unreadCount - 1)
-    }));
-    
-    // Actualizar en backend
-    if (authState.token) {
-      await axios.post(`${BASE_URL}/notifications/mark-read`, {
-        notificacionId
-      }, {
-        headers: { Authorization: `Bearer ${authState.token}` }
-      });
+  const markNotificationsAsRead = useCallback(async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      if (!token) return;
+
+      const response = await axios.post(
+        `${BASE_URL}/notifications/mark-read`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.data?.success) {
+        setAuthState((prev) => ({
+          ...prev,
+          unreadCount: 0,
+          notifications: prev.notifications.map((n) => ({ ...n, leido: true })),
+        }));
+        await Notifications.setBadgeCountAsync(0);
+      }
+    } catch (error) {
+      console.error("Error marcando notificaciones como leídas:", error);
     }
-  } catch (error) {
-    console.error('Error marcando notificación como leída:', error);
-  }
-};
+  }, []);
 
   const registerPushToken = useCallback(async (userId, token) => {
     try {
@@ -257,90 +264,50 @@ const markNotificationsAsRead = async (notificacionId) => {
     }
   }, []);
 
-  // En initializeSocket, agregar manejo de notificaciones de citas
-const initializeSocket = useCallback(() => {
+  const initializeSocket = useCallback(() => {
+    // Cerrar socket existente si hay uno
     if (socketRef.current) {
-        socketRef.current.disconnect();
-        socketRef.current = null;
+      socketRef.current.disconnect();
+      socketRef.current = null;
     }
 
+    // Inicializar nuevo socket solo si el usuario está logueado
     if (authState.isLoggedIn && authState.user) {
-        console.log("Inicializando socket...");
-        socketRef.current = io(BASE_URL, { 
-            transports: ["websocket"],
-            auth: {
-                token: authState.token
-            }
-        });
+      console.log("Inicializando socket...");
+      socketRef.current = io(BASE_URL, { transports: ["websocket"] });
 
-        // Unirse al room del usuario
-        socketRef.current.emit('join-user-room', {
-            userId: authState.user.userId,
-            rol: authState.userRole
-        });
+      // Unirse al room del usuario
+      socketRef.current.emit('join-user-room', authState.user.userId);
 
-        // Handler para notificaciones de sistema
-        notificationHandlerRef.current = (data) => {
-            console.log("📩 Notificación recibida vía socket:", data);
-            // ... código existente ...
-        };
+      // Configurar handler de notificaciones
+      notificationHandlerRef.current = (data) => {
+        console.log("📩 Notificación recibida vía socket:", data);
 
-        // 👇 NUEVO: Handler específico para notificaciones de citas
-        socketRef.current.on("nueva_cita", (data) => {
-            console.log("📅 Notificación de cita recibida:", data);
-            
-            // Verificar si la notificación es para este usuario
-            const esParaEsteUsuario = 
-                (authState.userRole === 'barbero' && data.tipo.includes('barbero')) ||
-                (authState.userRole === 'cliente' && data.tipo.includes('cliente')) ||
-                (authState.userRole === 'administrador' && data.tipo.includes('administrador'));
-            
-            if (esParaEsteUsuario) {
-                // Crear notificación local
-                const nuevaNotificacion = {
-                    id: Date.now(), // ID temporal
-                    titulo: data.mensaje,
-                    cuerpo: `Cita: ${data.cita.servicio?.nombre || 'Servicio'}`,
-                    tipo: 'cita',
-                    relacionId: data.cita.id,
-                    leido: false,
-                    createdAt: new Date()
-                };
+        // Verificar si la notificación es para el usuario actual
+        if (authState.user && data.usuarioID === authState.user.userId) {
+          setAuthState((prev) => {
+            // Evitar duplicados por ID
+            const exists = prev.notifications.some((n) => n.id === data.notificacion.id);
+            if (exists) return prev;
 
-                setAuthState((prev) => ({
-                    ...prev,
-                    notifications: [nuevaNotificacion, ...prev.notifications],
-                    unreadCount: prev.unreadCount + 1,
-                    lastNotification: nuevaNotificacion
-                }));
+            return {
+              ...prev,
+              notifications: [data.notificacion, ...prev.notifications],
+              unreadCount: prev.unreadCount + 1,
+              lastNotification: data.notificacion,
+            };
+          });
 
-                // Reproducir sonido
-                playNotificationSound();
-                
-                // Actualizar badge
-                Notifications.setBadgeCountAsync(authState.unreadCount + 1);
-                
-                // Mostrar alerta (opcional)
-                if (Platform.OS !== 'web') {
-                    Notifications.scheduleNotificationAsync({
-                        content: {
-                            title: nuevaNotificacion.titulo,
-                            body: nuevaNotificacion.cuerpo,
-                            data: { 
-                                type: 'cita', 
-                                citaId: data.cita.id,
-                                screen: 'DetalleCita'
-                            }
-                        },
-                        trigger: null
-                    });
-                }
-            }
-        });
+          playNotificationSound();
+          
+          // Actualizar badge en el dispositivo
+          Notifications.setBadgeCountAsync(authState.unreadCount + 1);
+        }
+      };
 
-        socketRef.current.on("newNotification", notificationHandlerRef.current);
+      socketRef.current.on("newNotification", notificationHandlerRef.current);
     }
-}, [authState.isLoggedIn, authState.user, authState.userRole]);
+  }, [authState.isLoggedIn, authState.user]);
 
   const initializeAuth = useCallback(async () => {
     try {
@@ -445,100 +412,6 @@ const initializeSocket = useCallback(() => {
       }
     };
   }, []);
-
-  // Dentro del AuthProvider, agregar este useEffect específico para sockets
-useEffect(() => {
-  const setupSocketListeners = () => {
-    if (socketRef.current && authState.user && authState.isLoggedIn) {
-      console.log("🔌 Configurando listeners de socket...");
-
-      // Listener para notificaciones de nuevas citas
-      socketRef.current.on("nueva_cita", (data) => {
-        console.log("📅 Notificación de cita recibida via socket:", data);
-        
-        // Crear notificación local
-        const nuevaNotificacion = {
-          id: `cita_${Date.now()}`,
-          titulo: data.mensaje,
-          cuerpo: `Servicio: ${data.cita?.servicio?.nombre || 'Cita agendada'}`,
-          tipo: 'cita',
-          relacionId: data.cita?.id,
-          leido: false,
-          createdAt: new Date(),
-          data: data
-        };
-
-        // Actualizar estado
-        setAuthState(prev => ({
-          ...prev,
-          notifications: [nuevaNotificacion, ...prev.notifications],
-          unreadCount: prev.unreadCount + 1,
-          lastNotification: nuevaNotificacion
-        }));
-
-        // Reproducir sonido
-        playNotificationSound();
-        
-        // Actualizar badge
-        Notifications.setBadgeCountAsync(authState.unreadCount + 1);
-        
-        // Mostrar notificación local
-        if (Platform.OS !== 'web') {
-          Notifications.scheduleNotificationAsync({
-            content: {
-              title: nuevaNotificacion.titulo,
-              body: nuevaNotificacion.cuerpo,
-              sound: 'default',
-              data: {
-                type: 'cita',
-                citaId: data.cita?.id,
-                screen: 'DetalleCita',
-                notificacionId: nuevaNotificacion.id
-              }
-            },
-            trigger: null
-          });
-        }
-      });
-
-      // Listener para notificaciones generales
-      socketRef.current.on("newNotification", (data) => {
-        console.log("📩 Notificación general recibida:", data);
-        
-        // Verificar si es para el usuario actual
-        if (authState.user && data.usuarioID === authState.user.userId) {
-          setAuthState(prev => {
-            const exists = prev.notifications.some(n => n.id === data.notificacion.id);
-            if (exists) return prev;
-
-            return {
-              ...prev,
-              notifications: [data.notificacion, ...prev.notifications],
-              unreadCount: prev.unreadCount + 1,
-              lastNotification: data.notificacion
-            };
-          });
-
-          playNotificationSound();
-          Notifications.setBadgeCountAsync(authState.unreadCount + 1);
-        }
-      });
-    }
-  };
-
-  // Configurar listeners cuando el usuario esté logueado
-  if (authState.isLoggedIn && socketRef.current) {
-    setupSocketListeners();
-  }
-
-  return () => {
-    // Limpiar listeners de socket
-    if (socketRef.current) {
-      socketRef.current.off("nueva_cita");
-      socketRef.current.off("newNotification");
-    }
-  };
-}, [authState.isLoggedIn, authState.user, authState.unreadCount]); // Dependencias correctas
 
   // Efecto separado para manejar cambios en el estado de autenticación
   useEffect(() => {

@@ -1,61 +1,133 @@
-import { Platform } from 'react-native';
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
-import Constants from 'expo-constants';
+import axios from "axios";
+import { Audio } from "expo-av";
+import * as Notifications from "expo-notifications";
 
+// Asegúrate de que esta URL coincida con tu configuración de backend
+const API_URL = "https://barber-server-6kuo.onrender.com/api/notifications";
+
+// Configuración inicial de notificaciones
 export const configurePushNotifications = async () => {
-    if (!Device.isDevice) {
-        console.warn('Debes usar un dispositivo físico para notificaciones push');
-        return;
-    }
-
     try {
-        const { status: existingStatus } = await Notifications.getPermissionsAsync();
-        let finalStatus = existingStatus;
+        await Notifications.setNotificationHandler({
+            handleNotification: async () => ({
+                shouldShowAlert: true,
+                shouldPlaySound: true,
+                shouldSetBadge: true,
+            }),
+        });
+
+        const { status } = await Notifications.getPermissionsAsync();
         
-        if (existingStatus !== 'granted') {
-            const { status } = await Notifications.requestPermissionsAsync();
-            finalStatus = status;
+        if (status !== 'granted') {
+            await Notifications.requestPermissionsAsync();
         }
-
-        if (finalStatus !== 'granted') {
-            console.log('Permisos de notificación no concedidos');
-            return;
-        }
-
-        // Configurar canal para Android
-        if (Platform.OS === 'android') {
-            await Notifications.setNotificationChannelAsync('default', {
-                name: 'Notificaciones de Citas',
-                importance: Notifications.AndroidImportance.HIGH,
-                vibrationPattern: [0, 250, 250, 250],
-                lightColor: '#FF231F7C',
-                sound: 'default',
-                showBadge: true,
-                enableLights: true,
-                enableVibrate: true,
-            });
-        }
-
-        console.log('Notificaciones push configuradas correctamente');
     } catch (error) {
-        console.error('Error configurando notificaciones push:', error);
+        console.error("Error configurando notificaciones:", error);
     }
 };
 
-export const scheduleLocalNotification = async (title, body, data = {}) => {
+// Registrar token push
+export const registerPushToken = async (userId, tokenAuth) => {
     try {
-        await Notifications.scheduleNotificationAsync({
-            content: {
-                title,
-                body,
-                sound: 'default',
-                data,
-                priority: Notifications.AndroidNotificationPriority.HIGH
-            },
-            trigger: null
-        });
+        const { status } = await Notifications.getPermissionsAsync();
+        
+        if (status !== 'granted') {
+            const { status: newStatus } = await Notifications.requestPermissionsAsync();
+            
+            if (newStatus !== 'granted') {
+                throw new Error('Permiso para notificaciones denegado');
+            }
+        }
+
+        const expoToken = (await Notifications.getExpoPushTokenAsync()).data;
+        console.log("Expo push token:", expoToken);
+
+        await axios.post(
+            `${API_URL}/save-token`,
+            { userId, token: expoToken },
+            { 
+                headers: { 
+                    Authorization: `Bearer ${tokenAuth}`, 
+                    'Content-Type': 'application/json' 
+                } 
+            }
+        );
+
+        return expoToken;
     } catch (error) {
-        console.error('Error programando notificación local:', error);
+        console.error("Error registrando token push:", error);
+        throw error;
     }
+};
+
+// Obtener notificaciones
+export const fetchNotifications = async (token) => {
+    try {
+        const response = await axios.get(`${API_URL}`, {
+            headers: { 
+                Authorization: `Bearer ${token}`, 
+                'Content-Type': 'application/json' 
+            }
+        });
+        
+        return response.data.data;
+    } catch (error) {
+        console.error("Error obteniendo notificaciones:", error);
+        throw error;
+    }
+};
+
+// Obtener conteo de no leídas
+export const getUnreadCount = async (token) => {
+    try {
+        const response = await axios.get(`${API_URL}/count`, {
+            headers: { 
+                Authorization: `Bearer ${token}`, 
+                'Content-Type': 'application/json' 
+            }
+        });
+        
+        return response.data.count;
+    } catch (error) {
+        console.error("Error obteniendo conteo de no leídas:", error);
+        throw error;
+    }
+};
+
+// Marcar todas como leídas
+export const markAllAsRead = async (token) => {
+    try {
+        await axios.post(
+            `${API_URL}/mark-read`,
+            {},
+            { 
+                headers: { 
+                    Authorization: `Bearer ${token}`, 
+                    'Content-Type': 'application/json' 
+                } 
+            }
+        );
+    } catch (error) {
+        console.error("Error marcando notificaciones como leídas:", error);
+        throw error;
+    }
+};  
+// Reproducir sonido de notificación
+export const playNotificationSound = async () => {
+    try {
+        const { sound } = await Audio.Sound.createAsync(
+            require("../assets/sound/notification.mp3")
+        );
+        
+        await sound.playAsync();
+        setTimeout(() => sound.unloadAsync(), 3000);
+    } catch (error) {
+        console.error("Error reproduciendo sonido:", error);
+    }
+};
+
+// Configurar listeners de notificaciones
+export const setupNotificationListeners = (onNotificationReceived) => {
+    const subscription = Notifications.addNotificationReceivedListener(onNotificationReceived);
+    return () => subscription.remove();
 };

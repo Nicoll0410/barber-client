@@ -1,10 +1,10 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import { View, Text, FlatList, StyleSheet, RefreshControl, ActivityIndicator, TouchableOpacity } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useAuth } from "../../contexts/AuthContext";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { MaterialIcons } from '@expo/vector-icons'; // Cambié Ionicons por MaterialIcons
+import { MaterialIcons } from '@expo/vector-icons';
 
 const NotificacionesScreen = ({ navigation }) => {
   const { notifications, unreadCount, markNotificationsAsRead, fetchNotifications } = useAuth();
@@ -40,23 +40,6 @@ const NotificacionesScreen = ({ navigation }) => {
     await loadData();
     setRefreshing(false);
   };
-
-  // Agregar useEffect para escuchar notificaciones en tiempo real:
-useEffect(() => {
-  const socket = io(BASE_URL);
-  
-  const handleNuevaNotificacion = (data) => {
-    setNotificaciones(prev => [data, ...prev]);
-    setUnreadCount(prev => prev + 1);
-  };
-
-  socket.on('nueva_notificacion', handleNuevaNotificacion);
-
-  return () => {
-    socket.off('nueva_notificacion', handleNuevaNotificacion);
-    socket.disconnect();
-  };
-}, []);
 
   const renderItem = ({ item }) => (
     <View style={[styles.notificationItem, !item.leido && styles.unreadNotification]}>

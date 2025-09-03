@@ -26,6 +26,22 @@ export const configurePushNotifications = async () => {
     }
 };
 
+// Agregar esta función para manejar notificaciones específicas:
+export const handleCitaNotification = async (notification, navigation) => {
+    try {
+        await playNotificationSound();
+        
+        if (notification.data?.type === "cita" && notification.data?.citaId) {
+            // Navegar a la cita específica
+            navigation.navigate('DetalleCita', { 
+                citaId: notification.data.citaId 
+            });
+        }
+    } catch (error) {
+        console.error("Error manejando notificación de cita:", error);
+    }
+};
+
 // Registrar token push
 export const registerPushToken = async (userId, tokenAuth) => {
     try {

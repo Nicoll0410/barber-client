@@ -305,7 +305,7 @@ export const AuthProvider = ({ children }) => {
         }
       };
 
-      socketRef.current.on("newNotification", notificationHandlerRef.current);
+      socketRef.current.on("nueva_notificacion", notificationHandlerRef.current);
     }
   }, [authState.isLoggedIn, authState.user]);
 

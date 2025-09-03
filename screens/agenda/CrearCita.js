@@ -14,10 +14,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   Dimensions,
-  Keyboard,
-  TouchableWithoutFeedback
+  Keyboard
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { AuthContext } from "../../contexts/AuthContext";
@@ -464,49 +464,45 @@ const CrearCita = ({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-        <View style={styles.overlay}>
-          <KeyboardAvoidingView 
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={styles.keyboardAvoiding}
-            keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
-          >
-            <View style={[styles.modal, keyboardVisible && styles.modalWithKeyboard]}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>
-                  {step === 1 ? "Seleccionar servicio" : step === 2 ? "Seleccionar cliente" : "Confirmar cita"}
-                </Text>
-                <TouchableOpacity onPress={handleClose}>
-                  <MaterialIcons name="close" size={24} color="#000" />
-                </TouchableOpacity>
-              </View>
-              
-              <ScrollView
-                ref={scrollViewRef}
-                style={styles.scrollView}
-                contentContainerStyle={styles.scrollContent}
-                keyboardShouldPersistTaps="handled"
-                keyboardDismissMode="on-drag"
-                showsVerticalScrollIndicator={false}
-              >
-                {renderStep()}
-              </ScrollView>
+    <Modal visible={visible} animationType="slide" transparent>
+      <BlurView intensity={20} tint="light" style={styles.blur}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.keyboardAvoiding}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
+        >
+          <View style={[styles.modal, keyboardVisible && styles.modalWithKeyboard]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {step === 1 ? "Seleccionar servicio" : step === 2 ? "Seleccionar cliente" : "Confirmar cita"}
+              </Text>
+              <TouchableOpacity onPress={handleClose}>
+                <MaterialIcons name="close" size={24} color="#000" />
+              </TouchableOpacity>
             </View>
-          </KeyboardAvoidingView>
-        </View>
-      </TouchableWithoutFeedback>
+            
+            <ScrollView
+              ref={scrollViewRef}
+              style={styles.scrollView}
+              contentContainerStyle={styles.scrollContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              {renderStep()}
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </BlurView>
     </Modal>
   );
 };
 
 const { width, height } = Dimensions.get('window');
 const styles = StyleSheet.create({
-  overlay: {
+  blur: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   keyboardAvoiding: {
     width: '100%',

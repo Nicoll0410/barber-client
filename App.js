@@ -50,7 +50,6 @@ function MainApp() {
   const responseListener = useRef();
   const appState = useRef(AppState.currentState);
   const navigationRef = useRef();
-  const socketRef = useRef(null);
 
   // Función para manejar deep links
   const handleDeepLink = (event) => {
@@ -149,42 +148,7 @@ function MainApp() {
     appState.current = nextAppState;
   };
 
-  // Función para marcar notificación como leída
-const markNotificationAsRead = async (notificacionId) => {
-  try {
-    setAuthState(prev => ({
-      ...prev,
-      notifications: prev.notifications.map(n => 
-        n.id === notificacionId ? { ...n, leido: true } : n
-      ),
-      unreadCount: Math.max(0, prev.unreadCount - 1)
-    }));
-    
-    // Opcional: Actualizar en backend
-    if (authState.token) {
-      await axios.post(`${BASE_URL}/notifications/mark-read`, {
-        notificacionId
-      }, {
-        headers: { Authorization: `Bearer ${authState.token}` }
-      });
-    }
-  } catch (error) {
-    console.error('Error marcando notificación como leída:', error);
-  }
-};
-
-// Función para reproducir sonido de notificación
-const playNotificationSound = async () => {
-  try {
-    if (notificationSound) {
-      await notificationSound.replayAsync();
-    }
-  } catch (error) {
-    console.error('Error reproduciendo sonido:', error);
-  }
-};
-
-useEffect(() => {
+  useEffect(() => {
     // Configurar el canal de notificaciones
     setupNotificationChannel();
     
@@ -205,114 +169,20 @@ useEffect(() => {
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
       console.log('Notificación recibida en primer plano:', notification);
       
-      // ✅ ACTUALIZAR: Incrementar contador de notificaciones no leídas
-      setAuthState(prev => ({
-        ...prev,
-        unreadCount: prev.unreadCount + 1
-      }));
-      
-      // Reproducir sonido de notificación
-      playNotificationSound();
+      // Aquí puedes actualizar el estado de tu app
+      // Ejemplo: incrementar el contador de notificaciones no leídas
     });
 
     responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
       const data = response.notification.request.content.data;
       console.log('Usuario interactuó con notificación:', data);
       
-      // ✅ ACTUALIZAR: Navegar a pantallas específicas
-      if (data.screen === 'DetalleCita' && data.citaId) {
-        navigationRef.current?.navigate('DetalleCita', { id: data.citaId });
-      } else if (data.screen === 'Notificaciones') {
-        navigationRef.current?.navigate('NotificacionesScreen');
-      }
-      
-      // ✅ NUEVO: Marcar notificación como leída si es necesario
-      if (data.notificacionId) {
-        markNotificationAsRead(data.notificacionId);
-      }
+      // Navegar a pantallas específicas basadas en los datos de la notificación
+      // Ejemplo:
+      // if (data.screen === 'DetalleCita') {
+      //   navigation.navigate('DetalleCita', { id: data.citaId });
+      // }
     });
-
-    // ✅ NUEVO: Configurar listener para notificaciones de citas via socket
-    const setupSocketListeners = () => {
-      if (socketRef.current) {
-        // Listener para notificaciones de nuevas citas
-        socketRef.current.on("nueva_cita", (data) => {
-          console.log("📅 Notificación de cita recibida via socket:", data);
-          
-          // Crear notificación local
-          const nuevaNotificacion = {
-            id: `cita_${Date.now()}`,
-            titulo: data.mensaje,
-            cuerpo: `Servicio: ${data.cita?.servicio?.nombre || 'Cita agendada'}`,
-            tipo: 'cita',
-            relacionId: data.cita?.id,
-            leido: false,
-            createdAt: new Date(),
-            data: data // Guardar datos completos
-          };
-
-          // Actualizar estado
-          setAuthState(prev => ({
-            ...prev,
-            notifications: [nuevaNotificacion, ...prev.notifications],
-            unreadCount: prev.unreadCount + 1,
-            lastNotification: nuevaNotificacion
-          }));
-
-          // Reproducir sonido
-          playNotificationSound();
-          
-          // Actualizar badge
-          Notifications.setBadgeCountAsync(authState.unreadCount + 1);
-          
-          // Mostrar notificación local
-          if (Platform.OS !== 'web') {
-            Notifications.scheduleNotificationAsync({
-              content: {
-                title: nuevaNotificacion.titulo,
-                body: nuevaNotificacion.cuerpo,
-                sound: 'default',
-                data: {
-                  type: 'cita',
-                  citaId: data.cita?.id,
-                  screen: 'DetalleCita',
-                  notificacionId: nuevaNotificacion.id
-                }
-              },
-              trigger: null
-            });
-          }
-        });
-
-        // Listener para notificaciones generales
-        socketRef.current.on("newNotification", (data) => {
-          console.log("📩 Notificación general recibida:", data);
-          
-          // Verificar si es para el usuario actual
-          if (authState.user && data.usuarioID === authState.user.userId) {
-            setAuthState(prev => {
-              const exists = prev.notifications.some(n => n.id === data.notificacion.id);
-              if (exists) return prev;
-
-              return {
-                ...prev,
-                notifications: [data.notificacion, ...prev.notifications],
-                unreadCount: prev.unreadCount + 1,
-                lastNotification: data.notificacion
-              };
-            });
-
-            playNotificationSound();
-            Notifications.setBadgeCountAsync(authState.unreadCount + 1);
-          }
-        });
-      }
-    };
-
-    // Inicializar socket listeners después de un breve delay
-    const socketTimeout = setTimeout(() => {
-      setupSocketListeners();
-    }, 1000);
 
     // Configurar listener para deep links
     const linkingSubscription = Linking.addEventListener('url', handleDeepLink);
@@ -336,18 +206,10 @@ useEffect(() => {
       if (responseListener.current) {
         responseListener.current.remove();
       }
-      
-      // ✅ NUEVO: Limpiar listeners de socket
-      if (socketRef.current) {
-        socketRef.current.off("nueva_cita");
-        socketRef.current.off("newNotification");
-      }
-      
-      clearTimeout(socketTimeout);
       linkingSubscription.remove();
       appStateSubscription.remove();
     };
-  }, [authState.user, authState.unreadCount]); // ✅ AGREGAR dependencias
+  }, []);
 
   return (
     <NavigationContainer

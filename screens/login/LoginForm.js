@@ -11,13 +11,11 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
-  ScrollView
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import { AuthContext } from "../../contexts/AuthContext";
-import Footer from "../../components/Footer"; // Asegúrate de importar el Footer
 
 const { width } = Dimensions.get("window");
 const isDesktop = width >= 1024;
@@ -108,113 +106,99 @@ const LoginForm = () => {
   const togglePassword = () => setShowPassword(!showPassword);
 
   return (
-    <View style={styles.mainContainer}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.keyboardAvoidingView}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 0}
-      >
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-          <View style={styles.formContainer}>
-            <Text style={styles.title}>Accede a tu cuenta</Text>
-            <Text style={styles.subtitle}>
-              Inicia sesión para gestionar tus citas y servicios
-            </Text>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={styles.keyboardAvoidingView}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 0}
+    >
+      <View style={styles.formContainer}>
+        <Text style={styles.title}>Accede a tu cuenta</Text>
+        <Text style={styles.subtitle}>
+          Inicia sesión para gestionar tus citas y servicios
+        </Text>
 
-            <Text style={styles.inputLabel}>Email *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="nombre@dominio.com"
-              placeholderTextColor="#808280"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
+        <Text style={styles.inputLabel}>Email *</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="nombre@dominio.com"
+          placeholderTextColor="#808280"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+
+        <Text style={styles.inputLabel}>Contraseña *</Text>
+        <View style={styles.passwordInputContainer}>
+          <TextInput
+            style={styles.passwordInput}
+            placeholder="●●●●●●●●"
+            placeholderTextColor="#808280"
+            secureTextEntry={!showPassword}
+            value={password}
+            onChangeText={setPassword}
+            returnKeyType="go"
+            onSubmitEditing={handleLogin}
+          />
+          <TouchableOpacity style={styles.eyeIcon} onPress={togglePassword}>
+            <Ionicons
+              name={showPassword ? "eye-off" : "eye"}
+              size={24}
+              color="#808280"
             />
+          </TouchableOpacity>
+        </View>
 
-            <Text style={styles.inputLabel}>Contraseña *</Text>
-            <View style={styles.passwordInputContainer}>
-              <TextInput
-                style={styles.passwordInput}
-                placeholder="●●●●●●●●"
-                placeholderTextColor="#808280"
-                secureTextEntry={!showPassword}
-                value={password}
-                onChangeText={setPassword}
-                returnKeyType="go"
-                onSubmitEditing={handleLogin}
-              />
-              <TouchableOpacity style={styles.eyeIcon} onPress={togglePassword}>
-                <Ionicons
-                  name={showPassword ? "eye-off" : "eye"}
-                  size={24}
-                  color="#808280"
-                />
-              </TouchableOpacity>
-            </View>
+        {loginError ? <Text style={styles.errorText}>{loginError}</Text> : null}
 
-            {loginError ? <Text style={styles.errorText}>{loginError}</Text> : null}
+        <TouchableOpacity
+          style={styles.button}
+          onPress={handleLogin}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Iniciar sesión</Text>
+          )}
+        </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.button}
-              onPress={handleLogin}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.buttonText}>Iniciar sesión</Text>
-              )}
-            </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.forgotPasswordButton}
+          onPress={() => navigation.navigate("ForgotPassword")}
+        >
+          <Text style={styles.forgotPassword}>¿Olvidaste tu contraseña?</Text>
+        </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.forgotPasswordButton}
-              onPress={() => navigation.navigate("ForgotPassword")}
-            >
-              <Text style={styles.forgotPassword}>¿Olvidaste tu contraseña?</Text>
-            </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.registerButton}
+          onPress={() => navigation.navigate("Register")}
+        >
+          <Text style={styles.registerText}>
+            ¿No tienes cuenta?{" "}
+            <Text style={styles.registerLink}>Regístrate</Text>
+          </Text>
+        </TouchableOpacity>
+      </View>
 
-            <TouchableOpacity
-              style={styles.registerButton}
-              onPress={() => navigation.navigate("Register")}
-            >
-              <Text style={styles.registerText}>
-                ¿No tienes cuenta?{" "}
-                <Text style={styles.registerLink}>Regístrate</Text>
-              </Text>
-            </TouchableOpacity>
+      {/* Loading Modal */}
+      <Modal transparent visible={isLoading} animationType="fade">
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingBox}>
+            <ActivityIndicator size="large" color="#000" />
+            <Text style={styles.loadingText}>Iniciando sesión...</Text>
           </View>
-        </ScrollView>
-
-        {/* Footer visible en móvil */}
-        {isMobile && <Footer />}
-
-        {/* Loading Modal */}
-        <Modal transparent visible={isLoading} animationType="fade">
-          <View style={styles.loadingOverlay}>
-            <View style={styles.loadingBox}>
-              <ActivityIndicator size="large" color="#000" />
-              <Text style={styles.loadingText}>Iniciando sesión...</Text>
-            </View>
-          </View>
-        </Modal>
-      </KeyboardAvoidingView>
-    </View>
+        </View>
+      </Modal>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  mainContainer: {
-    flex: 1,
-    backgroundColor: "#f8f9fa",
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    justifyContent: "center",
-    paddingBottom: 80, // Espacio para el footer en móvil
-  },
   keyboardAvoidingView: {
     flex: 1,
+    justifyContent: "center",
+    backgroundColor: "#f8f9fa",
   },
   formContainer: {
     width: isDesktop ? 400 : "90%",
@@ -228,7 +212,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 3,
-    marginVertical: 20,
   },
   title: {
     fontSize: isDesktop ? 24 : 20,

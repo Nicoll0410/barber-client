@@ -10,7 +10,7 @@ import {
 import LoginForm from './LoginForm';
 import Footer from '../../components/Footer';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 const isDesktop = width >= 1024;
 const isMobile = width < 768;
 
@@ -18,19 +18,25 @@ const LoginScreen = () => {
   return (
     <View style={styles.container}>
       {isMobile ? (
-        <ScrollView 
-          contentContainerStyle={styles.scrollContainer}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={styles.mobileContent}>
-            <Image 
-              source={require('../../assets/images/newYorkBarber.jpeg')} 
-              style={styles.logo} 
-              resizeMode="contain"
-            />
-            <LoginForm />
+        <View style={styles.mobileContainer}>
+          <ScrollView 
+            contentContainerStyle={styles.scrollContainer}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.mobileContent}>
+              <Image 
+                source={require('../../assets/images/newYorkBarber.jpeg')} 
+                style={styles.logo} 
+                resizeMode="contain"
+              />
+              <LoginForm />
+            </View>
+          </ScrollView>
+          {/* Footer fijo en móvil */}
+          <View style={styles.mobileFooter}>
+            <Footer />
           </View>
-        </ScrollView>
+        </View>
       ) : (
         <View style={styles.desktopContainer}>
           <View style={styles.desktopContent}>
@@ -57,15 +63,25 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
+  mobileContainer: {
+    flex: 1,
+  },
   scrollContainer: {
     flexGrow: 1,
     justifyContent: 'center',
+    paddingBottom: 80, // Espacio para el footer
   },
   mobileContent: {
     width: '100%',
     alignItems: 'center',
     padding: 20,
-    paddingBottom: 80,
+  },
+  mobileFooter: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
   },
   desktopContainer: {
     flex: 1,

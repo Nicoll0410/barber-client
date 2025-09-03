@@ -193,7 +193,7 @@ const playNotificationSound = async () => {
     }
   }, []);
 
-const markNotificationAsRead = async (notificacionId) => {
+const markNotificationsAsRead = async (notificacionId) => {
   try {
     setAuthState(prev => ({
       ...prev,

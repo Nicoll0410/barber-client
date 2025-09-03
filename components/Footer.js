@@ -8,7 +8,7 @@ const Footer = () => {
 
   return (
     <View style={[styles.container, isMobile && styles.mobileContainer]}>
-      <View style={styles.content}>
+      <View style={[styles.content, isMobile && styles.mobileContent]}>
         <Text style={styles.text}>© 2025.</Text>
         
         <View style={[styles.authors, isMobile && styles.authorsMobile]}>
@@ -20,7 +20,7 @@ const Footer = () => {
           {!isMobile && <Text style={styles.text}> | </Text>}
           
           <TouchableOpacity style={styles.authorLink}>
-            <Ionicons name="person" size={14} color="#6c757d" /> {/* Icono siempre visible */}
+            <Ionicons name="person" size={14} color="#6c757d" />
             <Text style={[styles.text, styles.highlight]}> Luis Miguel Chica Ruíz.</Text>
           </TouchableOpacity>
         </View>
@@ -46,6 +46,8 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
+    zIndex: 1000, // Asegura que esté por encima de otros elementos
+    backgroundColor: '#ffffff', // Fondo sólido para que el contenido no se vea detrás
   },
   content: {
     flexDirection: 'row',
@@ -54,6 +56,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     flexWrap: 'wrap',
   },
+  mobileContent: {
+    justifyContent: 'center', // Centrar contenido en móvil
+    paddingVertical: 10, // Un poco más de padding en móvil
+  },
   authors: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -61,9 +67,9 @@ const styles = StyleSheet.create({
   },
   authorsMobile: {
     flexDirection: 'column',
-    alignItems: 'flex-start',
-    marginLeft: 4,
-    marginTop: 2,
+    alignItems: 'center', // Centrar en móvil
+    marginLeft: 0,
+    marginTop: 4,
   },
   authorLink: {
     flexDirection: 'row',
@@ -80,4 +86,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Footer;
+export default Footer;}

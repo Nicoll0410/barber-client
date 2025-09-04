@@ -15,7 +15,7 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { AuthContext } from "../contexts/AuthContext";
 import CustomDrawer from "../components/CustomDrawer";
 import { Ionicons } from "@expo/vector-icons";
-
+import Footer from '../components/Footer';
 // Importa TODAS tus pantallas
 import DashboardScreen from "../screens/dashboard/DashboardScreen";
 import ClientesScreen from "../screens/clientes/ClientesScreen";

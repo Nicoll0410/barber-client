@@ -266,106 +266,108 @@ const ServiciosScreen = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.tituloContainer}>
-          <Text style={styles.titulo}>Servicios</Text>
-          <View style={styles.contadorContainer}>
-            <Text style={styles.contadorTexto}>{serviciosFiltrados.length}</Text>
+      <View style={styles.content}>
+        <View style={styles.header}>
+          <View style={styles.tituloContainer}>
+            <Text style={styles.titulo}>Servicios</Text>
+            <View style={styles.contadorContainer}>
+              <Text style={styles.contadorTexto}>{serviciosFiltrados.length}</Text>
+            </View>
           </View>
+          <TouchableOpacity
+            style={styles.botonHeader}
+            onPress={crearServicio}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="add-circle" size={20} color="white" />
+            <Text style={styles.textoBoton}>Crear</Text>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          style={styles.botonHeader}
-          onPress={crearServicio}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="add-circle" size={20} color="white" />
-          <Text style={styles.textoBoton}>Crear</Text>
-        </TouchableOpacity>
-      </View>
 
-      <Buscador
-        placeholder="Buscar servicios (corte, barba, tratamiento...)"
-        value={busqueda}
-        onChangeText={handleSearchChange}
-      />
-
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <Text>Cargando servicios...</Text>
-        </View>
-      ) : serviciosMostrar.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyText}>No se encontraron servicios</Text>
-        </View>
-      ) : isMobile ? (
-        <FlatList
-          data={serviciosMostrar}
-          keyExtractor={(item) => item.id}
-          renderItem={renderMobileItem}
-          contentContainerStyle={styles.listContainer}
-          style={styles.mobileList}
+        <Buscador
+          placeholder="Buscar servicios (corte, barba, tratamiento...)"
+          value={busqueda}
+          onChangeText={handleSearchChange}
         />
-      ) : (
-        <View style={styles.tabla}>
-          <View style={styles.filaEncabezado}>
-            <View style={[styles.celdaEncabezado, styles.columnaNombre]}><Text style={styles.encabezado}>Nombre</Text></View>
-            <View style={[styles.celdaEncabezado, styles.columnaDescripcion]}><Text style={styles.encabezado}>Descripción</Text></View>
-            <View style={[styles.celdaEncabezado, styles.columnaDuracion]}><Text style={styles.encabezado}>Duración</Text></View>
-            <View style={[styles.celdaEncabezado, styles.columnaPrecio]}><Text style={styles.encabezado}>Precio</Text></View>
-            <View style={[styles.celdaEncabezado, styles.columnaAcciones]}><Text style={styles.encabezado}>Acciones</Text></View>
+
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <Text>Cargando servicios...</Text>
           </View>
+        ) : serviciosMostrar.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>No se encontraron servicios</Text>
+          </View>
+        ) : isMobile ? (
           <FlatList
             data={serviciosMostrar}
             keyExtractor={(item) => item.id}
-            renderItem={renderDesktopItem}
-            scrollEnabled={false}
+            renderItem={renderMobileItem}
+            contentContainerStyle={styles.listContainer}
+            style={styles.mobileList}
           />
-        </View>
-      )}
+        ) : (
+          <View style={styles.tabla}>
+            <View style={styles.filaEncabezado}>
+              <View style={[styles.celdaEncabezado, styles.columnaNombre]}><Text style={styles.encabezado}>Nombre</Text></View>
+              <View style={[styles.celdaEncabezado, styles.columnaDescripcion]}><Text style={styles.encabezado}>Descripción</Text></View>
+              <View style={[styles.celdaEncabezado, styles.columnaDuracion]}><Text style={styles.encabezado}>Duración</Text></View>
+              <View style={[styles.celdaEncabezado, styles.columnaPrecio]}><Text style={styles.encabezado}>Precio</Text></View>
+              <View style={[styles.celdaEncabezado, styles.columnaAcciones]}><Text style={styles.encabezado}>Acciones</Text></View>
+            </View>
+            <FlatList
+              data={serviciosMostrar}
+              keyExtractor={(item) => item.id}
+              renderItem={renderDesktopItem}
+              scrollEnabled={false}
+            />
+          </View>
+        )}
 
-      {!isMobile && (
-        <Paginacion
-          paginaActual={paginaActual}
-          totalPaginas={totalPaginas}
-          cambiarPagina={cambiarPagina}
+        {!isMobile && (
+          <Paginacion
+            paginaActual={paginaActual}
+            totalPaginas={totalPaginas}
+            cambiarPagina={cambiarPagina}
+          />
+        )}
+
+        <CrearServicio
+          visible={modalVisible}
+          onClose={() => setModalVisible(false)}
+          onCreate={handleCreateService}
+          insumosDisponibles={insumosDisponibles}
         />
-      )}
 
-      <CrearServicio
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
-        onCreate={handleCreateService}
-        insumosDisponibles={insumosDisponibles}
-      />
+        <DetalleServicio
+          visible={modalDetalleVisible}
+          onClose={() => setModalDetalleVisible(false)}
+          servicio={servicioSeleccionado}
+        />
 
-      <DetalleServicio
-        visible={modalDetalleVisible}
-        onClose={() => setModalDetalleVisible(false)}
-        servicio={servicioSeleccionado}
-      />
+        <EditarServicio
+          visible={modalEditarVisible}
+          onClose={() => setModalEditarVisible(false)}
+          servicio={servicioSeleccionado}
+          onUpdate={handleUpdateService}
+          insumosDisponibles={insumosDisponibles}
+        />
 
-      <EditarServicio
-        visible={modalEditarVisible}
-        onClose={() => setModalEditarVisible(false)}
-        servicio={servicioSeleccionado}
-        onUpdate={handleUpdateService}
-        insumosDisponibles={insumosDisponibles}
-      />
+        <ConfirmarModal
+          visible={showConfirmModal}
+          onClose={() => setShowConfirmModal(false)}
+          onConfirm={handleDeleteService}
+          title="Confirmar eliminación ⚠️"
+          message="¿Estás seguro de que deseas eliminar este servicio? Esta acción no se puede deshacer."
+        />
 
-      <ConfirmarModal
-        visible={showConfirmModal}
-        onClose={() => setShowConfirmModal(false)}
-        onConfirm={handleDeleteService}
-        title="Confirmar eliminación ⚠️"
-        message="¿Estás seguro de que deseas eliminar este servicio? Esta acción no se puede deshacer."
-      />
-
-      <InfoModal
-        visible={infoModalVisible}
-        onClose={() => setInfoModalVisible(false)}
-        title={infoModalMessage.title}
-        message={infoModalMessage.message}
-      />
+        <InfoModal
+          visible={infoModalVisible}
+          onClose={() => setInfoModalVisible(false)}
+          title={infoModalMessage.title}
+          message={infoModalMessage.message}
+        />
+      </View>
      
       <Footer />
     </View>
@@ -376,7 +378,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  content: {
+    flex: 1,
     padding: 16,
+    paddingBottom: 0, // Eliminamos el padding inferior para que el footer quede pegado
   },
   loadingContainer: {
     flex: 1,
@@ -576,6 +582,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 6,
   },
   emptyState: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 40,

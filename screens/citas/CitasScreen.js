@@ -357,7 +357,7 @@ const cancelarCita = async () => {
       {/* Modal de Confirmación para Cancelar */}
       <ConfirmarModal
         visible={showCancelModal}
-        onClose={() => {
+        onCancel={() => {
           setShowCancelModal(false);
           setCitaACancelar(null);
         }}

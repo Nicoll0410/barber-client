@@ -7,7 +7,8 @@ import {
   TouchableOpacity,
   FlatList,
   Dimensions,
-  ActivityIndicator
+  ActivityIndicator,
+  ScrollView
 } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import Buscador from "../../components/Buscador";
@@ -232,70 +233,72 @@ const VentasScreen = () => {
         onChangeText={setBusqueda}
       />
 
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#0000ff" />
-          <Text>Cargando ventas...</Text>
-        </View>
-      ) : ventasFiltradas.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyText}>No se encontraron ventas 😕</Text>
-          {busqueda.trim() && (
-            <Text style={styles.emptySubText}>
-              Intenta con otros términos de búsqueda
-            </Text>
-          )}
-        </View>
-      ) : isMobile ? (
-        <FlatList
-          data={ventasFiltradas}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={renderMobileItem}
-          contentContainerStyle={styles.listContainer}
-          style={styles.mobileList}
-        />
-      ) : (
-        <>
-          <View style={styles.tabla}>
-            <View style={styles.filaEncabezado}>
-              <View style={[styles.celdaEncabezado, styles.columnaFecha]}>
-                <Text style={styles.encabezado}>📅 Fecha</Text>
+      <View style={styles.contentContainer}>
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#0000ff" />
+            <Text>Cargando ventas...</Text>
+          </View>
+        ) : ventasFiltradas.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>No se encontraron ventas 😕</Text>
+            {busqueda.trim() && (
+              <Text style={styles.emptySubText}>
+                Intenta con otros términos de búsqueda
+              </Text>
+            )}
+          </View>
+        ) : isMobile ? (
+          <FlatList
+            data={ventasFiltradas}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={renderMobileItem}
+            contentContainerStyle={styles.listContainer}
+            style={styles.mobileList}
+          />
+        ) : (
+          <>
+            <View style={styles.tabla}>
+              <View style={styles.filaEncabezado}>
+                <View style={[styles.celdaEncabezado, styles.columnaFecha]}>
+                  <Text style={styles.encabezado}>📅 Fecha</Text>
+                </View>
+                <View style={[styles.celdaEncabezado, styles.columnaHora]}>
+                  <Text style={styles.encabezado}>⏰ Hora</Text>
+                </View>
+                <View style={[styles.celdaEncabezado, styles.columnaCliente]}>
+                  <Text style={styles.encabezado}>👤 Cliente</Text>
+                </View>
+                <View style={[styles.celdaEncabezado, styles.columnaServicio]}>
+                  <Text style={styles.encabezado}>💈 Servicio</Text>
+                </View>
+                <View style={[styles.celdaEncabezado, styles.columnaBarbero]}>
+                  <Text style={styles.encabezado}>🧔 Barbero</Text>
+                </View>
+                <View style={[styles.celdaEncabezado, styles.columnaPrecio]}>
+                  <Text style={styles.encabezado}>💰 Total</Text>
+                </View>
+                <View style={[styles.celdaEncabezado, styles.columnaAcciones]}>
+                  <Text style={styles.encabezado}>⚙️</Text>
+                </View>
               </View>
-              <View style={[styles.celdaEncabezado, styles.columnaHora]}>
-                <Text style={styles.encabezado}>⏰ Hora</Text>
-              </View>
-              <View style={[styles.celdaEncabezado, styles.columnaCliente]}>
-                <Text style={styles.encabezado}>👤 Cliente</Text>
-              </View>
-              <View style={[styles.celdaEncabezado, styles.columnaServicio]}>
-                <Text style={styles.encabezado}>💈 Servicio</Text>
-              </View>
-              <View style={[styles.celdaEncabezado, styles.columnaBarbero]}>
-                <Text style={styles.encabezado}>🧔 Barbero</Text>
-              </View>
-              <View style={[styles.celdaEncabezado, styles.columnaPrecio]}>
-                <Text style={styles.encabezado}>💰 Total</Text>
-              </View>
-              <View style={[styles.celdaEncabezado, styles.columnaAcciones]}>
-                <Text style={styles.encabezado}>⚙️</Text>
-              </View>
+              <FlatList
+                data={ventasPaginadas}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={renderDesktopItem}
+              />
             </View>
-            <FlatList
-              data={ventasPaginadas}
-              keyExtractor={(item) => item.id.toString()}
-              renderItem={renderDesktopItem}
-            />
-          </View>
 
-          <View style={styles.paginacionContainer}>
-            <Paginacion
-              paginaActual={pagina}
-              totalPaginas={totalPags}
-              cambiarPagina={setPagina}
-            />
-          </View>
-        </>
-      )}
+            <View style={styles.paginacionContainer}>
+              <Paginacion
+                paginaActual={pagina}
+                totalPaginas={totalPags}
+                cambiarPagina={setPagina}
+              />
+            </View>
+          </>
+        )}
+      </View>
 
       <DetalleVenta
         visible={modalDetalleVisible}
@@ -320,6 +323,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
     padding: 16,
+  },
+  contentContainer: {
+    flex: 1, // Esto hace que el contenido ocupe todo el espacio disponible
   },
   mobileList: {
     flex: 1,
@@ -495,6 +501,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   emptyState: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 40,
@@ -502,11 +509,11 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: '#666',
+    marginBottom: 8,
   },
   emptySubText: {
     fontSize: 14,
     color: '#999',
-    marginTop: 8,
   },
   encabezado: {
     fontWeight: 'bold',
@@ -514,7 +521,7 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   paginacionContainer: {
-    marginBottom: 35,
+    marginBottom: 16,
   },
 });
 

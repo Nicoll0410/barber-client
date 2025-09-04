@@ -46,6 +46,11 @@ const CrearCita = ({
   const telefonoInputRef = useRef(null);
   const searchInputRef = useRef(null);
 
+  // Nuevas referencias para evitar re-renderizados
+  const temporalNombreRef = useRef("");
+  const temporalTelefonoRef = useRef("");
+  const busquedaRef = useRef("");
+
   useEffect(() => {
     return () => {
       reset();
@@ -69,10 +74,13 @@ const CrearCita = ({
     setServicioSel(null);
     setClienteSel(null);
     setBusqueda("");
+    busquedaRef.current = "";
     setStep(1);
     setIsTemporal(false);
     setTemporalNombre("");
+    temporalNombreRef.current = "";
     setTemporalTelefono("");
+    temporalTelefonoRef.current = "";
     setIsLoading(false);
   };
 
@@ -336,18 +344,30 @@ const CrearCita = ({
     }
   };
 
-  // Usar useCallback para evitar recrear funciones en cada render
-  const handleSetTemporalNombre = useCallback((text) => {
-    setTemporalNombre(text);
-  }, []);
+  // Función optimizada para manejar cambios en inputs sin causar re-render
+  const handleInputChange = (type, text) => {
+    switch (type) {
+      case 'nombre':
+        temporalNombreRef.current = text;
+        break;
+      case 'telefono':
+        temporalTelefonoRef.current = text;
+        break;
+      case 'busqueda':
+        busquedaRef.current = text;
+        break;
+    }
+  };
 
-  const handleSetTemporalTelefono = useCallback((text) => {
-    setTemporalTelefono(text);
-  }, []);
-
-  const handleSetBusqueda = useCallback((text) => {
-    setBusqueda(text);
-  }, []);
+  // Sincronizar refs con estado cuando se necesita (al cambiar de paso o crear)
+  const syncInputsWithState = () => {
+    if (isTemporal) {
+      setTemporalNombre(temporalNombreRef.current);
+      setTemporalTelefono(temporalTelefonoRef.current);
+    } else {
+      setBusqueda(busquedaRef.current);
+    }
+  };
 
   const Paso1 = () => (
     <View style={styles.stepContainer}>
@@ -383,7 +403,10 @@ const CrearCita = ({
             styles.btnWide,
             !servicioSel && styles.btnDisabled,
           ]}
-          onPress={() => setStep(2)}
+          onPress={() => {
+            setStep(2);
+            syncInputsWithState();
+          }}
           disabled={!servicioSel}
         >
           <Text style={styles.btnPrimaryText}>Siguiente</Text>
@@ -394,7 +417,7 @@ const CrearCita = ({
 
   const Paso2 = () => {
     const filtrados = clientes.filter((c) =>
-      c.nombre.toLowerCase().includes(busqueda.toLowerCase())
+      c.nombre.toLowerCase().includes(busquedaRef.current.toLowerCase())
     );
 
     return (
@@ -473,13 +496,9 @@ const CrearCita = ({
                 ref={searchInputRef}
                 style={styles.searchInput}
                 placeholder="Buscar por nombre"
-                value={busqueda}
-                onChangeText={handleSetBusqueda}
+                defaultValue={busquedaRef.current}
+                onChangeText={(text) => handleInputChange('busqueda', text)}
                 autoFocus={true}
-                autoCorrect={false}
-                autoCapitalize="none"
-                keyboardType="default"
-                returnKeyType="search"
               />
             </View>
             <FlatList
@@ -509,8 +528,8 @@ const CrearCita = ({
               ref={nombreInputRef}
               style={styles.input}
               placeholder="Ej. Juan Pérez"
-              value={temporalNombre}
-              onChangeText={handleSetTemporalNombre}
+              defaultValue={temporalNombreRef.current}
+              onChangeText={(text) => handleInputChange('nombre', text)}
               returnKeyType="next"
               onSubmitEditing={() => {
                 if (telefonoInputRef.current) {
@@ -518,21 +537,16 @@ const CrearCita = ({
                 }
               }}
               blurOnSubmit={false}
-              autoCorrect={false}
-              autoCapitalize="words"
-              keyboardType="default"
             />
             <Text style={styles.inputLabel}>Teléfono (opcional)</Text>
             <TextInput
               ref={telefonoInputRef}
               style={styles.input}
               placeholder="Ej. 3001234567"
-              value={temporalTelefono}
+              defaultValue={temporalTelefonoRef.current}
               keyboardType="phone-pad"
-              onChangeText={handleSetTemporalTelefono}
+              onChangeText={(text) => handleInputChange('telefono', text)}
               returnKeyType="done"
-              autoCorrect={false}
-              autoCapitalize="none"
             />
           </>
         )}
@@ -540,7 +554,10 @@ const CrearCita = ({
         <View style={styles.navBtns}>
           <TouchableOpacity
             style={styles.btnSecondary}
-            onPress={() => setStep(1)}
+            onPress={() => {
+              setStep(1);
+              syncInputsWithState();
+            }}
           >
             <Text style={styles.btnSecondaryText}>Volver</Text>
           </TouchableOpacity>
@@ -548,13 +565,16 @@ const CrearCita = ({
             style={[
               styles.btnPrimary,
               !isTemporal && !clienteSel && styles.btnDisabled,
-              isTemporal && !temporalNombre.trim() && styles.btnDisabled,
+              isTemporal && !temporalNombreRef.current.trim() && styles.btnDisabled,
               { width: "45%" },
             ]}
-            onPress={() => setStep(3)}
+            onPress={() => {
+              syncInputsWithState();
+              setStep(3);
+            }}
             disabled={
               (!isTemporal && !clienteSel) ||
-              (isTemporal && !temporalNombre.trim())
+              (isTemporal && !temporalNombreRef.current.trim())
             }
           >
             <Text style={styles.btnPrimaryText}>Siguiente</Text>
@@ -635,14 +655,20 @@ const CrearCita = ({
         <View style={styles.navBtns}>
           <TouchableOpacity
             style={styles.btnSecondary}
-            onPress={() => setStep(2)}
+            onPress={() => {
+              setStep(2);
+              syncInputsWithState();
+            }}
             disabled={isLoading}
           >
             <Text style={styles.btnSecondaryText}>Volver</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.btnPrimary, isLoading && styles.btnDisabled]}
-            onPress={handleCrear}
+            onPress={() => {
+              syncInputsWithState();
+              handleCrear();
+            }}
             disabled={isLoading}
           >
             {isLoading ? (
@@ -693,7 +719,6 @@ const CrearCita = ({
             <ScrollView 
               contentContainerStyle={{ flexGrow: 1 }}
               keyboardShouldPersistTaps="handled"
-              keyboardDismissMode="on-drag"
             >
               {renderStep()}
             </ScrollView>

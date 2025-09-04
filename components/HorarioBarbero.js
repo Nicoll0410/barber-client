@@ -4,8 +4,6 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import InfoModal from './InfoModal';
-
 
 const diasSemana = [
   { id: 'lunes', nombre: 'Lunes' },
@@ -50,8 +48,7 @@ const HorarioBarbero = ({ barberoId, visible, onClose }) => {
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [currentDay, setCurrentDay] = useState(null);
   const [almuerzo, setAlmuerzo] = useState(defaultHorario.horarioAlmuerzo);
-  const [showSuccessModal, setShowSuccessModal] = useState(false); // Nuevo estado para el modal
-
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   useEffect(() => {
     if (visible && barberoId) {
@@ -113,6 +110,43 @@ const HorarioBarbero = ({ barberoId, visible, onClose }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Función para seleccionar todos los días
+  const toggleTodosLosDias = (activar) => {
+    setHorario(prev => {
+      const nuevosDias = {...prev.diasLaborales};
+      
+      Object.keys(nuevosDias).forEach(diaId => {
+        nuevosDias[diaId] = {
+          ...nuevosDias[diaId],
+          activo: activar
+        };
+      });
+      
+      return {
+        ...prev,
+        diasLaborales: nuevosDias
+      };
+    });
+  };
+
+  // Función para seleccionar todas las horas de un día específico
+  const toggleTodasLasHoras = (diaId, seleccionarTodas) => {
+    setHorario(prev => {
+      const diaActual = prev.diasLaborales[diaId] || { activo: false, horas: [] };
+      
+      return {
+        ...prev,
+        diasLaborales: {
+          ...prev.diasLaborales,
+          [diaId]: {
+            ...diaActual,
+            horas: seleccionarTodas ? [...horasDisponibles] : []
+          }
+        }
+      };
+    });
   };
 
   const toggleDiaActivo = (diaId) => {
@@ -182,7 +216,6 @@ const HorarioBarbero = ({ barberoId, visible, onClose }) => {
     }));
   };
 
-// En el método saveHorario, agregar validación adicional
   const saveHorario = async () => {
     try {
       setLoading(true);
@@ -246,6 +279,9 @@ const HorarioBarbero = ({ barberoId, visible, onClose }) => {
     );
   }
 
+  // Verificar si todos los días están seleccionados
+  const todosLosDiasSeleccionados = Object.values(horario.diasLaborales).every(dia => dia.activo);
+
   return (
     <Modal visible={visible} transparent animationType="slide">
       <BlurView intensity={15} tint="light" style={StyleSheet.absoluteFill} />
@@ -301,10 +337,22 @@ const HorarioBarbero = ({ barberoId, visible, onClose }) => {
 
             {/* Días laborales */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Días Laborales</Text>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.sectionTitle}>Días Laborales</Text>
+                <TouchableOpacity 
+                  style={styles.selectAllButton}
+                  onPress={() => toggleTodosLosDias(!todosLosDiasSeleccionados)}
+                >
+                  <Text style={styles.selectAllText}>
+                    {todosLosDiasSeleccionados ? 'Desmarcar todos' : 'Seleccionar todos'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
               
               {diasSemana.map(dia => {
                 const diaData = horario.diasLaborales[dia.id] || { activo: false, horas: [] };
+                const todasLasHorasSeleccionadas = diaData.horas.length === horasDisponibles.length;
+                
                 return (
                   <View key={dia.id} style={styles.dayContainer}>
                     <View style={styles.dayHeader}>
@@ -320,7 +368,17 @@ const HorarioBarbero = ({ barberoId, visible, onClose }) => {
                     
                     {diaData.activo && (
                       <View style={styles.hoursContainer}>
-                        <Text style={styles.hoursTitle}>Horas disponibles:</Text>
+                        <View style={styles.hoursHeader}>
+                          <Text style={styles.hoursTitle}>Horas disponibles:</Text>
+                          <TouchableOpacity 
+                            style={styles.selectAllHoursButton}
+                            onPress={() => toggleTodasLasHoras(dia.id, !todasLasHorasSeleccionadas)}
+                          >
+                            <Text style={styles.selectAllHoursText}>
+                              {todasLasHorasSeleccionadas ? 'Desmarcar todas' : 'Seleccionar todas'}
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
                         <View style={styles.hoursGrid}>
                           {horasDisponibles.map(hora => {
                             const isSelected = diaData.horas.includes(hora);
@@ -407,6 +465,17 @@ const HorarioBarbero = ({ barberoId, visible, onClose }) => {
           </View>
         </View>
       </Modal>
+
+      {/* Success Modal */}
+      <Modal visible={showSuccessModal} transparent animationType="fade">
+        <BlurView intensity={15} tint="light" style={StyleSheet.absoluteFill} />
+        <View style={styles.successModal}>
+          <View style={styles.successContent}>
+            <MaterialIcons name="check-circle" size={60} color="#4CAF50" />
+            <Text style={styles.successText}>¡Horario guardado con éxito!</Text>
+          </View>
+        </View>
+      </Modal>
     </Modal>
   );
 };
@@ -460,11 +529,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 15
   },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 15
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     marginRight: 10,
     color: '#424242'
+  },
+  selectAllButton: {
+    padding: 8,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 5
+  },
+  selectAllText: {
+    color: '#424242',
+    fontWeight: '500'
   },
   timeInputContainer: {
     flexDirection: 'row',
@@ -506,10 +590,25 @@ const styles = StyleSheet.create({
   hoursContainer: {
     marginLeft: 35
   },
+  hoursHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10
+  },
   hoursTitle: {
     fontSize: 14,
-    marginBottom: 5,
     color: '#666'
+  },
+  selectAllHoursButton: {
+    padding: 5,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 5
+  },
+  selectAllHoursText: {
+    fontSize: 12,
+    color: '#424242',
+    fontWeight: '500'
   },
   hoursGrid: {
     flexDirection: 'row',
@@ -556,7 +655,11 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 16,
-    fontWeight: 'bold'
+    fontWeight: 'bold',
+    color: '#fff'
+  },
+  cancelButtonText: {
+    color: '#424242'
   },
   timePickerModal: {
     flex: 1,
@@ -599,6 +702,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#424242',
     fontWeight: 'bold'
+  },
+  successModal: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  successContent: {
+    backgroundColor: 'white',
+    padding: 30,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  successText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 15,
+    color: '#424242'
   }
 });
 

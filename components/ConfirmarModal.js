@@ -12,7 +12,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 
 const ConfirmarModal = ({
   visible,
-  onClose,
+  onCancel,
   onConfirm,
   titulo = "Confirmar acción",
   mensaje = "¿Estás seguro de que quieres realizar esta acción?",
@@ -43,7 +43,7 @@ const ConfirmarModal = ({
       transparent
       animationType="fade"
       visible={visible}
-      onRequestClose={onClose}
+      onRequestClose={onCancel}
     >
       <View style={styles.overlay}>
         <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
@@ -65,7 +65,7 @@ const ConfirmarModal = ({
             <View style={styles.botonesContainer}>
               <TouchableOpacity 
                 style={[styles.boton, styles.cancelButton]}
-                onPress={onClose}
+                onPress={onCancel}
               >
                 <Text style={styles.cancelButtonText}>{textoCancelar}</Text>
               </TouchableOpacity>

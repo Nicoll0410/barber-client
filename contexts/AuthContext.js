@@ -234,54 +234,46 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // Configurar Socket.io
-const setupSocket = useCallback(async () => {
-  try {
-    console.log("🔌 Configurando socket...");
-    
-    // Cerrar socket existente
-    if (socketRef.current) {
-      socketRef.current.removeAllListeners();
-      socketRef.current.disconnect();
-      socketRef.current = null;
-    }
-
-    // ✅ VERIFICACIÓN MEJORADA - Asegurar que tenemos todos los datos
-    if (!authState.isLoggedIn || !authState.token || !authState.user || !authState.user.id) {
-      console.log("❌ Datos incompletos para conectar socket");
-      return;
-    }
-
-    console.log("🔄 Inicializando conexión socket para usuario:", authState.user.id);
-    
-    socketRef.current = io(BASE_URL, {
-      transports: ['websocket', 'polling'],
-      auth: {
-        token: authState.token
-      },
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-    });
-
-    // Eventos del socket
-    socketRef.current.on("connect", () => {
-      console.log("✅ Conectado al servidor Socket.io");
+  // Configurar Socket.io de manera robusta
+  const setupSocket = useCallback(async () => {
+    try {
+      console.log("🔌 Configurando socket...");
       
-      // ✅ USAR EL USER ID DEL authState - no de decoded
-      const userId = authState.user.id;
-      console.log("📨 Uniendo usuario a sala:", userId);
-      
-      // ✅ VERIFICAR que el userId no sea undefined
-      if (userId) {
-        socketRef.current.emit("unir_usuario", userId);
-      } else {
-        console.error("❌ Error: userId es undefined, no se puede unir a sala");
+      // Cerrar socket existente
+      if (socketRef.current) {
+        socketRef.current.removeAllListeners();
+        socketRef.current.disconnect();
+        socketRef.current = null;
       }
-    });
 
-    socketRef.current.on("usuario_unido", (data) => {
-      console.log("✅ Usuario unido a sala:", data);
-    });
+      if (!authState.isLoggedIn || !authState.token || !authState.user) {
+        return;
+      }
+
+      console.log("🔄 Inicializando conexión socket para usuario:", authState.user.id);
+      
+      socketRef.current = io(BASE_URL, {
+        transports: ['websocket', 'polling'],
+        auth: {
+          token: authState.token
+        },
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+      });
+
+      // Eventos del socket
+      socketRef.current.on("connect", () => {
+        console.log("✅ Conectado al servidor Socket.io");
+        
+        const userId = authState.user.userId || authState.user.id;
+        socketRef.current.emit("unir_usuario", userId);
+        console.log("📨 Uniendo usuario a sala:", userId);
+      });
+
+      socketRef.current.on("usuario_unido", (data) => {
+        console.log("✅ Usuario unido a sala:", data);
+      });
 
       socketRef.current.on("disconnect", (reason) => {
         console.log("❌ Desconectado:", reason);
@@ -291,87 +283,62 @@ const setupSocket = useCallback(async () => {
         console.error("❌ Error de conexión:", error.message);
       });
 
-// 🎯 HANDLER PRINCIPAL - NOTIFICACIONES EN TIEMPO REAL
-socketRef.current.on("nueva_notificacion", async (data) => {
-  console.log("📩 Notificación recibida por socket:", data);
-  
-  // ✅ VERIFICACIÓN CORREGIDA - Solo verificar que la notificación tenga datos válidos
-  if (!data || !data.usuarioID) {
-    console.log("❌ Notificación inválida, ignorando");
-    return;
-  }
+      // 🎯 HANDLER PRINCIPAL - NOTIFICACIONES EN TIEMPO REAL
+      socketRef.current.on("nueva_notificacion", async (data) => {
+        console.log("📩 Notificación recibida por socket:", data);
+        
+        // ✅ Verificar si la notificación es para este usuario
+        const currentUserId = authState.user.userId || authState.user.id;
+        if (data.usuarioID === currentUserId) {
+          console.log("🎯 Notificación para usuario actual - Actualizando estado");
+          
+          // 1. Reproducir sonido inmediatamente
+          await playNotificationSound();
+          
+          // 2. Actualizar estado en tiempo real
+          setAuthState(prev => {
+            // Evitar duplicados
+            const exists = prev.notifications.some(n => n.id === data.id);
+            if (exists) {
+              console.log("⚠️ Notificación duplicada, ignorando");
+              return prev;
+            }
 
-  console.log("🎯 Notificación recibida - Actualizando estado");
-  
-  // 1. Reproducir sonido inmediatamente
-  await playNotificationSound();
-  
-  // 2. Actualizar estado en tiempo real - SIN FILTRAR POR USUARIO
-  setAuthState(prev => {
-    // Evitar duplicados
-    const exists = prev.notifications.some(n => n.id === data.id);
-    if (exists) {
-      console.log("⚠️ Notificación duplicada, ignorando");
-      return prev;
-    }
+            const newUnreadCount = prev.unreadCount + 1;
+            console.log("🔄 Nuevo conteo de notificaciones:", newUnreadCount);
+            
+            // Actualizar badge (solo en mobile)
+            if (Platform.OS !== 'web') {
+              Notifications.setBadgeCountAsync(newUnreadCount).catch(console.error);
+            }
 
-    const newUnreadCount = prev.unreadCount + 1;
-    console.log("🔄 Nuevo conteo de notificaciones:", newUnreadCount);
-    
-    // Actualizar badge (solo en mobile)
-    if (Platform.OS !== 'web') {
-      Notifications.setBadgeCountAsync(newUnreadCount).catch(console.error);
-    }
+            return {
+              ...prev,
+              notifications: [data, ...prev.notifications],
+              unreadCount: newUnreadCount,
+              lastNotification: data
+            };
+          });
 
-    return {
-      ...prev,
-      notifications: [data, ...prev.notifications],
-      unreadCount: newUnreadCount,
-      lastNotification: data
-    };
-  });
-
-  // 3. Mostrar alerta
-  Alert.alert(
-    data.titulo,
-    data.cuerpo,
-    [
-      {
-        text: 'Ver',
-        onPress: () => {
-          // Navegar si es necesario
+          // 3. Mostrar alerta
+          Alert.alert(
+            data.titulo,
+            data.cuerpo,
+            [
+              {
+                text: 'Ver',
+                onPress: () => {
+                  // Navegar si es necesario
+                }
+              },
+              { text: 'OK' }
+            ],
+            { cancelable: true }
+          );
+        } else {
+          console.log("❌ Notificación no es para este usuario:", data.usuarioID, "!=", currentUserId);
         }
-      },
-      { text: 'OK' }
-    ],
-    { cancelable: true }
-  );
-});
-
-// 🎯 NUEVO LISTENER PARA ACTUALIZAR BADGE EN DESTINATARIOS - ELIMINA ESTA VERIFICACIÓN
-socketRef.current.on("actualizar_badge", async (data) => {
-  console.log("🔄 Evento actualizar_badge recibido:", data);
-  
-  // ✅ ELIMINAR LA VERIFICACIÓN POR USUARIO - Las notificaciones deben llegar a todos
-  console.log("🎯 Actualizando badge para usuario");
-  
-  // Actualizar el contador de notificaciones no leídas
-  setAuthState(prev => {
-    const newUnreadCount = prev.unreadCount + 1;
-    
-    if (Platform.OS !== 'web') {
-      Notifications.setBadgeCountAsync(newUnreadCount).catch(console.error);
-    }
-
-    return {
-      ...prev,
-      unreadCount: newUnreadCount
-    };
-  });
-
-  // Reproducir sonido de notificación
-  await playNotificationSound();
-});
+      });
 
     } catch (error) {
       console.error("❌ Error configurando socket:", error);
@@ -431,34 +398,28 @@ socketRef.current.on("actualizar_badge", async (data) => {
     initializeAuth();
   }, []);
 
-useEffect(() => {
-  // ✅ SOLO configurar socket si tenemos un user ID válido
-  if (authState.user && authState.user.id) {
+  useEffect(() => {
     setupSocket();
-  }
-  
-  return () => {
-    if (socketRef.current) {
-      socketRef.current.disconnect();
-      socketRef.current = null;
-    }
-  };
-}, [setupSocket, authState.user]);
+    
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+    };
+  }, [setupSocket]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextAppState) => {
       if (nextAppState === 'active') {
         console.log("🔄 App en primer plano - Reconectando socket");
-      // ✅ SOLO reconectar si tenemos user ID
-      if (authState.user && authState.user.id) {
         setupSocket();
         fetchNotifications();
       }
-    }
-  });
+    });
 
     return () => subscription.remove();
-  }, [setupSocket, fetchNotifications, authState.user]);
+  }, [setupSocket, fetchNotifications]);
 
   // Login
   const login = async (token, additionalData = {}) => {

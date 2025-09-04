@@ -1,15 +1,15 @@
 // navigation/CustomDrawerNavigator.js
 import React, { useContext, useState, useRef } from "react";
-import { 
-  View, 
-  TouchableOpacity, 
-  Text, 
-  StyleSheet, 
-  Animated, 
-  Image, 
+import {
+  View,
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  Animated,
+  Image,
   useWindowDimensions,
   Platform,
-  SafeAreaView
+  SafeAreaView,
 } from "react-native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { AuthContext } from "../contexts/AuthContext";
@@ -96,16 +96,16 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const drawerAnimation = useRef(new Animated.Value(-300)).current;
   const { width, height } = useWindowDimensions();
-  
+
   // Determinar si es web
-  const isWeb = Platform.OS === 'web';
+  const isWeb = Platform.OS === "web";
   // Para web, mostramos el drawer siempre visible en pantallas grandes
   const isLargeScreen = width >= 1024;
 
   const toggleDrawer = () => {
     // En web con pantalla grande, el drawer siempre está visible
     if (isWeb && isLargeScreen) return;
-    
+
     if (drawerOpen) {
       Animated.timing(drawerAnimation, {
         toValue: -300,
@@ -125,7 +125,7 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
   const closeDrawer = () => {
     // En web con pantalla grande, el drawer siempre está visible
     if (isWeb && isLargeScreen) return;
-    
+
     Animated.timing(drawerAnimation, {
       toValue: -300,
       duration: 300,
@@ -144,7 +144,7 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
     headerLeft: () => {
       // No mostrar el ícono de menú en pantallas grandes de web
       if (isWeb && isLargeScreen) return null;
-      
+
       return (
         <TouchableOpacity onPress={toggleDrawer} style={{ marginLeft: 15 }}>
           <Ionicons name="menu" size={24} color="black" />
@@ -159,8 +159,8 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
       case "Cliente":
         return (
           <>
-            <Stack.Screen 
-              name="Agenda" 
+            <Stack.Screen
+              name="Agenda"
               component={AgendaScreen}
               options={({ navigation }) => ({
                 ...commonOptions({ navigation }),
@@ -169,15 +169,15 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
                     <NotificationBell navigation={mainNavigation} />
                   </View>
-                )
+                ),
               })}
             />
-            <Stack.Screen 
-              name="Citas" 
+            <Stack.Screen
+              name="Citas"
               component={CitasScreen}
               options={({ navigation }) => ({
                 ...commonOptions({ navigation }),
-                headerTitle: "Citas"
+                headerTitle: "Citas",
               })}
             />
           </>
@@ -186,16 +186,16 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
       case "Barbero":
         return (
           <>
-            <Stack.Screen 
-              name="Clientes" 
+            <Stack.Screen
+              name="Clientes"
               component={ClientesScreen}
               options={({ navigation }) => ({
                 ...commonOptions({ navigation }),
-                headerTitle: "Clientes"
+                headerTitle: "Clientes",
               })}
             />
-            <Stack.Screen 
-              name="Agenda" 
+            <Stack.Screen
+              name="Agenda"
               component={AgendaScreen}
               options={({ navigation }) => ({
                 ...commonOptions({ navigation }),
@@ -204,15 +204,15 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
                     <NotificationBell navigation={mainNavigation} />
                   </View>
-                )
+                ),
               })}
             />
-            <Stack.Screen 
-              name="Citas" 
+            <Stack.Screen
+              name="Citas"
               component={CitasScreen}
               options={({ navigation }) => ({
                 ...commonOptions({ navigation }),
-                headerTitle: "Citas"
+                headerTitle: "Citas",
               })}
             />
           </>
@@ -221,32 +221,32 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
       default:
         return (
           <>
-            <Stack.Screen 
-              name="Dashboard" 
+            <Stack.Screen
+              name="Dashboard"
               component={DashboardScreen}
               options={({ navigation }) => ({
                 ...commonOptions({ navigation }),
-                headerTitle: "Dashboard"
+                headerTitle: "Dashboard",
               })}
             />
-            <Stack.Screen 
-              name="Clientes" 
+            <Stack.Screen
+              name="Clientes"
               component={ClientesScreen}
               options={({ navigation }) => ({
                 ...commonOptions({ navigation }),
-                headerTitle: "Clientes"
+                headerTitle: "Clientes",
               })}
             />
-            <Stack.Screen 
-              name="Barberos" 
+            <Stack.Screen
+              name="Barberos"
               component={BarberosScreen}
               options={({ navigation }) => ({
                 ...commonOptions({ navigation }),
-                headerTitle: "Barberos"
+                headerTitle: "Barberos",
               })}
             />
-            <Stack.Screen 
-              name="Agenda" 
+            <Stack.Screen
+              name="Agenda"
               component={AgendaScreen}
               options={({ navigation }) => ({
                 ...commonOptions({ navigation }),
@@ -255,39 +255,39 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
                     <NotificationBell navigation={mainNavigation} />
                   </View>
-                )
+                ),
               })}
             />
-            <Stack.Screen 
-              name="Citas" 
+            <Stack.Screen
+              name="Citas"
               component={CitasScreen}
               options={({ navigation }) => ({
                 ...commonOptions({ navigation }),
-                headerTitle: "Citas"
+                headerTitle: "Citas",
               })}
             />
-            <Stack.Screen 
-              name="Servicios" 
+            <Stack.Screen
+              name="Servicios"
               component={ServiciosScreen}
               options={({ navigation }) => ({
                 ...commonOptions({ navigation }),
-                headerTitle: "Servicios"
+                headerTitle: "Servicios",
               })}
             />
-            <Stack.Screen 
-              name="Ventas" 
+            <Stack.Screen
+              name="Ventas"
               component={VentasScreen}
               options={({ navigation }) => ({
                 ...commonOptions({ navigation }),
-                headerTitle: "Ventas"
+                headerTitle: "Ventas",
               })}
             />
-            <Stack.Screen 
-              name="Notificaciones" 
+            <Stack.Screen
+              name="Notificaciones"
               component={NotificacionesScreen}
               options={({ navigation }) => ({
                 ...commonOptions({ navigation }),
-                headerTitle: "Notificaciones"
+                headerTitle: "Notificaciones",
               })}
             />
           </>
@@ -299,7 +299,7 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         {/* Drawer overlay - Solo mostrar en móvil o cuando el drawer está abierto */}
-        {(drawerOpen && !(isWeb && isLargeScreen)) && (
+        {drawerOpen && !(isWeb && isLargeScreen) && (
           <TouchableOpacity
             style={styles.overlay}
             onPress={closeDrawer}
@@ -308,41 +308,52 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
         )}
 
         {/* Drawer content */}
-        <Animated.View 
+        <Animated.View
           style={[
-            styles.drawer, 
-            { 
+            styles.drawer,
+            {
               transform: [
                 // En web con pantalla grande, siempre visible (translateX: 0)
-                isWeb && isLargeScreen 
-                  ? { translateX: 0 } 
-                  : { translateX: drawerAnimation }
-              ]
-            }
+                isWeb && isLargeScreen
+                  ? { translateX: 0 }
+                  : { translateX: drawerAnimation },
+              ],
+            },
           ]}
         >
-          <CustomDrawer 
-            navigation={{ 
+          <CustomDrawer
+            navigation={{
               navigate: navigateAndClose,
-              closeDrawer: closeDrawer
-            }} 
+              closeDrawer: closeDrawer,
+            }}
           />
         </Animated.View>
 
         {/* Main content */}
-        <View style={[
-          styles.mainContent,
-          // En web con pantalla grande, agregamos margen para el drawer fijo
-          isWeb && isLargeScreen && { marginLeft: 300 }
-        ]}>
+        <View
+          style={[
+            styles.mainContent,
+            // En web con pantalla grande, agregamos margen para el drawer fijo
+            isWeb && isLargeScreen && { marginLeft: 300 },
+          ]}
+        >
           <Stack.Navigator
             screenOptions={{
               // Asegurar que el contenido se ajuste correctamente
-              cardStyle: { flex: 1 }
+              cardStyle: { flex: 1 },
             }}
           >
             {renderDrawerScreens(userRole)}
           </Stack.Navigator>
+          {/* 👇 Footer siempre dentro de mainContent */}
+          <View
+            style={[
+              styles.footerWrapper,
+              Platform.OS !== "web" && { position: "absolute", bottom: 0 },
+            ]}
+          >
+            <Footer />
+          </View>
         </View>
       </View>
     </SafeAreaView>
@@ -352,43 +363,53 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   container: {
     flex: 1,
-    flexDirection: 'row',
+    flexDirection: "row",
+  },
+  footerWrapper: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
   overlay: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: "rgba(0,0,0,0.5)",
     zIndex: 999,
   },
   drawer: {
     width: 300,
-    height: '100%',
-    backgroundColor: '#000',
+    height: "100%",
+    backgroundColor: "#000",
     zIndex: 1000,
     elevation: 1000,
     // Para web: drawer fijo en pantallas grandes
-    ...(Platform.OS === 'web' ? {
-      position: 'fixed',
-      left: 0,
-      top: 0,
-      bottom: 0,
-    } : {}),
+    ...(Platform.OS === "web"
+      ? {
+          position: "fixed",
+          left: 0,
+          top: 0,
+          bottom: 0,
+        }
+      : {}),
   },
   mainContent: {
     flex: 1,
     zIndex: 1,
     // Para web: permitir scroll solo en este contenedor
-    ...(Platform.OS === 'web' ? {
-      overflowY: 'auto',
-      height: '100vh',
-    } : {}),
+    ...(Platform.OS === "web"
+      ? {
+          overflowY: "auto",
+          height: "100vh",
+        }
+      : {}),
   },
 });
 

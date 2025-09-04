@@ -283,62 +283,87 @@ export const AuthProvider = ({ children }) => {
         console.error("❌ Error de conexión:", error.message);
       });
 
-      // 🎯 HANDLER PRINCIPAL - NOTIFICACIONES EN TIEMPO REAL
-      socketRef.current.on("nueva_notificacion", async (data) => {
-        console.log("📩 Notificación recibida por socket:", data);
-        
-        // ✅ Verificar si la notificación es para este usuario
-        const currentUserId = authState.user.userId || authState.user.id;
-        if (data.usuarioID === currentUserId) {
-          console.log("🎯 Notificación para usuario actual - Actualizando estado");
-          
-          // 1. Reproducir sonido inmediatamente
-          await playNotificationSound();
-          
-          // 2. Actualizar estado en tiempo real
-          setAuthState(prev => {
-            // Evitar duplicados
-            const exists = prev.notifications.some(n => n.id === data.id);
-            if (exists) {
-              console.log("⚠️ Notificación duplicada, ignorando");
-              return prev;
-            }
+// 🎯 HANDLER PRINCIPAL - NOTIFICACIONES EN TIEMPO REAL
+socketRef.current.on("nueva_notificacion", async (data) => {
+  console.log("📩 Notificación recibida por socket:", data);
+  
+  // ✅ VERIFICACIÓN CORREGIDA - Solo verificar que la notificación tenga datos válidos
+  if (!data || !data.usuarioID) {
+    console.log("❌ Notificación inválida, ignorando");
+    return;
+  }
 
-            const newUnreadCount = prev.unreadCount + 1;
-            console.log("🔄 Nuevo conteo de notificaciones:", newUnreadCount);
-            
-            // Actualizar badge (solo en mobile)
-            if (Platform.OS !== 'web') {
-              Notifications.setBadgeCountAsync(newUnreadCount).catch(console.error);
-            }
+  console.log("🎯 Notificación recibida - Actualizando estado");
+  
+  // 1. Reproducir sonido inmediatamente
+  await playNotificationSound();
+  
+  // 2. Actualizar estado en tiempo real - SIN FILTRAR POR USUARIO
+  setAuthState(prev => {
+    // Evitar duplicados
+    const exists = prev.notifications.some(n => n.id === data.id);
+    if (exists) {
+      console.log("⚠️ Notificación duplicada, ignorando");
+      return prev;
+    }
 
-            return {
-              ...prev,
-              notifications: [data, ...prev.notifications],
-              unreadCount: newUnreadCount,
-              lastNotification: data
-            };
-          });
+    const newUnreadCount = prev.unreadCount + 1;
+    console.log("🔄 Nuevo conteo de notificaciones:", newUnreadCount);
+    
+    // Actualizar badge (solo en mobile)
+    if (Platform.OS !== 'web') {
+      Notifications.setBadgeCountAsync(newUnreadCount).catch(console.error);
+    }
 
-          // 3. Mostrar alerta
-          Alert.alert(
-            data.titulo,
-            data.cuerpo,
-            [
-              {
-                text: 'Ver',
-                onPress: () => {
-                  // Navegar si es necesario
-                }
-              },
-              { text: 'OK' }
-            ],
-            { cancelable: true }
-          );
-        } else {
-          console.log("❌ Notificación no es para este usuario:", data.usuarioID, "!=", currentUserId);
+    return {
+      ...prev,
+      notifications: [data, ...prev.notifications],
+      unreadCount: newUnreadCount,
+      lastNotification: data
+    };
+  });
+
+  // 3. Mostrar alerta
+  Alert.alert(
+    data.titulo,
+    data.cuerpo,
+    [
+      {
+        text: 'Ver',
+        onPress: () => {
+          // Navegar si es necesario
         }
-      });
+      },
+      { text: 'OK' }
+    ],
+    { cancelable: true }
+  );
+});
+
+// 🎯 NUEVO LISTENER PARA ACTUALIZAR BADGE EN DESTINATARIOS - ELIMINA ESTA VERIFICACIÓN
+socketRef.current.on("actualizar_badge", async (data) => {
+  console.log("🔄 Evento actualizar_badge recibido:", data);
+  
+  // ✅ ELIMINAR LA VERIFICACIÓN POR USUARIO - Las notificaciones deben llegar a todos
+  console.log("🎯 Actualizando badge para usuario");
+  
+  // Actualizar el contador de notificaciones no leídas
+  setAuthState(prev => {
+    const newUnreadCount = prev.unreadCount + 1;
+    
+    if (Platform.OS !== 'web') {
+      Notifications.setBadgeCountAsync(newUnreadCount).catch(console.error);
+    }
+
+    return {
+      ...prev,
+      unreadCount: newUnreadCount
+    };
+  });
+
+  // Reproducir sonido de notificación
+  await playNotificationSound();
+});
 
     } catch (error) {
       console.error("❌ Error configurando socket:", error);

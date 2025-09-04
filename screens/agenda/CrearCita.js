@@ -41,10 +41,9 @@ const CrearCita = ({
   const [temporalTelefono, setTemporalTelefono] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Referencias para los inputs
+  // Referencias
   const nombreInputRef = useRef(null);
   const telefonoInputRef = useRef(null);
-  const lastFocusedInput = useRef(null);
 
   useEffect(() => {
     return () => {
@@ -54,11 +53,9 @@ const CrearCita = ({
 
   useEffect(() => {
     if (visible && step === 2 && isTemporal) {
-      // Enfocar el input de nombre cuando se selecciona cliente nuevo
       setTimeout(() => {
         if (nombreInputRef.current) {
           nombreInputRef.current.focus();
-          lastFocusedInput.current = 'nombre';
         }
       }, 100);
     }
@@ -73,7 +70,6 @@ const CrearCita = ({
     setTemporalNombre("");
     setTemporalTelefono("");
     setIsLoading(false);
-    lastFocusedInput.current = null;
   };
 
   const handleClose = () => {
@@ -81,20 +77,7 @@ const CrearCita = ({
     onClose();
   };
 
-  const mantenerFocoEnInput = (inputType) => {
-    lastFocusedInput.current = inputType;
-  };
-
-  const restaurarFoco = () => {
-    if (lastFocusedInput.current === 'nombre' && nombreInputRef.current) {
-      nombreInputRef.current.focus();
-    } else if (lastFocusedInput.current === 'telefono' && telefonoInputRef.current) {
-      telefonoInputRef.current.focus();
-    }
-  };
-
-  // ... (las demás funciones permanecen igual: convertirHora24, calcularHoraFin, etc.)
-
+  // ---------------- FUNCIONES AUXILIARES -----------------
   const convertirHora24 = (horaStr) => {
     horaStr = horaStr.trim().toUpperCase();
 
@@ -130,12 +113,10 @@ const CrearCita = ({
 
   const convertirDuracionAMinutos = (duracionStr) => {
     if (!duracionStr) return 60;
-
     const partes = duracionStr.split(":");
     if (partes.length >= 2) {
       return parseInt(partes[0]) * 60 + parseInt(partes[1]);
     }
-
     return parseInt(duracionStr) || 60;
   };
 
@@ -148,8 +129,6 @@ const CrearCita = ({
 
   const obtenerUsuarioIdDelBarbero = async (token, barberoId) => {
     try {
-      console.log("Buscando usuarioID del barbero...");
-      
       const response = await axios.get(
         `https://barber-server-6kuo.onrender.com/barberos/${barberoId}/usuario`,
         {
@@ -159,24 +138,17 @@ const CrearCita = ({
           }
         }
       );
-
       if (response.data?.success && response.data.usuarioID) {
-        console.log("✅ UsuarioID del barbero encontrado:", response.data.usuarioID);
         return response.data.usuarioID;
       }
-      
-      console.log("❌ No se pudo obtener usuarioID del barbero");
       return null;
     } catch (error) {
-      console.error("Error obteniendo usuarioID del barbero:", error);
       return null;
     }
   };
 
   const obtenerUsuarioActual = async (token) => {
     try {
-      console.log("Obteniendo información del usuario actual...");
-      
       const response = await axios.get(
         'https://barber-server-6kuo.onrender.com/auth/user-info',
         {
@@ -186,25 +158,18 @@ const CrearCita = ({
           }
         }
       );
-
       if (response.data?.success && response.data.user?.id) {
-        console.log("✅ UserId obtenido:", response.data.user.id);
         return response.data.user.id;
       }
-      
-      console.log("❌ No se pudo obtener userId del backend");
       return null;
     } catch (error) {
-      console.error("Error obteniendo información del usuario:", error);
       return null;
     }
   };
 
   const crearNotificacion = async (token, notificacionData) => {
     try {
-      console.log("Creando notificación:", notificacionData);
-      
-      const response = await axios.post(
+      await axios.post(
         'https://barber-server-6kuo.onrender.com/notifications',
         notificacionData,
         {
@@ -214,31 +179,19 @@ const CrearCita = ({
           }
         }
       );
-
-      console.log("✅ Notificación creada:", response.data);
       return true;
     } catch (error) {
-      console.error("Error creando notificación:", error);
       return false;
     }
   };
 
   const handleCrear = async () => {
-    console.log("Iniciando creación de cita...");
-    
     try {
       setIsLoading(true);
 
-      if (!servicioSel || !barbero) {
-        throw new Error("Falta información del servicio o barbero");
-      }
-
-      if (!isTemporal && !clienteSel) {
-        throw new Error("Debes seleccionar un cliente");
-      }
-      if (isTemporal && !temporalNombre.trim()) {
-        throw new Error("El nombre del cliente temporal es requerido");
-      }
+      if (!servicioSel || !barbero) throw new Error("Falta información del servicio o barbero");
+      if (!isTemporal && !clienteSel) throw new Error("Debes seleccionar un cliente");
+      if (isTemporal && !temporalNombre.trim()) throw new Error("El nombre del cliente temporal es requerido");
 
       const fechaFormateada = `${fecha.getFullYear()}-${(fecha.getMonth() + 1)
         .toString()
@@ -282,12 +235,8 @@ const CrearCita = ({
       }
 
       const token = await AsyncStorage.getItem("token");
-      if (!token) {
-        throw new Error("No se encontró el token de autenticación");
-      }
+      if (!token) throw new Error("No se encontró el token de autenticación");
 
-      console.log("Enviando datos al servidor:", JSON.stringify(citaData, null, 2));
-      
       const response = await axios.post(
         "https://barber-server-6kuo.onrender.com/citas",
         citaData,
@@ -300,16 +249,12 @@ const CrearCita = ({
         }
       );
 
-      console.log("Respuesta del servidor:", response.data);
-
       if (response.data && response.data.mensaje === 'Cita creada exitosamente') {
         Alert.alert('Éxito', 'Cita creada correctamente');
         
-        // Crear notificaciones
         const citaId = response.data.cita.id;
         const clienteNombre = isTemporal ? temporalNombre : clienteSel?.nombre;
         
-        // 1. Crear notificación para el barbero
         const usuarioIDBarbero = await obtenerUsuarioIdDelBarbero(token, barbero.id);
         if (usuarioIDBarbero) {
           await crearNotificacion(token, {
@@ -321,7 +266,6 @@ const CrearCita = ({
           });
         }
         
-        // 2. Crear notificación para el usuario actual
         const usuarioIDActual = await obtenerUsuarioActual(token);
         if (usuarioIDActual) {
           await crearNotificacion(token, {
@@ -333,15 +277,10 @@ const CrearCita = ({
           });
         }
         
-        // Forzar actualización de notificaciones
         if (authContext?.fetchNotifications) {
-          console.log("Actualizando notificaciones...");
           await authContext.fetchNotifications();
         }
-        
-        // Reproducir sonido
         if (authContext?.playNotificationSound) {
-          console.log("Reproduciendo sonido de notificación...");
           await authContext.playNotificationSound();
         }
         
@@ -352,40 +291,17 @@ const CrearCita = ({
       
       throw new Error(response.data?.mensaje || "Error al crear la cita");
     } catch (error) {
-      console.error("Error completo al crear cita:", error);
-
       let mensajeError = "Error al crear la cita";
-      if (error.response?.data?.mensaje) {
-        mensajeError = error.response.data.mensaje;
-      } else if (error.response?.data?.error) {
-        mensajeError = error.response.data.error;
-      } else if (error.message) {
-        mensajeError = error.message;
-      }
-
+      if (error.response?.data?.mensaje) mensajeError = error.response.data.mensaje;
+      else if (error.response?.data?.error) mensajeError = error.response.data.error;
+      else if (error.message) mensajeError = error.message;
       Alert.alert("Error", mensajeError);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Usar useCallback para evitar recrear funciones en cada render
-  const handleSetTemporalNombre = useCallback((text) => {
-    setTemporalNombre(text);
-    // Restaurar el foco después de actualizar el estado
-    setTimeout(restaurarFoco, 50);
-  }, []);
-
-  const handleSetTemporalTelefono = useCallback((text) => {
-    setTemporalTelefono(text);
-    // Restaurar el foco después de actualizar el estado
-    setTimeout(restaurarFoco, 50);
-  }, []);
-
-  const handleSetBusqueda = useCallback((text) => {
-    setBusqueda(text);
-  }, []);
-
+  // ---------------- PASOS -----------------
   const Paso1 = () => (
     <View style={styles.stepContainer}>
       <Text style={styles.subtitle}>
@@ -406,7 +322,6 @@ const CrearCita = ({
               <Text style={styles.servicioNombre}>{item.nombre}</Text>
               <Text style={styles.servicioDuracion}>
                 Duración: {item.duracionMaxima || "1 hora"}
-                (Bloquea todo el horario necesario)
               </Text>
             </View>
             <Text style={styles.servicioPrecio}>${item.precio || "0"}</Text>
@@ -437,13 +352,7 @@ const CrearCita = ({
     return (
       <View style={styles.stepContainer}>
         <Text style={styles.subtitle}>Selecciona el cliente</Text>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            marginBottom: 12,
-          }}
-        >
+        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
           <TouchableOpacity
             style={[
               styles.optionToggle,
@@ -456,12 +365,7 @@ const CrearCita = ({
               setTemporalTelefono("");
             }}
           >
-            <Text
-              style={[
-                styles.optionText,
-                !isTemporal && styles.optionTextActive,
-              ]}
-            >
+            <Text style={[styles.optionText, !isTemporal && styles.optionTextActive]}>
               Cliente existente
             </Text>
           </TouchableOpacity>
@@ -475,18 +379,14 @@ const CrearCita = ({
               setIsTemporal(true);
               setClienteSel(null);
               setBusqueda("");
-              // Enfocar el input de nombre
               setTimeout(() => {
                 if (nombreInputRef.current) {
                   nombreInputRef.current.focus();
-                  lastFocusedInput.current = 'nombre';
                 }
               }, 100);
             }}
           >
-            <Text
-              style={[styles.optionText, isTemporal && styles.optionTextActive]}
-            >
+            <Text style={[styles.optionText, isTemporal && styles.optionTextActive]}>
               Cliente nuevo
             </Text>
           </TouchableOpacity>
@@ -495,17 +395,12 @@ const CrearCita = ({
         {!isTemporal ? (
           <>
             <View style={styles.searchBox}>
-              <MaterialIcons
-                name="search"
-                size={20}
-                color="#666"
-                style={{ marginRight: 10 }}
-              />
+              <MaterialIcons name="search" size={20} color="#666" style={{ marginRight: 10 }} />
               <TextInput
                 style={styles.searchInput}
                 placeholder="Buscar por nombre"
                 value={busqueda}
-                onChangeText={handleSetBusqueda}
+                onChangeText={setBusqueda}
                 autoFocus={true}
               />
             </View>
@@ -537,13 +432,11 @@ const CrearCita = ({
               style={styles.input}
               placeholder="Ej. Juan Pérez"
               value={temporalNombre}
-              onChangeText={handleSetTemporalNombre}
-              onFocus={() => mantenerFocoEnInput('nombre')}
+              onChangeText={setTemporalNombre}
               returnKeyType="next"
               onSubmitEditing={() => {
                 if (telefonoInputRef.current) {
                   telefonoInputRef.current.focus();
-                  lastFocusedInput.current = 'telefono';
                 }
               }}
               blurOnSubmit={false}
@@ -555,18 +448,14 @@ const CrearCita = ({
               placeholder="Ej. 3001234567"
               value={temporalTelefono}
               keyboardType="phone-pad"
-              onChangeText={handleSetTemporalTelefono}
-              onFocus={() => mantenerFocoEnInput('telefono')}
+              onChangeText={setTemporalTelefono}
               returnKeyType="done"
             />
           </>
         )}
 
         <View style={styles.navBtns}>
-          <TouchableOpacity
-            style={styles.btnSecondary}
-            onPress={() => setStep(1)}
-          >
+          <TouchableOpacity style={styles.btnSecondary} onPress={() => setStep(1)}>
             <Text style={styles.btnSecondaryText}>Volver</Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -588,6 +477,7 @@ const CrearCita = ({
       </View>
     );
   };
+
 
   const Paso3 = () => {
     const duracionMinutos = convertirDuracionAMinutos(

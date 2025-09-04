@@ -16,7 +16,6 @@ const NotificationBell = ({ navigation }) => {
       console.log("🔔 NotificationBell - Escuchando eventos de badge");
       
       const handleActualizarBadge = (data) => {
-        console.log("🎯 NotificationBell - Evento recibido:", data);
         
         // Actualizar INMEDIATAMENTE
         setBadgeVersion(prev => prev + 1);

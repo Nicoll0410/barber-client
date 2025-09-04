@@ -15,7 +15,7 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { AuthContext } from "../contexts/AuthContext";
 import CustomDrawer from "../components/CustomDrawer";
 import { Ionicons } from "@expo/vector-icons";
-import Footer from '../../components/Footer';
+
 // Importa TODAS tus pantallas
 import DashboardScreen from "../screens/dashboard/DashboardScreen";
 import ClientesScreen from "../screens/clientes/ClientesScreen";
@@ -342,11 +342,7 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
             }}
           >
             {renderDrawerScreens(userRole)}
-          </Stack.Navigator>
-            {/* 👇 Footer siempre dentro de mainContent */}
-  <View style={styles.footerWrapper}>
-    <Footer />
-  </View>
+          </Stack.Navigator>z
         </View>
       </View>
     </SafeAreaView>
@@ -362,12 +358,6 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
   },
-  footerWrapper: {
-  position: 'absolute',
-  bottom: 0,
-  left: 0,
-  right: 0,
-},
   overlay: {
     position: 'absolute',
     top: 0,

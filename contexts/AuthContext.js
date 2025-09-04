@@ -431,7 +431,7 @@ useEffect(() => {
     // Actualizar cada 5 segundos
     const interval = setInterval(() => {
       fetchNotifications();
-    }, 1000);
+    }, 5000);
 
     return () => clearInterval(interval);
   }

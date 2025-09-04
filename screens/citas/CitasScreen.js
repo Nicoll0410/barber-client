@@ -353,360 +353,359 @@ const cancelarCita = async () => {
       />
 
       {/* Modal de Confirmación para Cancelar */}
-<ConfirmarModal
-  visible={showCancelModal}
-  onClose={() => {
-    setShowCancelModal(false);
-    setCitaACancelar(null);
-  }}
-  onConfirm={cancelarCita}
-  titulo="Cancelar Cita"
-  mensaje={`¿Estás seguro de que quieres cancelar la cita de ${
-    citaACancelar?.cliente?.nombre || citaACancelar?.pacienteTemporalNombre || 'este cliente'
-  } programada para el ${citaACancelar?.fechaFormateada} a las ${citaACancelar?.hora}?`}
-  textoConfirmar="Sí, Cancelar"
-  textoCancelar="No, Conservar"
-  tipo="peligro"
-  icono="danger"
-/>
+      <ConfirmarModal
+        visible={showCancelModal}
+        onClose={() => {
+          setShowCancelModal(false);
+          setCitaACancelar(null);
+        }}
+        onConfirm={cancelarCita}
+        titulo="Cancelar Cita"
+        mensaje={`¿Estás seguro de que quieres cancelar la cita de ${
+          citaACancelar?.cliente?.nombre || citaACancelar?.pacienteTemporalNombre || 'este cliente'
+        } programada para el ${citaACancelar?.fechaFormateada} a las ${citaACancelar?.hora}?`}
+        textoConfirmar="Sí, Cancelar"
+        textoCancelar="No, Conservar"
+        tipo="peligro"
+        icono="danger"
+      />
 
       <Footer />
     </View>
   );
 };
 
-
-  /* ─────────────────── ESTILOS ─────────────────── */
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      padding: isMobile ? 10 : 16,
-      backgroundColor: '#fff',
-    },
-    cancelButton: {
-  backgroundColor: '#FF4444',
-},
+/* ─────────────────── ESTILOS ─────────────────── */
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: isMobile ? 10 : 16,
+    backgroundColor: '#fff',
+  },
+  cancelButton: {
+    backgroundColor: '#FF4444',
+  },
   cancelButtonDesktop: {
     backgroundColor: '#FF4444',
     padding: 8,
     borderRadius: 20,
     marginRight: 8,
   },
-    loadingContainer: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    loadingText: {
-      marginTop: 10,
-      fontSize: 16,
-      color: '#424242',
-    },
-    header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 8,
-    },
-    tituloContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    titulo: {
-      fontSize: isMobile ? 20 : 24,
-      fontWeight: 'bold',
-      marginRight: 10,
-    },
-    contadorContainer: {
-      backgroundColor: '#D9D9D9',
-      width: 30,
-      height: 30,
-      borderRadius: 15,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    contadorTexto: {
-      fontWeight: 'bold',
-      fontSize: 16,
-    },
-    addButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: '#424242',
-      paddingVertical: 8,
-      paddingHorizontal: 12,
-      borderRadius: 20,
-    },
-    addButtonText: {
-      marginLeft: 8,
-      color: 'white',
-      fontWeight: '500',
-      fontSize: 14,
-    },
-    scrollContainer: {
-      flex: 1,
-    },
-    cardsContainer: {
-      paddingBottom: 20,
-    },
-    cardContainer: {
-      backgroundColor: 'white',
-      borderRadius: 10,
-      padding: 15,
-      marginBottom: 15,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
-    },
-    cardHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 10,
-    },
-    cardBarberContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    cardBarberName: {
-      marginLeft: 10,
-      fontWeight: 'bold',
-      fontSize: 16,
-    },
-    cardBody: {
-      marginVertical: 10,
-    },
-    cardRow: {
-      flexDirection: 'row',
-      marginBottom: 8,
-    },
-    cardLabel: {
-      fontWeight: 'bold',
-      width: 80,
-      color: '#555',
-    },
-    cardValue: {
-      flex: 1,
-      color: '#333',
-    },
-    cardActions: {
-      flexDirection: 'row',
-      justifyContent: 'flex-end',
-      marginTop: 10,
-    },
-    actionButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingVertical: 6,
-      paddingHorizontal: 12,
-      borderRadius: 20,
-      marginLeft: 10,
-    },
-    confirmButton: {
-      backgroundColor: '#4CAF50',
-    },
-    expireButton: {
-      backgroundColor: '#F44336',
-    },
-    viewButton: {
-      backgroundColor: '#D9D9D9',
-      padding: 8,
-      borderRadius: 20,
-      marginLeft: 10,
-    },
-    actionButtonText: {
-      marginLeft: 5,
-      color: 'white',
-      fontSize: 14,
-    },
-    tabla: {
-      borderWidth: 1,
-      borderColor: '#ddd',
-      borderRadius: 4,
-      overflow: 'hidden',
-      flex: 1,
-      marginBottom: 10,
-    },
-    filaEncabezado: {
-      flexDirection: 'row',
-      backgroundColor: '#424242',
-      paddingVertical: 12,
-      borderBottomWidth: 1,
-      borderBottomColor: '#ddd',
-    },
-    celdaEncabezado: {
-      justifyContent: 'center',
-      alignItems: 'center',
-      paddingHorizontal: 8,
-    },
-    fila: {
-      flexDirection: 'row',
-      paddingVertical: 12,
-      borderBottomWidth: 1,
-      borderBottomColor: '#eee',
-      alignItems: 'center',
-      backgroundColor: 'white',
-    },
-    celda: {
-      justifyContent: 'center',
-      paddingHorizontal: 8,
-    },
-    columnaBarbero: {
-      flex: 2,
-      alignItems: 'flex-start',
-    },
-    columnaEstado: {
-      flex: 1.5,
-      alignItems: 'center',
-    },
-    columnaServicio: {
-      flex: 2,
-      alignItems: 'center',
-    },
-    columnaFecha: {
-      flex: 1.5,
-      alignItems: 'center',
-    },
-    columnaHora: {
-      flex: 1,
-      alignItems: 'center',
-    },
-    columnaAcciones: {
-      flex: 1.5,
-      alignItems: 'flex-end',
-    },
-    contenedorBarbero: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    textoBarbero: {
-      marginLeft: 10,
-      fontWeight: 'bold',
-    },
-    textoServicio: {
-      textAlign: 'center',
-      fontWeight: 'bold',
-    },
-    fechaTexto: {
-      fontSize: 14,
-      color: '#424242',
-    },
-    horaTexto: {
-      fontSize: 14,
-      color: '#424242',
-    },
-    encabezado: {
-      fontWeight: 'bold',
-      textAlign: 'center',
-      color: 'white',
-    },
-    contenedorAcciones: {
-      flexDirection: 'row',
-      justifyContent: 'flex-end',
-      width: '100%',
-    },
-    botonAccion: {
-      marginHorizontal: 6,
-    },
-    viewButtonDesktop: {
-      backgroundColor: '#D9D9D9',
-      padding: 6,
-      borderRadius: 20,
-      marginLeft: 6,
-    },
-    estadoContainer: {
-      paddingVertical: 4,
-      paddingHorizontal: 8,
-      borderRadius: 12,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    estadoTexto: {
-      fontWeight: 'bold',
-    },
-    avatarContainer: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    avatarText: {
-      color: 'white',
-      fontWeight: 'bold',
-      fontSize: 14,
-    },
-    paginacionContainer: {
-      marginBottom: 35,
-    },
-    /* Nuevos estilos para los modales compactos con blur */
-    modalBlurContainer: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      width: '100%',
-    },
-    modalCompactContent: {
-      backgroundColor: 'white',
-      borderRadius: 16,
-      padding: 24,
-      width: '85%',
-      maxWidth: 400,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.1,
-      shadowRadius: 10,
-      elevation: 5,
-    },
-    modalCompactTitle: {
-      fontSize: 18,
-      fontWeight: 'bold',
-      marginBottom: 12,
-      textAlign: 'center',
-      color: '#424242',
-    },
-    modalCompactText: {
-      fontSize: 15,
-      marginBottom: 24,
-      textAlign: 'center',
-      color: '#666',
-      lineHeight: 22,
-    },
-    modalCompactButtons: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginTop: 8,
-    },
-    modalCompactButton: {
-      flex: 1,
-      paddingVertical: 12,
-      borderRadius: 8,
-      alignItems: 'center',
-      marginHorizontal: 4,
-    },
-    modalCompactConfirmButton: {
-      backgroundColor: '#4CAF50',
-    },
-    modalCompactDangerButton: {
-      backgroundColor: '#F44336',
-    },
-    modalCompactCancelButton: {
-      backgroundColor: 'transparent',
-      borderWidth: 1,
-      borderColor: '#D9D9D9',
-    },
-    modalCompactButtonText: {
-      color: 'white',
-      fontWeight: '600',
-      fontSize: 15,
-    },
-    modalCompactCancelButtonText: {
-      color: '#424242',
-      fontWeight: '600',
-      fontSize: 15,
-    },
-  });
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#424242',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  tituloContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  titulo: {
+    fontSize: isMobile ? 20 : 24,
+    fontWeight: 'bold',
+    marginRight: 10,
+  },
+  contadorContainer: {
+    backgroundColor: '#D9D9D9',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  contadorTexto: {
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#424242',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+  },
+  addButtonText: {
+    marginLeft: 8,
+    color: 'white',
+    fontWeight: '500',
+    fontSize: 14,
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  cardsContainer: {
+    paddingBottom: 20,
+  },
+  cardContainer: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  cardBarberContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  cardBarberName: {
+    marginLeft: 10,
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  cardBody: {
+    marginVertical: 10,
+  },
+  cardRow: {
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
+  cardLabel: {
+    fontWeight: 'bold',
+    width: 80,
+    color: '#555',
+  },
+  cardValue: {
+    flex: 1,
+    color: '#333',
+  },
+  cardActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 10,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    marginLeft: 10,
+  },
+  confirmButton: {
+    backgroundColor: '#4CAF50',
+  },
+  expireButton: {
+    backgroundColor: '#F44336',
+  },
+  viewButton: {
+    backgroundColor: '#D9D9D9',
+    padding: 8,
+    borderRadius: 20,
+    marginLeft: 10,
+  },
+  actionButtonText: {
+    marginLeft: 5,
+    color: 'white',
+    fontSize: 14,
+  },
+  tabla: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 4,
+    overflow: 'hidden',
+    flex: 1,
+    marginBottom: 10,
+  },
+  filaEncabezado: {
+    flexDirection: 'row',
+    backgroundColor: '#424242',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+  },
+  celdaEncabezado: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+  },
+  fila: {
+    flexDirection: 'row',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    alignItems: 'center',
+    backgroundColor: 'white',
+  },
+  celda: {
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  columnaBarbero: {
+    flex: 2,
+    alignItems: 'flex-start',
+  },
+  columnaEstado: {
+    flex: 1.5,
+    alignItems: 'center',
+  },
+  columnaServicio: {
+    flex: 2,
+    alignItems: 'center',
+  },
+  columnaFecha: {
+    flex: 1.5,
+    alignItems: 'center',
+  },
+  columnaHora: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  columnaAcciones: {
+    flex: 1.5,
+    alignItems: 'flex-end',
+  },
+  contenedorBarbero: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  textoBarbero: {
+    marginLeft: 10,
+    fontWeight: 'bold',
+  },
+  textoServicio: {
+    textAlign: 'center',
+    fontWeight: 'bold',
+  },
+  fechaTexto: {
+    fontSize: 14,
+    color: '#424242',
+  },
+  horaTexto: {
+    fontSize: 14,
+    color: '#424242',
+  },
+  encabezado: {
+    fontWeight: 'bold',
+    textAlign: 'center',
+    color: 'white',
+  },
+  contenedorAcciones: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    width: '100%',
+  },
+  botonAccion: {
+    marginHorizontal: 6,
+  },
+  viewButtonDesktop: {
+    backgroundColor: '#D9D9D9',
+    padding: 6,
+    borderRadius: 20,
+    marginLeft: 6,
+  },
+  estadoContainer: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  estadoTexto: {
+    fontWeight: 'bold',
+  },
+  avatarContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  paginacionContainer: {
+    marginBottom: 35,
+  },
+  /* Nuevos estilos para los modales compactos con blur */
+  modalBlurContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+  },
+  modalCompactContent: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 24,
+    width: '85%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  modalCompactTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 12,
+    textAlign: 'center',
+    color: '#424242',
+  },
+  modalCompactText: {
+    fontSize: 15,
+    marginBottom: 24,
+    textAlign: 'center',
+    color: '#666',
+    lineHeight: 22,
+  },
+  modalCompactButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  modalCompactButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginHorizontal: 4,
+  },
+  modalCompactConfirmButton: {
+    backgroundColor: '#4CAF50',
+  },
+  modalCompactDangerButton: {
+    backgroundColor: '#F44336',
+  },
+  modalCompactCancelButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#D9D9D9',
+  },
+  modalCompactButtonText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  modalCompactCancelButtonText: {
+    color: '#424242',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+});
 
-  export default CitasScreen;
+export default CitasScreen;

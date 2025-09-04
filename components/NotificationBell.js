@@ -7,22 +7,21 @@ const NotificationBell = ({ navigation }) => {
   const { unreadCount, fetchNotifications, socket } = useAuth();
   const [forceUpdate, setForceUpdate] = useState(0);
 
-  // Escuchar notificaciones en tiempo real y forzar actualización
+  // Escuchar actualizaciones de badge en tiempo real
   useEffect(() => {
     if (socket) {
-      const handleNuevaNotificacion = () => {
-        console.log("🔄 Notificación recibida - Forzando actualización de badge");
-        fetchNotifications();
-        setForceUpdate(prev => prev + 1); // Forzar re-render
+      const handleActualizarBadge = () => {
+        console.log("🔄 Actualización de badge recibida - Forzando render");
+        setForceUpdate(prev => prev + 1); // Forzar re-render del componente
       };
 
-      socket.on('nueva_notificacion', handleNuevaNotificacion);
+      socket.on('actualizar_badge', handleActualizarBadge);
 
       return () => {
-        socket.off('nueva_notificacion', handleNuevaNotificacion);
+        socket.off('actualizar_badge', handleActualizarBadge);
       };
     }
-  }, [socket, fetchNotifications]);
+  }, [socket]);
 
   const handlePress = async () => {
     await fetchNotifications();

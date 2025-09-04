@@ -338,11 +338,7 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
           <Stack.Navigator
             screenOptions={{
               // Asegurar que el contenido se ajuste correctamente
-              cardStyle: { 
-                flex: 1,
-                // Añadir padding inferior para evitar que el footer tape contenido
-                paddingBottom: Platform.OS === 'web' ? 0 : 50 
-              }
+              cardStyle: { flex: 1 }
             }}
           >
             {renderDrawerScreens(userRole)}

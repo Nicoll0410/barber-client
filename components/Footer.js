@@ -1,13 +1,19 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const Footer = () => {
   const { width } = useWindowDimensions();
   const isMobile = width < 768; // Tablet/móvil
+  const insets = useSafeAreaInsets(); // Para manejar áreas seguras en dispositivos
 
   return (
-    <View style={[styles.container, isMobile && styles.mobileContainer]}>
+    <View style={[
+      styles.container, 
+      isMobile && styles.mobileContainer,
+      isMobile && { paddingBottom: insets.bottom } // Añade padding para el área segura
+    ]}>
       <View style={styles.content}>
         <Text style={styles.text}>© 2025.</Text>
 
@@ -42,11 +48,11 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   mobileContainer: {
-    position: 'fixed', // <-- importante: fijo en móvil
+    position: 'fixed', // Cambiado de 'absolute' a 'fixed' para que se mantenga en su lugar
     bottom: 0,
     left: 0,
     right: 0,
-    zIndex: 100,
+    zIndex: 1000, // Aumentado el zIndex para asegurar que esté por encima
   },
   content: {
     flexDirection: 'row',

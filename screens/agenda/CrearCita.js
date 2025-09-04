@@ -1,5 +1,4 @@
-
-import React, { useState, useContext, useEffect, useCallback, useRef, useMemo } from "react";
+import React, { useState, useContext, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -45,6 +44,7 @@ const CrearCita = ({
   // Referencias para los inputs
   const nombreInputRef = useRef(null);
   const telefonoInputRef = useRef(null);
+  const searchInputRef = useRef(null);
 
   useEffect(() => {
     return () => {
@@ -53,18 +53,19 @@ const CrearCita = ({
   }, []);
 
   useEffect(() => {
-    if (visible && step === 2 && isTemporal) {
-      // Enfocar el input de nombre cuando se selecciona cliente nuevo
-      const timer = setTimeout(() => {
-        if (nombreInputRef.current) {
+    if (visible && step === 2) {
+      // Enfocar el input apropiado cuando se cambia a paso 2
+      setTimeout(() => {
+        if (!isTemporal && searchInputRef.current) {
+          searchInputRef.current.focus();
+        } else if (isTemporal && nombreInputRef.current) {
           nombreInputRef.current.focus();
         }
-      }, 100);
-      return () => clearTimeout(timer);
+      }, 300);
     }
   }, [visible, step, isTemporal]);
 
-  const reset = useCallback(() => {
+  const reset = () => {
     setServicioSel(null);
     setClienteSel(null);
     setBusqueda("");
@@ -73,28 +74,14 @@ const CrearCita = ({
     setTemporalNombre("");
     setTemporalTelefono("");
     setIsLoading(false);
-  }, []);
+  };
 
-  const handleClose = useCallback(() => {
+  const handleClose = () => {
     reset();
     onClose();
-  }, [reset, onClose]);
+  };
 
-  // Usar useCallback para evitar recrear funciones en cada render
-  const handleSetTemporalNombre = useCallback((text) => {
-    setTemporalNombre(text);
-  }, []);
-
-  const handleSetTemporalTelefono = useCallback((text) => {
-    setTemporalTelefono(text);
-  }, []);
-
-  const handleSetBusqueda = useCallback((text) => {
-    setBusqueda(text);
-  }, []);
-
-  // Funciones utilitarias memoizadas
-  const convertirHora24 = useCallback((horaStr) => {
+  const convertirHora24 = (horaStr) => {
     horaStr = horaStr.trim().toUpperCase();
 
     if (/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(horaStr)) {
@@ -113,9 +100,9 @@ const CrearCita = ({
     }
 
     throw new Error("Formato de hora no válido");
-  }, []);
+  };
 
-  const calcularHoraFin = useCallback((horaInicio, duracionMinutos) => {
+  const calcularHoraFin = (horaInicio, duracionMinutos) => {
     const [hours, minutes] = horaInicio.split(":").map(Number);
     const totalMinutes = hours * 60 + minutes + duracionMinutos;
 
@@ -125,9 +112,9 @@ const CrearCita = ({
     return `${endHours.toString().padStart(2, "0")}:${endMinutes
       .toString()
       .padStart(2, "0")}`;
-  }, []);
+  };
 
-  const convertirDuracionAMinutos = useCallback((duracionStr) => {
+  const convertirDuracionAMinutos = (duracionStr) => {
     if (!duracionStr) return 60;
 
     const partes = duracionStr.split(":");
@@ -136,19 +123,17 @@ const CrearCita = ({
     }
 
     return parseInt(duracionStr) || 60;
-  }, []);
+  };
 
-  const formatearHoraParaMostrar = useCallback((hora24) => {
+  const formatearHoraParaMostrar = (hora24) => {
     const [hours, minutes] = hora24.split(":").map(Number);
     const period = hours >= 12 ? "PM" : "AM";
     const hours12 = hours % 12 || 12;
     return `${hours12}:${minutes.toString().padStart(2, "0")} ${period}`;
-  }, []);
+  };
 
-  const obtenerUsuarioIdDelBarbero = useCallback(async (token, barberoId) => {
+  const obtenerUsuarioIdDelBarbero = async (token, barberoId) => {
     try {
-      console.log("Buscando usuarioID del barbero...");
-      
       const response = await axios.get(
         `https://barber-server-6kuo.onrender.com/barberos/${barberoId}/usuario`,
         {
@@ -160,21 +145,17 @@ const CrearCita = ({
       );
 
       if (response.data?.success && response.data.usuarioID) {
-        console.log("✅ UsuarioID del barbero encontrado:", response.data.usuarioID);
         return response.data.usuarioID;
       }
       
-      console.log("❌ No se pudo obtener usuarioID del barbero");
       return null;
     } catch (error) {
-      console.error("Error obteniendo usuarioID del barbero:", error);
       return null;
     }
-  }, []);
+  };
 
-  const obtenerUsuarioActual = useCallback(async (token) => {
+  const obtenerUsuarioActual = async (token) => {
     try {
-      console.log("Obteniendo información del usuario actual...");
       
       const response = await axios.get(
         'https://barber-server-6kuo.onrender.com/auth/user-info',
@@ -187,22 +168,17 @@ const CrearCita = ({
       );
 
       if (response.data?.success && response.data.user?.id) {
-        console.log("✅ UserId obtenido:", response.data.user.id);
         return response.data.user.id;
       }
       
-      console.log("❌ No se pudo obtener userId del backend");
       return null;
     } catch (error) {
-      console.error("Error obteniendo información del usuario:", error);
       return null;
     }
-  }, []);
+  };
 
-  const crearNotificacion = useCallback(async (token, notificacionData) => {
+  const crearNotificacion = async (token, notificacionData) => {
     try {
-      console.log("Creando notificación:", notificacionData);
-      
       const response = await axios.post(
         'https://barber-server-6kuo.onrender.com/notifications',
         notificacionData,
@@ -214,16 +190,14 @@ const CrearCita = ({
         }
       );
 
-      console.log("✅ Notificación creada:", response.data);
       return true;
     } catch (error) {
       console.error("Error creando notificación:", error);
       return false;
     }
-  }, []);
+  };
 
-  const handleCrear = useCallback(async () => {
-    console.log("Iniciando creación de cita...");
+  const handleCrear = async () => {
     
     try {
       setIsLoading(true);
@@ -285,8 +259,6 @@ const CrearCita = ({
         throw new Error("No se encontró el token de autenticación");
       }
 
-      console.log("Enviando datos al servidor:", JSON.stringify(citaData, null, 2));
-      
       const response = await axios.post(
         "https://barber-server-6kuo.onrender.com/citas",
         citaData,
@@ -298,8 +270,6 @@ const CrearCita = ({
           timeout: 15000,
         }
       );
-
-      console.log("Respuesta del servidor:", response.data);
 
       if (response.data && response.data.mensaje === 'Cita creada exitosamente') {
         Alert.alert('Éxito', 'Cita creada correctamente');
@@ -334,13 +304,11 @@ const CrearCita = ({
         
         // Forzar actualización de notificaciones
         if (authContext?.fetchNotifications) {
-          console.log("Actualizando notificaciones...");
           await authContext.fetchNotifications();
         }
         
         // Reproducir sonido
         if (authContext?.playNotificationSound) {
-          console.log("Reproduciendo sonido de notificación...");
           await authContext.playNotificationSound();
         }
         
@@ -366,68 +334,9 @@ const CrearCita = ({
     } finally {
       setIsLoading(false);
     }
-  }, [servicioSel, barbero, isTemporal, clienteSel, temporalNombre, temporalTelefono, fecha, slot, convertirHora24, convertirDuracionAMinutos, calcularHoraFin, obtenerUsuarioIdDelBarbero, obtenerUsuarioActual, crearNotificacion, authContext, handleClose, onCreate]);
+  };
 
-  // Memoizar los clientes filtrados para evitar cálculos innecesarios
-  const clientesFiltrados = useMemo(() => {
-    return clientes.filter((c) =>
-      c.nombre.toLowerCase().includes(busqueda.toLowerCase())
-    );
-  }, [clientes, busqueda]);
-
-  // Memoizar los handlers de navegación
-  const handleNextFromStep1 = useCallback(() => {
-    setStep(2);
-  }, []);
-
-  const handleNextFromStep2 = useCallback(() => {
-    setStep(3);
-  }, []);
-
-  const handleBackToStep1 = useCallback(() => {
-    setStep(1);
-  }, []);
-
-  const handleBackToStep2 = useCallback(() => {
-    setStep(2);
-  }, []);
-
-  // Memoizar handlers de selección
-  const handleSelectServicio = useCallback((servicio) => {
-    setServicioSel(servicio);
-  }, []);
-
-  const handleSelectCliente = useCallback((cliente) => {
-    setClienteSel(cliente);
-  }, []);
-
-  const handleToggleClienteExistente = useCallback(() => {
-    setIsTemporal(false);
-    setClienteSel(null);
-    setTemporalNombre("");
-    setTemporalTelefono("");
-  }, []);
-
-  const handleToggleClienteNuevo = useCallback(() => {
-    setIsTemporal(true);
-    setClienteSel(null);
-    setBusqueda("");
-    // Enfocar el input de nombre
-    setTimeout(() => {
-      if (nombreInputRef.current) {
-        nombreInputRef.current.focus();
-      }
-    }, 100);
-  }, []);
-
-  const handleSubmitNombre = useCallback(() => {
-    if (telefonoInputRef.current) {
-      telefonoInputRef.current.focus();
-    }
-  }, []);
-
-  // Componente Paso1 memoizado
-  const Paso1 = useMemo(() => (
+  const Paso1 = () => (
     <View style={styles.stepContainer}>
       <Text style={styles.subtitle}>
         Selecciona el servicio que se realizará en la cita
@@ -441,7 +350,7 @@ const CrearCita = ({
               styles.servicioItem,
               servicioSel?.id === item.id && styles.servicioSel,
             ]}
-            onPress={() => handleSelectServicio(item)}
+            onPress={() => setServicioSel(item)}
           >
             <View>
               <Text style={styles.servicioNombre}>{item.nombre}</Text>
@@ -461,165 +370,179 @@ const CrearCita = ({
             styles.btnWide,
             !servicioSel && styles.btnDisabled,
           ]}
-          onPress={handleNextFromStep1}
+          onPress={() => setStep(2)}
           disabled={!servicioSel}
         >
           <Text style={styles.btnPrimaryText}>Siguiente</Text>
         </TouchableOpacity>
       </View>
     </View>
-  ), [servicios, servicioSel, handleSelectServicio, handleNextFromStep1]);
+  );
 
-  // Componente Paso2 memoizado
-  const Paso2 = useMemo(() => (
-    <View style={styles.stepContainer}>
-      <Text style={styles.subtitle}>Selecciona el cliente</Text>
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          marginBottom: 12,
-        }}
-      >
-        <TouchableOpacity
-          style={[
-            styles.optionToggle,
-            !isTemporal && styles.optionToggleActive,
-          ]}
-          onPress={handleToggleClienteExistente}
+  const Paso2 = () => {
+    const filtrados = clientes.filter((c) =>
+      c.nombre.toLowerCase().includes(busqueda.toLowerCase())
+    );
+
+    return (
+      <View style={styles.stepContainer}>
+        <Text style={styles.subtitle}>Selecciona el cliente</Text>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            marginBottom: 12,
+          }}
         >
-          <Text
+          <TouchableOpacity
             style={[
-              styles.optionText,
-              !isTemporal && styles.optionTextActive,
+              styles.optionToggle,
+              !isTemporal && styles.optionToggleActive,
             ]}
+            onPress={() => {
+              setIsTemporal(false);
+              setClienteSel(null);
+              setTemporalNombre("");
+              setTemporalTelefono("");
+              // Enfocar el input de búsqueda
+              setTimeout(() => {
+                if (searchInputRef.current) {
+                  searchInputRef.current.focus();
+                }
+              }, 100);
+            }}
           >
-            Cliente existente
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.optionToggle,
-            isTemporal && styles.optionToggleActive,
-            { marginLeft: 10 },
-          ]}
-          onPress={handleToggleClienteNuevo}
-        >
-          <Text
-            style={[styles.optionText, isTemporal && styles.optionTextActive]}
+            <Text
+              style={[
+                styles.optionText,
+                !isTemporal && styles.optionTextActive,
+              ]}
+            >
+              Cliente existente
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.optionToggle,
+              isTemporal && styles.optionToggleActive,
+              { marginLeft: 10 },
+            ]}
+            onPress={() => {
+              setIsTemporal(true);
+              setClienteSel(null);
+              setBusqueda("");
+              // Enfocar el input de nombre
+              setTimeout(() => {
+                if (nombreInputRef.current) {
+                  nombreInputRef.current.focus();
+                }
+              }, 100);
+            }}
           >
-            Cliente nuevo
-          </Text>
-        </TouchableOpacity>
-      </View>
+            <Text
+              style={[styles.optionText, isTemporal && styles.optionTextActive]}
+            >
+              Cliente nuevo
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-      {!isTemporal ? (
-        <>
-          <View style={styles.searchBox}>
-            <MaterialIcons
-              name="search"
-              size={20}
-              color="#666"
-              style={{ marginRight: 10 }}
+        {!isTemporal ? (
+          <>
+            <View style={styles.searchBox}>
+              <MaterialIcons
+                name="search"
+                size={20}
+                color="#666"
+                style={{ marginRight: 10 }}
+              />
+              <TextInput
+                ref={searchInputRef}
+                style={styles.searchInput}
+                placeholder="Buscar por nombre"
+                value={busqueda}
+                onChangeText={setBusqueda}
+                autoFocus={true}
+              />
+            </View>
+            <FlatList
+              data={filtrados}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.clienteItem,
+                    clienteSel?.id === item.id && styles.clienteSel,
+                  ]}
+                  onPress={() => setClienteSel(item)}
+                >
+                  <Image source={item.avatar} style={styles.clienteAvatar} />
+                  <Text style={styles.clienteNombre}>{item.nombre}</Text>
+                </TouchableOpacity>
+              )}
+              initialNumToRender={10}
+              maxToRenderPerBatch={5}
+              windowSize={5}
             />
+          </>
+        ) : (
+          <>
+            <Text style={styles.inputLabel}>Nombre del cliente*</Text>
             <TextInput
-              style={styles.searchInput}
-              placeholder="Buscar por nombre"
-              value={busqueda}
-              onChangeText={handleSetBusqueda}
-              autoFocus={false}
+              ref={nombreInputRef}
+              style={styles.input}
+              placeholder="Ej. Juan Pérez"
+              value={temporalNombre}
+              onChangeText={setTemporalNombre}
+              returnKeyType="next"
+              onSubmitEditing={() => {
+                if (telefonoInputRef.current) {
+                  telefonoInputRef.current.focus();
+                }
+              }}
+              blurOnSubmit={false}
             />
-          </View>
-          <FlatList
-            data={clientesFiltrados}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={[
-                  styles.clienteItem,
-                  clienteSel?.id === item.id && styles.clienteSel,
-                ]}
-                onPress={() => handleSelectCliente(item)}
-              >
-                <Image source={item.avatar} style={styles.clienteAvatar} />
-                <Text style={styles.clienteNombre}>{item.nombre}</Text>
-              </TouchableOpacity>
-            )}
-            initialNumToRender={10}
-            maxToRenderPerBatch={5}
-            windowSize={5}
-          />
-        </>
-      ) : (
-        <>
-          <Text style={styles.inputLabel}>Nombre del cliente*</Text>
-          <TextInput
-            ref={nombreInputRef}
-            style={styles.input}
-            placeholder="Ej. Juan Pérez"
-            value={temporalNombre}
-            onChangeText={handleSetTemporalNombre}
-            returnKeyType="next"
-            onSubmitEditing={handleSubmitNombre}
-            blurOnSubmit={false}
-          />
-          <Text style={styles.inputLabel}>Teléfono (opcional)</Text>
-          <TextInput
-            ref={telefonoInputRef}
-            style={styles.input}
-            placeholder="Ej. 3001234567"
-            value={temporalTelefono}
-            keyboardType="phone-pad"
-            onChangeText={handleSetTemporalTelefono}
-            returnKeyType="done"
-          />
-        </>
-      )}
+            <Text style={styles.inputLabel}>Teléfono (opcional)</Text>
+            <TextInput
+              ref={telefonoInputRef}
+              style={styles.input}
+              placeholder="Ej. 3001234567"
+              value={temporalTelefono}
+              keyboardType="phone-pad"
+              onChangeText={setTemporalTelefono}
+              returnKeyType="done"
+            />
+          </>
+        )}
 
-      <View style={styles.navBtns}>
-        <TouchableOpacity
-          style={styles.btnSecondary}
-          onPress={handleBackToStep1}
-        >
-          <Text style={styles.btnSecondaryText}>Volver</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.btnPrimary,
-            !isTemporal && !clienteSel && styles.btnDisabled,
-            isTemporal && !temporalNombre.trim() && styles.btnDisabled,
-            { width: "45%" },
-          ]}
-          onPress={handleNextFromStep2}
-          disabled={
-            (!isTemporal && !clienteSel) ||
-            (isTemporal && !temporalNombre.trim())
-          }
-        >
-          <Text style={styles.btnPrimaryText}>Siguiente</Text>
-        </TouchableOpacity>
+        <View style={styles.navBtns}>
+          <TouchableOpacity
+            style={styles.btnSecondary}
+            onPress={() => setStep(1)}
+          >
+            <Text style={styles.btnSecondaryText}>Volver</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.btnPrimary,
+              !isTemporal && !clienteSel && styles.btnDisabled,
+              isTemporal && !temporalNombre.trim() && styles.btnDisabled,
+              { width: "45%" },
+            ]}
+            onPress={() => setStep(3)}
+            disabled={
+              (!isTemporal && !clienteSel) ||
+              (isTemporal && !temporalNombre.trim())
+            }
+          >
+            <Text style={styles.btnPrimaryText}>Siguiente</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
-  ), [
-    isTemporal, 
-    busqueda, 
-    clientesFiltrados, 
-    clienteSel, 
-    temporalNombre, 
-    temporalTelefono, 
-    handleToggleClienteExistente, 
-    handleToggleClienteNuevo, 
-    handleSetBusqueda, 
-    handleSelectCliente, 
-    handleSetTemporalNombre, 
-    handleSetTemporalTelefono, 
-    handleSubmitNombre, 
-    handleBackToStep1, 
-    handleNextFromStep2
-  ]);
+    );
+  };
 
-  // Componente Paso3 memoizado
-  const Paso3 = useMemo(() => {
+  const Paso3 = () => {
     const duracionMinutos = convertirDuracionAMinutos(
       servicioSel?.duracionMaxima || "01:00:00"
     );
@@ -690,7 +613,7 @@ const CrearCita = ({
         <View style={styles.navBtns}>
           <TouchableOpacity
             style={styles.btnSecondary}
-            onPress={handleBackToStep2}
+            onPress={() => setStep(2)}
             disabled={isLoading}
           >
             <Text style={styles.btnSecondaryText}>Volver</Text>
@@ -709,36 +632,20 @@ const CrearCita = ({
         </View>
       </View>
     );
-  }, [
-    servicioSel, 
-    barbero, 
-    isTemporal, 
-    temporalNombre, 
-    temporalTelefono, 
-    clienteSel, 
-    fecha, 
-    slot, 
-    isLoading, 
-    convertirDuracionAMinutos, 
-    convertirHora24, 
-    calcularHoraFin, 
-    formatearHoraParaMostrar, 
-    handleBackToStep2, 
-    handleCrear
-  ]);
+  };
 
-  const renderStep = useCallback(() => {
+  const renderStep = () => {
     switch (step) {
       case 1:
-        return Paso1;
+        return <Paso1 />;
       case 2:
-        return Paso2;
+        return <Paso2 />;
       case 3:
-        return Paso3;
+        return <Paso3 />;
       default:
-        return Paso1;
+        return <Paso1 />;
     }
-  }, [step, Paso1, Paso2, Paso3]);
+  };
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
@@ -746,6 +653,7 @@ const CrearCita = ({
         <KeyboardAvoidingView 
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.keyboardAvoiding}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
         >
           <View style={styles.modal}>
             <View style={styles.modalHeader}>

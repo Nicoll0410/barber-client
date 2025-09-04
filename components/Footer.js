@@ -7,12 +7,14 @@ const FOOTER_HEIGHT = 50; // Altura aprox. del footer (usada también en el main
 const Footer = () => {
   const { width } = useWindowDimensions();
   const isMobile = width < 768; // Tablet/móvil
+  const isWeb = Platform.OS === "web";
 
   return (
     <View
       style={[
         styles.container,
         isMobile ? styles.mobileContainer : styles.desktopContainer,
+        isWeb && !isMobile && styles.webDesktopContainer
       ]}
     >
       <View style={styles.content}>
@@ -54,6 +56,13 @@ const styles = StyleSheet.create({
   },
   desktopContainer: {
     position: 'relative',
+  },
+  webDesktopContainer: {
+    width: '100%',
+    position: 'fixed',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
   mobileContainer: {
     position: 'absolute',

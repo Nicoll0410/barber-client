@@ -8,29 +8,45 @@ const NotificationBell = ({ navigation }) => {
   const { unreadCount, fetchNotifications } = useAuth();
   const { socket } = useContext(AuthContext);
   const [badgeVersion, setBadgeVersion] = useState(0);
+  const [lastUpdate, setLastUpdate] = useState(null);
 
   // Escuchar actualizaciones de badge en tiempo real
   useEffect(() => {
     if (socket) {
+      console.log("🔔 NotificationBell - Escuchando eventos de badge");
+      
       const handleActualizarBadge = (data) => {
-        console.log("🔄 NotificationBell - Actualización recibida");
+        console.log("🎯 NotificationBell - Evento recibido:", data);
         
-        // Verificar si es para este usuario o broadcast general
-        const currentUserId = authState.user?.userId || authState.user?.id;
-        if (!data.usuarioID || data.usuarioID === currentUserId) {
-          console.log("🎯 Actualizando badge inmediatamente");
+        // Actualizar INMEDIATAMENTE
+        setBadgeVersion(prev => prev + 1);
+        fetchNotifications().catch(console.error);
+        
+        // Forzar re-render adicional después de un delay
+        setTimeout(() => {
           setBadgeVersion(prev => prev + 1);
-          fetchNotifications(); // Actualizar contador
-        }
+        }, 100);
       };
 
+      // Escuchar ambos tipos de eventos
       socket.on('actualizar_badge', handleActualizarBadge);
+      socket.on('nueva_notificacion', handleActualizarBadge);
 
       return () => {
         socket.off('actualizar_badge', handleActualizarBadge);
+        socket.off('nueva_notificacion', handleActualizarBadge);
       };
     }
   }, [socket, fetchNotifications]);
+
+  // También actualizar cada 30 segundos por si fallan los sockets
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchNotifications().catch(console.error);
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [fetchNotifications]);
 
   const handlePress = async () => {
     await fetchNotifications();
@@ -41,9 +57,10 @@ const NotificationBell = ({ navigation }) => {
     <TouchableOpacity 
       onPress={handlePress}
       style={styles.container}
-      key={badgeVersion} // 🔥 Forzar re-render cuando cambie
+      key={badgeVersion} // 🔥 Forzar re-render
     >
       <Ionicons name="notifications-outline" size={26} color="black" />
+      
       {unreadCount > 0 && (
         <View style={styles.badge}>
           <Text style={styles.badgeText}>
@@ -54,6 +71,7 @@ const NotificationBell = ({ navigation }) => {
     </TouchableOpacity>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: { 

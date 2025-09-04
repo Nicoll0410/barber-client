@@ -284,22 +284,31 @@ export const AuthProvider = ({ children }) => {
       });
 
       // En el useEffect del socket, agregar esto:
+// 🔥 REEMPLAZAR el listener de actualizar_badge con este código MEJORADO:
 socketRef.current.on("actualizar_badge", async (data) => {
-  console.log("🔄 Evento actualizar_badge recibido:", data);
+  console.log("🔄 EVENTO actualizar_badge RECIBIDO:", data);
   
-  // Verificar si es para este usuario
   const currentUserId = authState.user?.userId || authState.user?.id;
-  if (!data.usuarioID || data.usuarioID === currentUserId) {
-    console.log("🎯 Actualizando badge para usuario actual");
-    
-    // Forzar actualización inmediata
-    await fetchNotifications();
-    
-    // También forzar re-render del NotificationBell
-    if (typeof setForceUpdate === 'function') {
-      setForceUpdate(prev => prev + 1);
-    }
+  
+  // Si el evento es específico para un usuario, verificar que sea el correcto
+  if (data.usuarioID && data.usuarioID !== currentUserId) {
+    console.log("📭 Evento no es para este usuario, ignorando...");
+    return;
   }
+  
+  console.log("🎯 Actualizando badge PARA USUARIO ACTUAL");
+  
+  // Forzar actualización INMEDIATA
+  await fetchNotifications();
+  
+  // Reproducir sonido de notificación
+  await playNotificationSound();
+  
+  // Forzar re-render de componentes
+  setAuthState(prev => ({
+    ...prev,
+    lastNotification: new Date() // Forzar update
+  }));
 });
 
       // 🎯 HANDLER PRINCIPAL - NOTIFICACIONES EN TIEMPO REAL
@@ -416,6 +425,31 @@ socketRef.current.on("actualizar_badge", async (data) => {
   useEffect(() => {
     initializeAuth();
   }, []);
+
+  // Agregar este useEffect adicional para debuggear las salas
+useEffect(() => {
+  if (socketRef.current && authState.user) {
+    const userId = authState.user.userId || authState.user.id;
+    console.log("🔗 Verificando unión a sala para usuario:", userId);
+    
+    // Unir al usuario a su sala personal
+    socketRef.current.emit("unir_usuario", userId);
+    
+    // Verificar estado de la conexión
+    socketRef.current.on("usuario_unido", (data) => {
+      console.log("✅ Confirmación de unión a sala:", data);
+    });
+
+    // Debuggear eventos de sala
+    socketRef.current.on("join", (room) => {
+      console.log("👤 Usuario unido a sala:", room);
+    });
+
+    socketRef.current.on("leave", (room) => {
+      console.log("👤 Usuario salió de sala:", room);
+    });
+  }
+}, [socketRef.current, authState.user]);
 
   useEffect(() => {
     setupSocket();

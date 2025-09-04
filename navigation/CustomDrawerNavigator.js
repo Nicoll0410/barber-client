@@ -324,6 +324,7 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
         <View
           style={[
             styles.mainContent,
+            isWeb && isLargeScreen && { marginLeft: 300 },
             isMobile && { paddingBottom: FOOTER_HEIGHT },
           ]}
         >

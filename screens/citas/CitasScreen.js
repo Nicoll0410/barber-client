@@ -185,7 +185,9 @@ const cancelarCita = async () => {
     const token = await AsyncStorage.getItem('token');
     const response = await axios.put(
       `${API}/citas/cancelar-cita/${citaACancelar.id}`, 
-      {},
+      {
+        zonaHoraria: Intl.DateTimeFormat().resolvedOptions().timeZone
+      },
       {
         headers: { Authorization: `Bearer ${token}` }
       }

@@ -283,6 +283,25 @@ export const AuthProvider = ({ children }) => {
         console.error("❌ Error de conexión:", error.message);
       });
 
+      // En el useEffect del socket, agregar esto:
+socketRef.current.on("actualizar_badge", async (data) => {
+  console.log("🔄 Evento actualizar_badge recibido:", data);
+  
+  // Verificar si es para este usuario
+  const currentUserId = authState.user?.userId || authState.user?.id;
+  if (!data.usuarioID || data.usuarioID === currentUserId) {
+    console.log("🎯 Actualizando badge para usuario actual");
+    
+    // Forzar actualización inmediata
+    await fetchNotifications();
+    
+    // También forzar re-render del NotificationBell
+    if (typeof setForceUpdate === 'function') {
+      setForceUpdate(prev => prev + 1);
+    }
+  }
+});
+
       // 🎯 HANDLER PRINCIPAL - NOTIFICACIONES EN TIEMPO REAL
       socketRef.current.on("nueva_notificacion", async (data) => {
         console.log("📩 Notificación recibida por socket:", data);

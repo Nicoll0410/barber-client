@@ -1,18 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
+import { AuthContext } from '../contexts/AuthContext';
 
 const NotificationBell = ({ navigation }) => {
-  const { unreadCount, fetchNotifications, socket } = useAuth();
-  const [forceUpdate, setForceUpdate] = useState(0);
+  const { unreadCount, fetchNotifications } = useAuth();
+  const { socket } = useContext(AuthContext);
+  const [badgeVersion, setBadgeVersion] = useState(0);
 
   // Escuchar actualizaciones de badge en tiempo real
   useEffect(() => {
     if (socket) {
-      const handleActualizarBadge = () => {
-        console.log("🔄 Actualización de badge recibida - Forzando render");
-        setForceUpdate(prev => prev + 1); // Forzar re-render del componente
+      const handleActualizarBadge = (data) => {
+        console.log("🔄 NotificationBell - Actualización recibida");
+        
+        // Verificar si es para este usuario o broadcast general
+        const currentUserId = authState.user?.userId || authState.user?.id;
+        if (!data.usuarioID || data.usuarioID === currentUserId) {
+          console.log("🎯 Actualizando badge inmediatamente");
+          setBadgeVersion(prev => prev + 1);
+          fetchNotifications(); // Actualizar contador
+        }
       };
 
       socket.on('actualizar_badge', handleActualizarBadge);
@@ -21,7 +30,7 @@ const NotificationBell = ({ navigation }) => {
         socket.off('actualizar_badge', handleActualizarBadge);
       };
     }
-  }, [socket]);
+  }, [socket, fetchNotifications]);
 
   const handlePress = async () => {
     await fetchNotifications();
@@ -32,7 +41,7 @@ const NotificationBell = ({ navigation }) => {
     <TouchableOpacity 
       onPress={handlePress}
       style={styles.container}
-      key={forceUpdate} // 🔥 Forzar re-render cuando cambie
+      key={badgeVersion} // 🔥 Forzar re-render cuando cambie
     >
       <Ionicons name="notifications-outline" size={26} color="black" />
       {unreadCount > 0 && (

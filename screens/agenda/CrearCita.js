@@ -60,7 +60,7 @@ const CrearCita = ({
           nombreInputRef.current.focus();
           lastFocusedInput.current = 'nombre';
         }
-      }, 100);
+      }, 300);
     }
   }, [visible, step, isTemporal]);
 
@@ -92,8 +92,6 @@ const CrearCita = ({
       telefonoInputRef.current.focus();
     }
   };
-
-  // ... (las demás funciones permanecen igual: convertirHora24, calcularHoraFin, etc.)
 
   const convertirHora24 = (horaStr) => {
     horaStr = horaStr.trim().toUpperCase();
@@ -372,14 +370,10 @@ const CrearCita = ({
   // Usar useCallback para evitar recrear funciones en cada render
   const handleSetTemporalNombre = useCallback((text) => {
     setTemporalNombre(text);
-    // Restaurar el foco después de actualizar el estado
-    setTimeout(restaurarFoco, 50);
   }, []);
 
   const handleSetTemporalTelefono = useCallback((text) => {
     setTemporalTelefono(text);
-    // Restaurar el foco después de actualizar el estado
-    setTimeout(restaurarFoco, 50);
   }, []);
 
   const handleSetBusqueda = useCallback((text) => {
@@ -481,7 +475,7 @@ const CrearCita = ({
                   nombreInputRef.current.focus();
                   lastFocusedInput.current = 'nombre';
                 }
-              }, 100);
+              }, 300);
             }}
           >
             <Text
@@ -700,6 +694,7 @@ const CrearCita = ({
         <KeyboardAvoidingView 
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.keyboardAvoiding}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0}
         >
           <View style={styles.modal}>
             <View style={styles.modalHeader}>
@@ -717,6 +712,7 @@ const CrearCita = ({
             <ScrollView 
               contentContainerStyle={{ flexGrow: 1 }}
               keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="none"
             >
               {renderStep()}
             </ScrollView>

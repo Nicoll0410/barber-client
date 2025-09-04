@@ -425,6 +425,17 @@ socketRef.current.on("actualizar_badge", async (data) => {
   useEffect(() => {
     initializeAuth();
   }, []);
+  // Agregar este useEffect para actualización automática:
+useEffect(() => {
+  if (authState.isLoggedIn) {
+    // Actualizar cada 5 segundos
+    const interval = setInterval(() => {
+      fetchNotifications();
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }
+}, [authState.isLoggedIn, fetchNotifications]);
 
   // Agregar este useEffect adicional para debuggear las salas
 useEffect(() => {

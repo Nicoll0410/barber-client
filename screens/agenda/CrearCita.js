@@ -93,8 +93,6 @@ const CrearCita = ({
     }
   };
 
-  // ... (las demás funciones permanecen igual: convertirHora24, calcularHoraFin, etc.)
-
   const convertirHora24 = (horaStr) => {
     horaStr = horaStr.trim().toUpperCase();
 
@@ -144,83 +142,6 @@ const CrearCita = ({
     const period = hours >= 12 ? "PM" : "AM";
     const hours12 = hours % 12 || 12;
     return `${hours12}:${minutes.toString().padStart(2, "0")} ${period}`;
-  };
-
-  const obtenerUsuarioIdDelBarbero = async (token, barberoId) => {
-    try {
-      console.log("Buscando usuarioID del barbero...");
-      
-      const response = await axios.get(
-        `https://barber-server-6kuo.onrender.com/barberos/${barberoId}/usuario`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json"
-          }
-        }
-      );
-
-      if (response.data?.success && response.data.usuarioID) {
-        console.log("✅ UsuarioID del barbero encontrado:", response.data.usuarioID);
-        return response.data.usuarioID;
-      }
-      
-      console.log("❌ No se pudo obtener usuarioID del barbero");
-      return null;
-    } catch (error) {
-      console.error("Error obteniendo usuarioID del barbero:", error);
-      return null;
-    }
-  };
-
-  const obtenerUsuarioActual = async (token) => {
-    try {
-      console.log("Obteniendo información del usuario actual...");
-      
-      const response = await axios.get(
-        'https://barber-server-6kuo.onrender.com/auth/user-info',
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      if (response.data?.success && response.data.user?.id) {
-        console.log("✅ UserId obtenido:", response.data.user.id);
-        return response.data.user.id;
-      }
-      
-      console.log("❌ No se pudo obtener userId del backend");
-      return null;
-    } catch (error) {
-      console.error("Error obteniendo información del usuario:", error);
-      return null;
-    }
-  };
-
-  const crearNotificacion = async (token, notificacionData) => {
-    try {
-      console.log("Creando notificación:", notificacionData);
-      
-      const response = await axios.post(
-        'https://barber-server-6kuo.onrender.com/notifications',
-        notificacionData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      console.log("✅ Notificación creada:", response.data);
-      return true;
-    } catch (error) {
-      console.error("Error creando notificación:", error);
-      return false;
-    }
   };
 
   const handleCrear = async () => {
@@ -305,33 +226,8 @@ const CrearCita = ({
       if (response.data && response.data.mensaje === 'Cita creada exitosamente') {
         Alert.alert('Éxito', 'Cita creada correctamente');
         
-        // Crear notificaciones
-        const citaId = response.data.cita.id;
-        const clienteNombre = isTemporal ? temporalNombre : clienteSel?.nombre;
-        
-        // 1. Crear notificación para el barbero
-        const usuarioIDBarbero = await obtenerUsuarioIdDelBarbero(token, barbero.id);
-        if (usuarioIDBarbero) {
-          await crearNotificacion(token, {
-            usuarioID: usuarioIDBarbero,
-            titulo: "📅 Nueva cita agendada",
-            cuerpo: `El cliente ${clienteNombre} ha agendado una cita para el ${fecha.toLocaleDateString('es-ES')} a las ${slot.displayTime}`,
-            tipo: "cita_creada",
-            relacionId: citaId
-          });
-        }
-        
-        // 2. Crear notificación para el usuario actual
-        const usuarioIDActual = await obtenerUsuarioActual(token);
-        if (usuarioIDActual) {
-          await crearNotificacion(token, {
-            usuarioID: usuarioIDActual,
-            titulo: "📅 Cita agendada",
-            cuerpo: `Agendaste una cita para ${fecha.toLocaleDateString('es-ES')} a las ${slot.displayTime} con ${barbero.nombre}`,
-            tipo: "cita_creada",
-            relacionId: citaId
-          });
-        }
+        // ✅ EL BACKEND SE ENCARGA AUTOMÁTICAMENTE DE LAS NOTIFICACIONES
+        // NO es necesario crear notificaciones manualmente
         
         // Forzar actualización de notificaciones
         if (authContext?.fetchNotifications) {

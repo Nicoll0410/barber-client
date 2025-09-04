@@ -283,24 +283,6 @@ export const AuthProvider = ({ children }) => {
         console.error("❌ Error de conexión:", error.message);
       });
 
-      socketRef.current.on("badge_update", (payload) => {
-  try {
-    const currentUserId = authState.user?.userId || authState.user?.id;
-    if (payload?.usuarioID === currentUserId) {
-      const unread = Number(payload.unread) || 0;
-      setAuthState(prev => ({
-        ...prev,
-        unreadCount: unread
-      }));
-      if (Platform.OS !== 'web') {
-        Notifications.setBadgeCountAsync(unread).catch(console.error);
-      }
-    }
-  } catch (e) {
-    console.error("Error manejando badge_update:", e);
-  }
-});
-
       // 🎯 HANDLER PRINCIPAL - NOTIFICACIONES EN TIEMPO REAL
       socketRef.current.on("nueva_notificacion", async (data) => {
         console.log("📩 Notificación recibida por socket:", data);

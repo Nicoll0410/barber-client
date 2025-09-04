@@ -301,31 +301,54 @@ const CrearCita = ({
       );
 
       console.log("Respuesta del servidor:", response.data);
-if (response.data && response.data.mensaje === 'Cita creada exitosamente') {
-  Alert.alert('Éxito', 'Cita creada correctamente');
 
-  const citaId = response.data.cita.id;
-  const clienteNombre = isTemporal ? temporalNombre : clienteSel?.nombre;
-
-  // Ya no hacemos POST a /notifications desde el cliente para evitar duplicados.
-  // El backend (citas.controller) se encarga de crear notificaciones en BD y emitir por socket.
-
-  // Forzar sincronización de notificaciones locales (optional)
-  if (authContext?.fetchNotifications) {
-    console.log("Actualizando notificaciones...");
-    await authContext.fetchNotifications();
-  }
-
-  // Reproducir sonido local (opcional — el socket lo reproducirá también si llega)
-  if (authContext?.playNotificationSound) {
-    console.log("Reproduciendo sonido de notificación...");
-    await authContext.playNotificationSound();
-  }
-
-  handleClose();
-  if (onCreate) onCreate();
-  return;
-}
+      if (response.data && response.data.mensaje === 'Cita creada exitosamente') {
+        Alert.alert('Éxito', 'Cita creada correctamente');
+        
+        // Crear notificaciones
+        const citaId = response.data.cita.id;
+        const clienteNombre = isTemporal ? temporalNombre : clienteSel?.nombre;
+        
+        // 1. Crear notificación para el barbero
+        const usuarioIDBarbero = await obtenerUsuarioIdDelBarbero(token, barbero.id);
+        if (usuarioIDBarbero) {
+          await crearNotificacion(token, {
+            usuarioID: usuarioIDBarbero,
+            titulo: "📅 Nueva cita agendada",
+            cuerpo: `El cliente ${clienteNombre} ha agendado una cita para el ${fecha.toLocaleDateString('es-ES')} a las ${slot.displayTime}`,
+            tipo: "cita_creada",
+            relacionId: citaId
+          });
+        }
+        
+        // 2. Crear notificación para el usuario actual
+        const usuarioIDActual = await obtenerUsuarioActual(token);
+        if (usuarioIDActual) {
+          await crearNotificacion(token, {
+            usuarioID: usuarioIDActual,
+            titulo: "📅 Cita agendada",
+            cuerpo: `Agendaste una cita para ${fecha.toLocaleDateString('es-ES')} a las ${slot.displayTime} con ${barbero.nombre}`,
+            tipo: "cita_creada",
+            relacionId: citaId
+          });
+        }
+        
+        // Forzar actualización de notificaciones
+        if (authContext?.fetchNotifications) {
+          console.log("Actualizando notificaciones...");
+          await authContext.fetchNotifications();
+        }
+        
+        // Reproducir sonido
+        if (authContext?.playNotificationSound) {
+          console.log("Reproduciendo sonido de notificación...");
+          await authContext.playNotificationSound();
+        }
+        
+        handleClose();
+        if (onCreate) onCreate();
+        return;
+      }
       
       throw new Error(response.data?.mensaje || "Error al crear la cita");
     } catch (error) {

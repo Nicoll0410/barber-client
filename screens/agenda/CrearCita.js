@@ -134,8 +134,6 @@ const CrearCita = ({
 
   const obtenerUsuarioIdDelBarbero = async (token, barberoId) => {
     try {
-      console.log("Buscando usuarioID del barbero...");
-      
       const response = await axios.get(
         `https://barber-server-6kuo.onrender.com/barberos/${barberoId}/usuario`,
         {
@@ -147,21 +145,17 @@ const CrearCita = ({
       );
 
       if (response.data?.success && response.data.usuarioID) {
-        console.log("✅ UsuarioID del barbero encontrado:", response.data.usuarioID);
         return response.data.usuarioID;
       }
       
-      console.log("❌ No se pudo obtener usuarioID del barbero");
       return null;
     } catch (error) {
-      console.error("Error obteniendo usuarioID del barbero:", error);
       return null;
     }
   };
 
   const obtenerUsuarioActual = async (token) => {
     try {
-      console.log("Obteniendo información del usuario actual...");
       
       const response = await axios.get(
         'https://barber-server-6kuo.onrender.com/auth/user-info',
@@ -174,22 +168,17 @@ const CrearCita = ({
       );
 
       if (response.data?.success && response.data.user?.id) {
-        console.log("✅ UserId obtenido:", response.data.user.id);
         return response.data.user.id;
       }
       
-      console.log("❌ No se pudo obtener userId del backend");
       return null;
     } catch (error) {
-      console.error("Error obteniendo información del usuario:", error);
       return null;
     }
   };
 
   const crearNotificacion = async (token, notificacionData) => {
     try {
-      console.log("Creando notificación:", notificacionData);
-      
       const response = await axios.post(
         'https://barber-server-6kuo.onrender.com/notifications',
         notificacionData,
@@ -201,7 +190,6 @@ const CrearCita = ({
         }
       );
 
-      console.log("✅ Notificación creada:", response.data);
       return true;
     } catch (error) {
       console.error("Error creando notificación:", error);
@@ -210,7 +198,6 @@ const CrearCita = ({
   };
 
   const handleCrear = async () => {
-    console.log("Iniciando creación de cita...");
     
     try {
       setIsLoading(true);
@@ -272,8 +259,6 @@ const CrearCita = ({
         throw new Error("No se encontró el token de autenticación");
       }
 
-      console.log("Enviando datos al servidor:", JSON.stringify(citaData, null, 2));
-      
       const response = await axios.post(
         "https://barber-server-6kuo.onrender.com/citas",
         citaData,
@@ -285,8 +270,6 @@ const CrearCita = ({
           timeout: 15000,
         }
       );
-
-      console.log("Respuesta del servidor:", response.data);
 
       if (response.data && response.data.mensaje === 'Cita creada exitosamente') {
         Alert.alert('Éxito', 'Cita creada correctamente');
@@ -321,13 +304,11 @@ const CrearCita = ({
         
         // Forzar actualización de notificaciones
         if (authContext?.fetchNotifications) {
-          console.log("Actualizando notificaciones...");
           await authContext.fetchNotifications();
         }
         
         // Reproducir sonido
         if (authContext?.playNotificationSound) {
-          console.log("Reproduciendo sonido de notificación...");
           await authContext.playNotificationSound();
         }
         

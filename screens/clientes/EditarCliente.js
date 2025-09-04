@@ -101,7 +101,6 @@ const pickImage = async () => {
       // Usar base64 para consistencia con el backend
       const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
       setFormData({...formData, avatar: base64Image});
-      console.log("Imagen seleccionada y convertida a base64");
     }
   } catch (error) {
     console.error("Error al seleccionar imagen:", error);

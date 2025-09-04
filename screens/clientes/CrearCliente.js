@@ -284,7 +284,6 @@ const pickImage = async () => {
     if (!result.canceled) { // ✅ ojo, ahora se llama "canceled" en la última versión
       const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
       handleChange("avatar", base64Image); // ✅ Aquí actualizamos el formData.avatar
-      console.log("Imagen seleccionada (tamaño):", result.assets[0].base64.length);
     }
   } catch (error) {
     console.error("Error al seleccionar imagen:", error);
@@ -327,10 +326,6 @@ const pickImage = async () => {
         password: formData.password,
       };
 
-      console.log("Enviando datos:", {
-        ...payload,
-        avatarBase64: payload.avatarBase64 ? "[...imagen base64...]" : null,
-      });
 
       const response = await axios.post(`${BASE_URL}/clientes`, payload, {
         headers: { Authorization: `Bearer ${token}` },

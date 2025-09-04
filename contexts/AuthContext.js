@@ -249,9 +249,6 @@ export const AuthProvider = ({ children }) => {
       if (!authState.isLoggedIn || !authState.token || !authState.user) {
         return;
       }
-
-      console.log("🔄 Inicializando conexión socket para usuario:", authState.user.id);
-      
       socketRef.current = io(BASE_URL, {
         transports: ['websocket', 'polling'],
         auth: {
@@ -264,19 +261,14 @@ export const AuthProvider = ({ children }) => {
 
       // Eventos del socket
       socketRef.current.on("connect", () => {
-        console.log("✅ Conectado al servidor Socket.io");
-        
         const userId = authState.user.userId || authState.user.id;
         socketRef.current.emit("unir_usuario", userId);
-        console.log("📨 Uniendo usuario a sala:", userId);
       });
 
       socketRef.current.on("usuario_unido", (data) => {
-        console.log("✅ Usuario unido a sala:", data);
       });
 
       socketRef.current.on("disconnect", (reason) => {
-        console.log("❌ Desconectado:", reason);
       });
 
       socketRef.current.on("connect_error", (error) => {
@@ -286,17 +278,14 @@ export const AuthProvider = ({ children }) => {
       // En el useEffect del socket, agregar esto:
 // 🔥 REEMPLAZAR el listener de actualizar_badge con este código MEJORADO:
 socketRef.current.on("actualizar_badge", async (data) => {
-  console.log("🔄 EVENTO actualizar_badge RECIBIDO:", data);
   
   const currentUserId = authState.user?.userId || authState.user?.id;
   
   // Si el evento es específico para un usuario, verificar que sea el correcto
   if (data.usuarioID && data.usuarioID !== currentUserId) {
-    console.log("📭 Evento no es para este usuario, ignorando...");
     return;
   }
   
-  console.log("🎯 Actualizando badge PARA USUARIO ACTUAL");
   
   // Forzar actualización INMEDIATA
   await fetchNotifications();
@@ -313,12 +302,10 @@ socketRef.current.on("actualizar_badge", async (data) => {
 
       // 🎯 HANDLER PRINCIPAL - NOTIFICACIONES EN TIEMPO REAL
       socketRef.current.on("nueva_notificacion", async (data) => {
-        console.log("📩 Notificación recibida por socket:", data);
-        
+       
         // ✅ Verificar si la notificación es para este usuario
         const currentUserId = authState.user.userId || authState.user.id;
         if (data.usuarioID === currentUserId) {
-          console.log("🎯 Notificación para usuario actual - Actualizando estado");
           
           // 1. Reproducir sonido inmediatamente
           await playNotificationSound();
@@ -328,12 +315,10 @@ socketRef.current.on("actualizar_badge", async (data) => {
             // Evitar duplicados
             const exists = prev.notifications.some(n => n.id === data.id);
             if (exists) {
-              console.log("⚠️ Notificación duplicada, ignorando");
               return prev;
             }
 
             const newUnreadCount = prev.unreadCount + 1;
-            console.log("🔄 Nuevo conteo de notificaciones:", newUnreadCount);
             
             // Actualizar badge (solo en mobile)
             if (Platform.OS !== 'web') {
@@ -364,12 +349,10 @@ socketRef.current.on("actualizar_badge", async (data) => {
             { cancelable: true }
           );
         } else {
-          console.log("❌ Notificación no es para este usuario:", data.usuarioID, "!=", currentUserId);
         }
       });
 
     } catch (error) {
-      console.error("❌ Error configurando socket:", error);
     }
   }, [authState.isLoggedIn, authState.token, authState.user, playNotificationSound]);
 
@@ -441,23 +424,19 @@ useEffect(() => {
 useEffect(() => {
   if (socketRef.current && authState.user) {
     const userId = authState.user.userId || authState.user.id;
-    console.log("🔗 Verificando unión a sala para usuario:", userId);
     
     // Unir al usuario a su sala personal
     socketRef.current.emit("unir_usuario", userId);
     
     // Verificar estado de la conexión
     socketRef.current.on("usuario_unido", (data) => {
-      console.log("✅ Confirmación de unión a sala:", data);
     });
 
     // Debuggear eventos de sala
     socketRef.current.on("join", (room) => {
-      console.log("👤 Usuario unido a sala:", room);
     });
 
     socketRef.current.on("leave", (room) => {
-      console.log("👤 Usuario salió de sala:", room);
     });
   }
 }, [socketRef.current, authState.user]);

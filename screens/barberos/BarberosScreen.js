@@ -62,11 +62,6 @@ const Avatar = ({ nombre, avatar }) => {
       <Image
         source={{ uri: avatar }}
         style={styles.avatarImage}
-        onError={(e) => {
-          console.log('❌ Error cargando avatar (posiblemente truncado):', nombre);
-          console.log('Longitud:', avatar.length);
-          console.log('Preview:', avatar.substring(0, 100) + '...');
-        }}
       />
     );
   }
@@ -223,8 +218,6 @@ const fetchBarberos = async () => {
       },
     });
 
-    console.log('Datos recibidos de barberos:', data);
-    
     const listaBarberos = data.barberos || data;
     const barberosFinales = Array.isArray(listaBarberos) ? 
       listaBarberos : 

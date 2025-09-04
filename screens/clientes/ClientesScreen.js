@@ -65,10 +65,6 @@ const Avatar = ({ nombre, avatar }) => {
       <Image
         source={{ uri: avatar }}
         style={styles.avatarImage}
-        onError={(e) => {
-          console.log('Error cargando avatar:', nombre);
-          // Si falla la carga, mostrar iniciales
-        }}
       />
     );
   }
@@ -222,26 +218,13 @@ const ClientesScreen = () => {
         }
       });
       
-      console.log('Datos recibidos del backend:', JSON.stringify(data, null, 2));
-      console.log('Avatar del primer cliente:', data.clientes[0]?.avatar?.substring(0, 100) + '...');
 
-      console.log('Datos recibidos del backend:', data.clientes.map(c => ({
-        id: c.id,
-        nombre: c.nombre,
-        avatarLength: c.avatar?.length || 0
-      })));
-     
       const listaClientes = data.clientes || data;
       const clientesFinales = Array.isArray(listaClientes) ?
         listaClientes :
         listaClientes.clientes || [];
      
-      console.log('Clientes con avatares:', clientesFinales.map(c => ({
-        id: c.id,
-        nombre: c.nombre,
-        avatar: c.avatar
-      })));
-     
+
       const list = clientesFinales.map(c => {
         // Limpiar avatar si es inválido - mejor detección
         let avatar = c.avatar;
@@ -406,10 +389,6 @@ const ClientesScreen = () => {
         datosActualizacion.avatarBase64 = clienteActualizado.avatar;
       }
 
-      console.log('Enviando datos de actualización:', {
-        ...datosActualizacion,
-        avatarBase64: datosActualizacion.avatarBase64 ? '[...imagen base64...]' : null
-      });
 
       // Hacer la petición PUT
       const response = await axios.put(

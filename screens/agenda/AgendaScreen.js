@@ -521,7 +521,6 @@ const fetchCitas = async () => {
   };
 
   const handleCitaCreada = useCallback(async () => {
-    console.log("Actualizando agenda después de crear cita...");
     try {
       setShowCrearCita(false);
       setSelectedSlot(null);
@@ -534,7 +533,6 @@ const fetchCitas = async () => {
   }, [fetchCitas]);
 
   const handleCitaActualizada = useCallback(async () => {
-    console.log("Actualizando agenda después de modificar cita...");
     try {
       setShowDetalleCita(false);
       await fetchCitas();

@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect, useRef } from "react";
+import React, { useState, useContext, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -336,6 +336,19 @@ const CrearCita = ({
     }
   };
 
+  // Usar useCallback para evitar recrear funciones en cada render
+  const handleSetTemporalNombre = useCallback((text) => {
+    setTemporalNombre(text);
+  }, []);
+
+  const handleSetTemporalTelefono = useCallback((text) => {
+    setTemporalTelefono(text);
+  }, []);
+
+  const handleSetBusqueda = useCallback((text) => {
+    setBusqueda(text);
+  }, []);
+
   const Paso1 = () => (
     <View style={styles.stepContainer}>
       <Text style={styles.subtitle}>
@@ -461,8 +474,12 @@ const CrearCita = ({
                 style={styles.searchInput}
                 placeholder="Buscar por nombre"
                 value={busqueda}
-                onChangeText={setBusqueda}
+                onChangeText={handleSetBusqueda}
                 autoFocus={true}
+                autoCorrect={false}
+                autoCapitalize="none"
+                keyboardType="default"
+                returnKeyType="search"
               />
             </View>
             <FlatList
@@ -493,7 +510,7 @@ const CrearCita = ({
               style={styles.input}
               placeholder="Ej. Juan Pérez"
               value={temporalNombre}
-              onChangeText={setTemporalNombre}
+              onChangeText={handleSetTemporalNombre}
               returnKeyType="next"
               onSubmitEditing={() => {
                 if (telefonoInputRef.current) {
@@ -501,6 +518,9 @@ const CrearCita = ({
                 }
               }}
               blurOnSubmit={false}
+              autoCorrect={false}
+              autoCapitalize="words"
+              keyboardType="default"
             />
             <Text style={styles.inputLabel}>Teléfono (opcional)</Text>
             <TextInput
@@ -509,8 +529,10 @@ const CrearCita = ({
               placeholder="Ej. 3001234567"
               value={temporalTelefono}
               keyboardType="phone-pad"
-              onChangeText={setTemporalTelefono}
+              onChangeText={handleSetTemporalTelefono}
               returnKeyType="done"
+              autoCorrect={false}
+              autoCapitalize="none"
             />
           </>
         )}
@@ -671,6 +693,7 @@ const CrearCita = ({
             <ScrollView 
               contentContainerStyle={{ flexGrow: 1 }}
               keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
             >
               {renderStep()}
             </ScrollView>

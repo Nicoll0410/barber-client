@@ -8,20 +8,20 @@ const InfoModal = ({
   title,
   message,
   buttonLabel = 'Aceptar',
-  onCancel,
+  onClose,
 }) => (
   <Modal
     transparent
     animationType="fade"
     visible={visible}
-    onRequestClose={onCancel}
+    onRequestClose={onClose}
   >
     <BlurView intensity={20} tint="dark" style={styles.overlay}>
       <View style={styles.modal}>
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.message}>{message}</Text>
 
-        <TouchableOpacity style={styles.okBtn} onPress={onCancel}>
+        <TouchableOpacity style={styles.okBtn} onPress={onClose}>
           <Text style={styles.okTxt}>{buttonLabel}</Text>
         </TouchableOpacity>
       </View>

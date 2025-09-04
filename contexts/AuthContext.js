@@ -234,46 +234,54 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // Configurar Socket.io
-  // Configurar Socket.io de manera robusta
-  const setupSocket = useCallback(async () => {
-    try {
-      console.log("🔌 Configurando socket...");
+const setupSocket = useCallback(async () => {
+  try {
+    console.log("🔌 Configurando socket...");
+    
+    // Cerrar socket existente
+    if (socketRef.current) {
+      socketRef.current.removeAllListeners();
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+
+    // ✅ VERIFICACIÓN MEJORADA - Asegurar que tenemos todos los datos
+    if (!authState.isLoggedIn || !authState.token || !authState.user || !authState.user.id) {
+      console.log("❌ Datos incompletos para conectar socket");
+      return;
+    }
+
+    console.log("🔄 Inicializando conexión socket para usuario:", authState.user.id);
+    
+    socketRef.current = io(BASE_URL, {
+      transports: ['websocket', 'polling'],
+      auth: {
+        token: authState.token
+      },
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
+
+    // Eventos del socket
+    socketRef.current.on("connect", () => {
+      console.log("✅ Conectado al servidor Socket.io");
       
-      // Cerrar socket existente
-      if (socketRef.current) {
-        socketRef.current.removeAllListeners();
-        socketRef.current.disconnect();
-        socketRef.current = null;
-      }
-
-      if (!authState.isLoggedIn || !authState.token || !authState.user) {
-        return;
-      }
-
-      console.log("🔄 Inicializando conexión socket para usuario:", authState.user.id);
+      // ✅ USAR EL USER ID DEL authState - no de decoded
+      const userId = authState.user.id;
+      console.log("📨 Uniendo usuario a sala:", userId);
       
-      socketRef.current = io(BASE_URL, {
-        transports: ['websocket', 'polling'],
-        auth: {
-          token: authState.token
-        },
-        reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-      });
-
-      // Eventos del socket
-      socketRef.current.on("connect", () => {
-        console.log("✅ Conectado al servidor Socket.io");
-        
-        const userId = authState.user.userId || authState.user.id;
+      // ✅ VERIFICAR que el userId no sea undefined
+      if (userId) {
         socketRef.current.emit("unir_usuario", userId);
-        console.log("📨 Uniendo usuario a sala:", userId);
-      });
+      } else {
+        console.error("❌ Error: userId es undefined, no se puede unir a sala");
+      }
+    });
 
-      socketRef.current.on("usuario_unido", (data) => {
-        console.log("✅ Usuario unido a sala:", data);
-      });
+    socketRef.current.on("usuario_unido", (data) => {
+      console.log("✅ Usuario unido a sala:", data);
+    });
 
       socketRef.current.on("disconnect", (reason) => {
         console.log("❌ Desconectado:", reason);
@@ -423,28 +431,34 @@ socketRef.current.on("actualizar_badge", async (data) => {
     initializeAuth();
   }, []);
 
-  useEffect(() => {
+useEffect(() => {
+  // ✅ SOLO configurar socket si tenemos un user ID válido
+  if (authState.user && authState.user.id) {
     setupSocket();
-    
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-        socketRef.current = null;
-      }
-    };
-  }, [setupSocket]);
+  }
+  
+  return () => {
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+  };
+}, [setupSocket, authState.user]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextAppState) => {
       if (nextAppState === 'active') {
         console.log("🔄 App en primer plano - Reconectando socket");
+      // ✅ SOLO reconectar si tenemos user ID
+      if (authState.user && authState.user.id) {
         setupSocket();
         fetchNotifications();
       }
-    });
+    }
+  });
 
     return () => subscription.remove();
-  }, [setupSocket, fetchNotifications]);
+  }, [setupSocket, fetchNotifications, authState.user]);
 
   // Login
   const login = async (token, additionalData = {}) => {

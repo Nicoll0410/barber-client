@@ -342,7 +342,7 @@ const CustomDrawerNavigator = ({ navigation: mainNavigation }) => {
             }}
           >
             {renderDrawerScreens(userRole)}
-          </Stack.Navigator>z
+          </Stack.Navigator>
         </View>
       </View>
     </SafeAreaView>

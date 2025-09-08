@@ -64,6 +64,15 @@ const RegisterScreen = () => {
     avatar: null,
   });
 
+  const [errors, setErrors] = useState({
+    nombre: '',
+    telefono: '',
+    fechaNacimiento: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+  });
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -73,8 +82,51 @@ const RegisterScreen = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState('');
 
+  // Validaciones
+  const validateField = (key, value) => {
+    let error = '';
+    
+    switch (key) {
+      case 'nombre':
+        if (!value.trim()) error = 'El nombre es obligatorio';
+        else if (value.trim().length < 3) error = 'El nombre debe tener al menos 3 caracteres';
+        break;
+      case 'telefono':
+        if (!value.trim()) error = 'El teléfono es obligatorio';
+        else if (!/^\d{10}$/.test(value.trim())) error = 'El teléfono debe tener 10 dígitos';
+        break;
+      case 'fechaNacimiento':
+        if (!value) error = 'La fecha de nacimiento es obligatoria';
+        break;
+      case 'email':
+        if (!value.trim()) error = 'El email es obligatorio';
+        else if (!/^\S+@\S+\.\S+$/.test(value.trim())) error = 'El formato del email no es válido';
+        break;
+      case 'password':
+        if (!value.trim()) error = 'La contraseña es obligatoria';
+        else if (value.length < 6) error = 'La contraseña debe tener al menos 6 caracteres';
+        break;
+      case 'confirmPassword':
+        if (!value.trim()) error = 'Debes confirmar tu contraseña';
+        else if (value !== form.password) error = 'Las contraseñas no coinciden';
+        break;
+      default:
+        break;
+    }
+    
+    setErrors(prev => ({ ...prev, [key]: error }));
+    return error === '';
+  };
+
   // Helpers
-  const handleChange = (key, value) => setForm({ ...form, [key]: value });
+  const handleChange = (key, value) => {
+    setForm({ ...form, [key]: value });
+    
+    // Si ya hay un error en este campo, validamos de nuevo al escribir
+    if (errors[key]) {
+      validateField(key, value);
+    }
+  };
 
   const formatDateLabel = (date) => {
     if (!date) return 'dd/mm/aaaa';
@@ -131,26 +183,33 @@ const RegisterScreen = () => {
     }
   };
 
+  // Validar todo el formulario
+  const validateForm = () => {
+    const newErrors = {
+      nombre: '',
+      telefono: '',
+      fechaNacimiento: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+    };
+    
+    let isValid = true;
+    
+    // Validar cada campo
+    if (!validateField('nombre', form.nombre)) isValid = false;
+    if (!validateField('telefono', form.telefono)) isValid = false;
+    if (!validateField('fechaNacimiento', form.fechaNacimiento)) isValid = false;
+    if (!validateField('email', form.email)) isValid = false;
+    if (!validateField('password', form.password)) isValid = false;
+    if (!validateField('confirmPassword', form.confirmPassword)) isValid = false;
+    
+    return isValid;
+  };
+
   // Registro
   const handleSubmit = async () => {
-    // Validaciones
-    if (!form.nombre || !form.telefono || !form.fechaNacimiento) {
-      Alert.alert('Error', 'Por favor completa todos los campos obligatorios');
-      return;
-    }
-
-    if (!form.email || !form.password || !form.confirmPassword) {
-      Alert.alert('Error', 'Por favor completa todos los campos obligatorios');
-      return;
-    }
-
-    if (form.password !== form.confirmPassword) {
-      Alert.alert('Error', 'Las contraseñas no coinciden');
-      return;
-    }
-
-    if (form.password.length < 6) {
-      Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres');
+    if (!validateForm()) {
       return;
     }
 
@@ -224,12 +283,14 @@ const RegisterScreen = () => {
               Nombre completo <Text style={styles.req}>*</Text>
             </Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, errors.nombre && styles.inputError]}
               placeholder="Ej: Carlos Gómez"
               placeholderTextColor="#929292"
               value={form.nombre}
               onChangeText={(text) => handleChange('nombre', text)}
+              onBlur={() => validateField('nombre', form.nombre)}
             />
+            {errors.nombre ? <Text style={styles.errorText}>{errors.nombre}</Text> : null}
           </View>
 
           {/* Teléfono & Fecha */}
@@ -239,13 +300,15 @@ const RegisterScreen = () => {
                 Teléfono <Text style={styles.req}>*</Text>
               </Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, errors.telefono && styles.inputError]}
                 placeholder="3001234567"
                 placeholderTextColor="#929292"
                 keyboardType="phone-pad"
                 value={form.telefono}
                 onChangeText={(text) => handleChange('telefono', text)}
+                onBlur={() => validateField('telefono', form.telefono)}
               />
+              {errors.telefono ? <Text style={styles.errorText}>{errors.telefono}</Text> : null}
             </View>
 
             <View style={[styles.group, { flex: 1 }]}>
@@ -253,7 +316,7 @@ const RegisterScreen = () => {
                 Fecha nacimiento <Text style={styles.req}>*</Text>
               </Text>
               <TouchableOpacity 
-                style={styles.dateInput} 
+                style={[styles.dateInput, errors.fechaNacimiento && styles.inputError]} 
                 onPress={() => setShowDatePicker(true)}
               >
                 <Text
@@ -266,6 +329,7 @@ const RegisterScreen = () => {
                 </Text>
                 <MaterialIcons name="calendar-today" size={20} color="#666" />
               </TouchableOpacity>
+              {errors.fechaNacimiento ? <Text style={styles.errorText}>{errors.fechaNacimiento}</Text> : null}
             </View>
           </View>
 
@@ -275,14 +339,16 @@ const RegisterScreen = () => {
               Email <Text style={styles.req}>*</Text>
             </Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, errors.email && styles.inputError]}
               placeholder="correo@dominio.com"
               placeholderTextColor="#929292"
               keyboardType="email-address"
               autoCapitalize="none"
               value={form.email}
               onChangeText={(text) => handleChange('email', text)}
+              onBlur={() => validateField('email', form.email)}
             />
+            {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
           </View>
 
           {/* Passwords */}
@@ -291,7 +357,7 @@ const RegisterScreen = () => {
               <Text style={styles.label}>
                 Contraseña <Text style={styles.req}>*</Text>
               </Text>
-              <View style={styles.pwWrap}>
+              <View style={[styles.pwWrap, errors.password && styles.inputError]}>
                 <TextInput
                   style={styles.pwInput}
                   placeholder="••••••••"
@@ -299,6 +365,7 @@ const RegisterScreen = () => {
                   secureTextEntry={!showPassword}
                   value={form.password}
                   onChangeText={(text) => handleChange('password', text)}
+                  onBlur={() => validateField('password', form.password)}
                 />
                 <TouchableOpacity
                   style={styles.eye}
@@ -311,12 +378,13 @@ const RegisterScreen = () => {
                   />
                 </TouchableOpacity>
               </View>
+              {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
             </View>
             <View style={[styles.group, { flex: 1 }]}>
               <Text style={styles.label}>
                 Confirmar <Text style={styles.req}>*</Text>
               </Text>
-              <View style={styles.pwWrap}>
+              <View style={[styles.pwWrap, errors.confirmPassword && styles.inputError]}>
                 <TextInput
                   style={styles.pwInput}
                   placeholder="••••••••"
@@ -324,6 +392,7 @@ const RegisterScreen = () => {
                   secureTextEntry={!showConfirm}
                   value={form.confirmPassword}
                   onChangeText={(text) => handleChange('confirmPassword', text)}
+                  onBlur={() => validateField('confirmPassword', form.confirmPassword)}
                 />
                 <TouchableOpacity
                   style={styles.eye}
@@ -336,6 +405,7 @@ const RegisterScreen = () => {
                   />
                 </TouchableOpacity>
               </View>
+              {errors.confirmPassword ? <Text style={styles.errorText}>{errors.confirmPassword}</Text> : null}
             </View>
           </View>
 
@@ -607,6 +677,14 @@ const styles = StyleSheet.create({
     fontSize: 15,
     backgroundColor: '#f8f9fa',
   },
+  inputError: {
+    borderColor: '#e74c3c',
+  },
+  errorText: {
+    color: '#e74c3c',
+    fontSize: 12,
+    marginTop: 4,
+  },
   row: { 
     flexDirection: 'row' 
   },
@@ -626,16 +704,17 @@ const styles = StyleSheet.create({
     color: '#999' 
   },
   pwWrap: { 
-    position: 'relative' 
-  },
-  pwInput: {
+    position: 'relative',
     borderWidth: 1, 
     borderColor: '#ddd', 
     borderRadius: 8,
+    backgroundColor: '#f8f9fa',
+  },
+  pwInput: {
     paddingHorizontal: 12, 
     paddingVertical: 10, 
     fontSize: 15,
-    backgroundColor: '#f8f9fa',
+    paddingRight: 40,
   },
   eye: { 
     position: 'absolute', 

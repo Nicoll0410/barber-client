@@ -21,15 +21,9 @@ const { width } = Dimensions.get("window");
 const isDesktop = width >= 1024;
 const isMobile = width < 768;
 
-// 🔒 Función para obtener la URL base de forma segura
-const getApiBaseUrl = () => {
-  if (typeof process !== 'undefined' && process.env.REACT_APP_API_URL) {
-    return process.env.REACT_APP_API_URL;
-  }
-  return "https://barber-server-6kuo.onrender.com";
-};
+const BASE_URL =
+  Platform.OS === "android" ? "https://barber-server-6kuo.onrender.com" : "https://barber-server-6kuo.onrender.com";
 
-const BASE_URL = getApiBaseUrl();
 const LoginForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

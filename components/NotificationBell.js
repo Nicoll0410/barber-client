@@ -13,7 +13,6 @@ const NotificationBell = ({ navigation }) => {
   // Escuchar actualizaciones de badge en tiempo real
   useEffect(() => {
     if (socket) {
-      console.log("🔔 NotificationBell - Escuchando eventos de badge");
       
       const handleActualizarBadge = (data) => {
         

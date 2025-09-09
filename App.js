@@ -58,7 +58,6 @@ function MainApp() {
   const handleDeepLink = (event) => {
     try {
       let url = event.url;
-      console.log('Deep link recibido:', url);
       
       const urlObj = new URL(url);
       const path = urlObj.pathname;
@@ -101,17 +100,14 @@ function MainApp() {
 
       // Eventos del socket
       socketRef.current.on('connect', () => {
-        console.log('✅ Conectado al servidor Socket.io');
         // Unirse a la sala del usuario
         socketRef.current.emit('unir_usuario', user.userId || user.id);
       });
 
       socketRef.current.on('disconnect', () => {
-        console.log('❌ Desconectado del servidor Socket.io');
       });
 
       socketRef.current.on('nueva_notificacion', async (data) => {
-        console.log('📩 Notificación recibida:', data);
         
         // Reproducir sonido
         await playNotificationSound();
@@ -172,10 +168,8 @@ function MainApp() {
         projectId: Constants.expoConfig.extra.eas.projectId,
       })).data;
 
-      console.log('Expo Push Token:', pushToken);
 
     } catch (error) {
-      console.error('Error al registrar notificaciones push:', error);
     }
   };
 
@@ -198,11 +192,9 @@ function MainApp() {
 
     // Configurar listeners de notificaciones
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-      console.log('Notificación recibida en primer plano:', notification);
     });
 
     responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-      console.log('Usuario interactuó con notificación:', response);
     });
 
     // Configurar listener para deep links

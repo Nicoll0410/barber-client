@@ -47,7 +47,6 @@ export const AuthProvider = ({ children }) => {
   // Reproducir sonido de notificación
   const playNotificationSound = useCallback(async () => {
     try {
-      console.log("🔊 Reproduciendo sonido de notificación");
       if (notificationSoundRef.current) {
         await notificationSoundRef.current.replayAsync();
       } else {
@@ -205,7 +204,6 @@ export const AuthProvider = ({ children }) => {
       }
 
       if (finalStatus !== "granted") {
-        console.log("Permiso para notificaciones denegado");
         return;
       }
 
@@ -237,7 +235,6 @@ export const AuthProvider = ({ children }) => {
   // Configurar Socket.io de manera robusta
   const setupSocket = useCallback(async () => {
     try {
-      console.log("🔌 Configurando socket...");
       
       // Cerrar socket existente
       if (socketRef.current) {
@@ -455,7 +452,6 @@ useEffect(() => {
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextAppState) => {
       if (nextAppState === 'active') {
-        console.log("🔄 App en primer plano - Reconectando socket");
         setupSocket();
         fetchNotifications();
       }

@@ -53,7 +53,6 @@ export const registerPushToken = async (userId, tokenAuth) => {
     }
 
     const expoToken = (await Notifications.getExpoPushTokenAsync()).data;
-    console.log("Expo push token:", expoToken);
 
     await axios.post(
       `${BASE_URL}/notifications/save-token`,

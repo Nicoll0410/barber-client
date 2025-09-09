@@ -34,8 +34,6 @@ export default function DetalleCompra({ visible, onClose, compra }) {
 
   useEffect(() => {
     if (visible) {
-      console.log("🧾 Compra recibida:", compra);
-      console.log("📦 Detalles detectados:", detalles);
     }
   }, [visible]);
 
@@ -45,7 +43,6 @@ export default function DetalleCompra({ visible, onClose, compra }) {
     i?.precio_unitario ?? i?.precioUnitario ?? i?.insumo?.precio_unitario ?? 0;
 
   const renderItem = ({ item, index }) => {
-    console.log(`🧩 Item #${index + 1}:`, item);
     return (
       <View style={st.detItem}>
         <View style={st.row}>

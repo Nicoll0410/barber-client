@@ -14,12 +14,10 @@ export const initializeSocket = (token, userId) => {
   });
 
   socket.on('connect', () => {
-    console.log('✅ Conectado al servidor Socket.io');
     socket.emit('unir_usuario', userId);
   });
 
   socket.on('disconnect', () => {
-    console.log('❌ Desconectado del servidor Socket.io');
   });
 
   return socket;

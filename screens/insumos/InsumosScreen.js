@@ -108,8 +108,8 @@ useFocusEffect(
 
   // Solo para depuración
   useEffect(() => {
-    if (insumos.length) console.log('👀 Ejemplo insumo ->', insumos[0]);
-    if (categorias.length) console.log('📂 Categorías ->', categorias);
+    if (insumos.length);
+    if (categorias.length);
   }, [insumos, categorias]);
 
   /* Reaplicamos filtro cada que cambie búsqueda o insumos */

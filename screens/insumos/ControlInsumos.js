@@ -49,7 +49,6 @@ const ControlInsumos = () => {
         ...i,
         categoria: i.categorias_insumo || i.CategoriaProducto || null,
       }));
-      console.log('📦 Insumos cargados 👉', lista);
       setInsumos(lista);
       setInsumosFiltrados(lista);
     } catch (e) {
@@ -87,7 +86,6 @@ const ControlInsumos = () => {
               (i.categoria?.nombre &&
                 i.categoria.nombre.toLowerCase().includes(term))
           );
-    console.log('🔍 Filtro:', { term, resultado: filtrados.length });
     setInsumosFiltrados(filtrados);
     setPaginaActual(1);
   }, [busqueda, insumos]);
@@ -142,7 +140,6 @@ const reducirInsumo = async (id) => {
       withCredentials: true
     });
 
-    console.log('✅ Respuesta backend:', data);
 
     await cargarInsumos();
     setCantidadReducir((p) => ({ ...p, [id]: 0 }));

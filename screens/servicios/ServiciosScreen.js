@@ -355,7 +355,7 @@ const ServiciosScreen = () => {
 
         <ConfirmarModal
           visible={showConfirmModal}
-          onClose={() => setShowConfirmModal(false)}
+          onCancel={() => setShowConfirmModal(false)}
           onConfirm={handleDeleteService}
           title="Confirmar eliminación ⚠️"
           message="¿Estás seguro de que deseas eliminar este servicio? Esta acción no se puede deshacer."

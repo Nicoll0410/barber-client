@@ -20,7 +20,7 @@ const ServiciosScreen = () => {
   const [servicios, setServicios] = useState([]);
   const [serviciosFiltrados, setServiciosFiltrados] = useState([]);
   const [paginaActual, setPaginaActual] = useState(1);
-  const [serviciosPorPagina] = useState(5);
+  const [serviciosPorPagina] = useState(4);
   const [busqueda, setBusqueda] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [modalDetalleVisible, setModalDetalleVisible] = useState(false);

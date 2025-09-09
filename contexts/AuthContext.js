@@ -7,9 +7,60 @@ import * as Notifications from "expo-notifications";
 import { Audio } from "expo-av";
 import io from "socket.io-client";
 
-const BASE_URL = "https://barber-server-6kuo.onrender.com";
+// 🔒 Función para obtener la URL base de forma segura
+const getApiBaseUrl = () => {
+  if (typeof process !== 'undefined' && process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+  return "https://barber-server-6kuo.onrender.com";
+};
+
+const BASE_URL = getApiBaseUrl();
 
 export const AuthContext = createContext();
+
+// 🔒 Funciones de ofuscación básica
+const obfuscateCode = async (data) => {
+  if (typeof data !== 'string') data = JSON.stringify(data);
+  try {
+    return btoa(encodeURIComponent(data).split('').reverse().join(''));
+  } catch (error) {
+    console.error('Error obfuscating:', error);
+    return data;
+  }
+};
+
+const deobfuscateCode = async (encrypted) => {
+  try {
+    const decoded = atob(encrypted);
+    return decodeURIComponent(decoded.split('').reverse().join(''));
+  } catch (error) {
+    console.error('Error deobfuscating:', error);
+    return encrypted;
+  }
+};
+
+// 🔒 Almacenamiento seguro
+const secureStorage = {
+  setItem: async (key, value) => {
+    try {
+      const encrypted = await obfuscateCode(value);
+      await AsyncStorage.setItem(key, encrypted);
+    } catch (error) {
+      console.error('Error en secureStorage:', error);
+      await AsyncStorage.setItem(key, value);
+    }
+  },
+  getItem: async (key) => {
+    try {
+      const encrypted = await AsyncStorage.getItem(key);
+      return encrypted ? await deobfuscateCode(encrypted) : null;
+    } catch (error) {
+      console.error('Error en secureStorage:', error);
+      return await AsyncStorage.getItem(key);
+    }
+  }
+};
 
 export const AuthProvider = ({ children }) => {
   const [authState, setAuthState] = useState({

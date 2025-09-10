@@ -10,12 +10,15 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Dimensions
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthContext } from '../../contexts/AuthContext';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
   const { userRole } = useContext(AuthContext);
@@ -214,6 +217,7 @@ const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
       <FlatList
         data={servicios}
         keyExtractor={(i) => getId(i)}
+        style={styles.serviciosList}
         renderItem={({ item }) => (
           <TouchableOpacity
             style={[
@@ -223,7 +227,7 @@ const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
             onPress={() => setServicioSel(item)}
           >
             <View style={styles.servicioInfoContainer}>
-              <Text style={styles.servicioNombre}>{item.nombre}</Text>
+              <Text style={styles.servicioNombre} numberOfLines={1}>{item.nombre}</Text>
               <Text style={styles.servicioDuracion}>
                 Duración: {item.duracionMaxima} (Reserva: {Math.ceil(convertirDuracionAMinutos(item.duracionMaxima) / 30) * 30} min)
               </Text>
@@ -232,7 +236,7 @@ const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
           </TouchableOpacity>
         )}
       />
-      <View style={styles.botonContainerCentrado}>
+      <View style={styles.botonesNavegacion}>
         <TouchableOpacity
           style={[styles.botonSiguiente, !servicioSel && styles.botonDisabled]}
           disabled={!servicioSel}
@@ -266,6 +270,7 @@ const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
       <FlatList
         data={barberosFiltrados}
         keyExtractor={(i) => getId(i)}
+        style={styles.listaNormal}
         renderItem={({ item }) => (
           <TouchableOpacity
             style={[
@@ -352,6 +357,7 @@ const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
       <FlatList
         data={clientesFiltrados}
         keyExtractor={(i) => getId(i)}
+        style={styles.clientesList}
         renderItem={({ item }) => (
           <TouchableOpacity
             style={[
@@ -377,9 +383,8 @@ const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
             <Text style={styles.clienteNombre}>{item.nombre}</Text>
           </TouchableOpacity>
         )}
-        style={styles.clientesList}
       />
-      <View style={styles.botonesNavegacionSticky}>
+      <View style={styles.botonesNavegacion}>
         <TouchableOpacity style={styles.botonVolver} onPress={() => setPaso(2)}>
           <Text style={styles.botonTextoVolver}>Volver</Text>
         </TouchableOpacity>
@@ -560,10 +565,10 @@ const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
           ]
             .filter(Boolean)
             .map(([k, v]) => (
-              <React.Fragment key={k}>
+              <View key={k} style={styles.infoRow}>
                 <Text style={styles.infoTitulo}>{k}</Text>
                 <Text style={styles.infoTexto}>{v}</Text>
-              </React.Fragment>
+              </View>
             ))}
         </View>
       </ScrollView>
@@ -603,9 +608,9 @@ const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
             </TouchableOpacity>
           </View>
 
-          <ScrollView contentContainerStyle={styles.scrollViewContent}>
+          <View style={styles.scrollContainer}>
             {renderPaso()}
-          </ScrollView>
+          </View>
         </View>
       </BlurView>
     </Modal>
@@ -628,7 +633,7 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '95%',
     maxWidth: 600,
-    maxHeight: '85%',
+    height: SCREEN_HEIGHT * 0.85,
     backgroundColor: '#fff',
     borderRadius: 15,
     paddingVertical: 20,
@@ -638,6 +643,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.25,
     shadowRadius: 7,
+  },
+  scrollContainer: {
+    flex: 1,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -649,22 +657,26 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   modalTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
     color: '#222',
   },
-  scrollViewContent: {
-    flexGrow: 1,
-    paddingBottom: 10,
-  },
   pasoContainer: {
-    flexGrow: 1,
+    flex: 1,
     paddingBottom: 10,
   },
   subtitulo: {
     fontSize: 15,
     color: '#555',
     marginBottom: 16,
+  },
+  serviciosList: {
+    flex: 1,
+    marginBottom: 10,
+  },
+  listaNormal: {
+    flex: 1,
+    marginBottom: 10,
   },
   servicioItem: {
     padding: 14,
@@ -771,8 +783,8 @@ const styles = StyleSheet.create({
     color: '#222',
   },
   clientesList: {
-    maxHeight: 200,
-    marginBottom: 70, // Espacio para los botones fijos
+    flex: 1,
+    marginBottom: 10,
   },
   inputLabel: {
     fontSize: 14,
@@ -921,41 +933,31 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   infoConfirmacionScroll: {
-    maxHeight: 200,
+    flex: 1,
     marginBottom: 10,
   },
   infoConfirmacion: {
     marginTop: 10,
     marginBottom: 18,
   },
+  infoRow: {
+    marginBottom: 12,
+  },
   infoTitulo: {
     fontSize: 16,
     fontWeight: '700',
-    marginTop: 14,
-    marginBottom: 6,
     color: '#222',
   },
   infoTexto: {
     fontSize: 16,
     color: '#555',
-    marginBottom: 6,
+    marginTop: 4,
   },
   botonesNavegacion: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 18,
-  },
-  botonesNavegacionSticky: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 18,
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#fff',
-    paddingVertical: 10,
-    paddingHorizontal: 5,
+    marginTop: 'auto',
+    paddingTop: 10,
   },
   botonVolver: {
     backgroundColor: '#fff',
@@ -972,7 +974,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 10,
     alignItems: 'center',
-    width: '45%',
+    flex: 1,
   },
   botonConfirmar: {
     backgroundColor: '#424242',
@@ -995,10 +997,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#000',
     textAlign: 'center',
-  },
-  botonContainerCentrado: {
-    alignItems: 'center',
-    marginTop: 18,
   },
   tempClientBtn: {
     padding: 12, 

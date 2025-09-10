@@ -222,10 +222,10 @@ const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
             ]}
             onPress={() => setServicioSel(item)}
           >
-            <View>
+            <View style={styles.servicioInfoContainer}>
               <Text style={styles.servicioNombre}>{item.nombre}</Text>
               <Text style={styles.servicioDuracion}>
-                Duración: {item.duracionMaxima} (Reserva: {Math.ceil(convertirDuracionAMinutos(item.duracionMaxima) / 30) * 30} min
+                Duración: {item.duracionMaxima} (Reserva: {Math.ceil(convertirDuracionAMinutos(item.duracionMaxima) / 30) * 30} min)
               </Text>
             </View>
             <Text style={styles.servicioPrecio}>${item.precio}</Text>
@@ -377,8 +377,9 @@ const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
             <Text style={styles.clienteNombre}>{item.nombre}</Text>
           </TouchableOpacity>
         )}
+        style={styles.clientesList}
       />
-      <View style={styles.botonesNavegacion}>
+      <View style={styles.botonesNavegacionSticky}>
         <TouchableOpacity style={styles.botonVolver} onPress={() => setPaso(2)}>
           <Text style={styles.botonTextoVolver}>Volver</Text>
         </TouchableOpacity>
@@ -528,42 +529,44 @@ const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
   const PasoRevisa = () => (
     <View style={styles.pasoContainer}>
       <Text style={styles.subtitulo}>Revisa la información</Text>
-      <View style={styles.infoConfirmacion}>
-        {[
-          ['Servicio:', servicioSel?.nombre],
-          ['Barbero:',  barberoSel?.nombre],
-          !isClient && ['Cliente:', clienteSel?.nombre || (isTempClient ? tempNombre : '')],
-          [
-            'Fecha:',
-            new Date(`${fechaSel}T00:00:00`).toLocaleDateString('es-ES', {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            }),
-          ],
-          ['Hora:', horaSel],
-          ['Duración real:', servicioSel?.duracionMaxima],
-          ['Intervalo reservado:', 
-            servicioSel?.duracionMaxima ? 
-              (() => {
-                const [h, m] = servicioSel.duracionMaxima.split(':').map(Number);
-                const totalMin = h * 60 + m;
-                if (totalMin <= 30) return "30 minutos";
-                if (totalMin <= 60) return "1 hora";
-                return `${Math.ceil(totalMin / 30) * 30 / 60} horas`;
-              })() 
-            : ''
+      <ScrollView style={styles.infoConfirmacionScroll}>
+        <View style={styles.infoConfirmacion}>
+          {[
+            ['Servicio:', servicioSel?.nombre],
+            ['Barbero:',  barberoSel?.nombre],
+            !isClient && ['Cliente:', clienteSel?.nombre || (isTempClient ? tempNombre : '')],
+            [
+              'Fecha:',
+              new Date(`${fechaSel}T00:00:00`).toLocaleDateString('es-ES', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              }),
+            ],
+            ['Hora:', horaSel],
+            ['Duración real:', servicioSel?.duracionMaxima],
+            ['Intervalo reservado:', 
+              servicioSel?.duracionMaxima ? 
+                (() => {
+                  const [h, m] = servicioSel.duracionMaxima.split(':').map(Number);
+                  const totalMin = h * 60 + m;
+                  if (totalMin <= 30) return "30 minutos";
+                  if (totalMin <= 60) return "1 hora";
+                  return `${Math.ceil(totalMin / 30) * 30 / 60} horas`;
+                })() 
+              : ''
+            ]
           ]
-        ]
-          .filter(Boolean)
-          .map(([k, v]) => (
-            <React.Fragment key={k}>
-              <Text style={styles.infoTitulo}>{k}</Text>
-              <Text style={styles.infoTexto}>{v}</Text>
-            </React.Fragment>
-          ))}
-      </View>
+            .filter(Boolean)
+            .map(([k, v]) => (
+              <React.Fragment key={k}>
+                <Text style={styles.infoTitulo}>{k}</Text>
+                <Text style={styles.infoTexto}>{v}</Text>
+              </React.Fragment>
+            ))}
+        </View>
+      </ScrollView>
       <View style={styles.botonesNavegacion}>
         <TouchableOpacity style={styles.botonVolver} onPress={() => setPaso(4)}>
           <Text style={styles.botonTextoVolver}>Volver</Text>
@@ -674,6 +677,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#fafafa',
   },
+  servicioInfoContainer: {
+    flex: 1,
+    marginRight: 10,
+  },
   servicioSeleccionado: {
     borderColor: '#424242',
     backgroundColor: '#D9D9D9',
@@ -692,6 +699,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#000',
     fontWeight: '700',
+    minWidth: 60,
+    textAlign: 'right',
   },
   buscadorContainer: {
     flexDirection: 'row',
@@ -760,6 +769,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#222',
+  },
+  clientesList: {
+    maxHeight: 200,
+    marginBottom: 70, // Espacio para los botones fijos
   },
   inputLabel: {
     fontSize: 14,
@@ -907,6 +920,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
+  infoConfirmacionScroll: {
+    maxHeight: 200,
+    marginBottom: 10,
+  },
   infoConfirmacion: {
     marginTop: 10,
     marginBottom: 18,
@@ -927,6 +944,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 18,
+  },
+  botonesNavegacionSticky: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 18,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    paddingVertical: 10,
+    paddingHorizontal: 5,
   },
   botonVolver: {
     backgroundColor: '#fff',

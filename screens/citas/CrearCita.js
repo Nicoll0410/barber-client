@@ -10,7 +10,6 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
-  Dimensions
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -212,27 +211,29 @@ const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
   const Paso1 = () => (
     <View style={styles.pasoContainer}>
       <Text style={styles.subtitulo}>Selecciona el servicio</Text>
-      <FlatList
-        data={servicios}
-        keyExtractor={(i) => getId(i)}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[
-              styles.servicioItem,
-              servicioSel && getId(servicioSel) === getId(item) && styles.servicioSeleccionado,
-            ]}
-            onPress={() => setServicioSel(item)}
-          >
-            <View>
-              <Text style={styles.servicioNombre}>{item.nombre}</Text>
-              <Text style={styles.servicioDuracion}>
-                Duración: {item.duracionMaxima} (Reserva: {Math.ceil(convertirDuracionAMinutos(item.duracionMaxima) / 30) * 30} min
-              </Text>
-            </View>
-            <Text style={styles.servicioPrecio}>${item.precio}</Text>
-          </TouchableOpacity>
-        )}
-      />
+      <View style={styles.listaContainer}>
+        <FlatList
+          data={servicios}
+          keyExtractor={(i) => getId(i)}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={[
+                styles.servicioItem,
+                servicioSel && getId(servicioSel) === getId(item) && styles.servicioSeleccionado,
+              ]}
+              onPress={() => setServicioSel(item)}
+            >
+              <View>
+                <Text style={styles.servicioNombre}>{item.nombre}</Text>
+                <Text style={styles.servicioDuracion}>
+                  Duración: {item.duracionMaxima} (Reserva: {Math.ceil(convertirDuracionAMinutos(item.duracionMaxima) / 30) * 30} min
+                </Text>
+              </View>
+              <Text style={styles.servicioPrecio}>${item.precio}</Text>
+            </TouchableOpacity>
+          )}
+        />
+      </View>
       <View style={styles.botonContainerCentrado}>
         <TouchableOpacity
           style={[styles.botonSiguiente, !servicioSel && styles.botonDisabled]}
@@ -264,30 +265,32 @@ const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
           onChangeText={setBusBarbero}
         />
       </View>
-      <FlatList
-        data={barberosFiltrados}
-        keyExtractor={(i) => getId(i)}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[
-              styles.barberoItem,
-              barberoSel && getId(barberoSel) === getId(item) && styles.barberoSeleccionado,
-            ]}
-            onPress={() => setBarberoSel(item)}
-          >
-            <View style={styles.avatarContainer}>
-              <Text style={styles.avatarText}>
-                {item.nombre
-                  .split(' ')
-                  .map((p) => p[0])
-                  .join('')
-                  .toUpperCase()}
-              </Text>
-            </View>
-            <Text style={styles.barberoNombre}>{item.nombre}</Text>
-          </TouchableOpacity>
-        )}
-      />
+      <View style={styles.listaContainer}>
+        <FlatList
+          data={barberosFiltrados}
+          keyExtractor={(i) => getId(i)}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={[
+                styles.barberoItem,
+                barberoSel && getId(barberoSel) === getId(item) && styles.barberoSeleccionado,
+              ]}
+              onPress={() => setBarberoSel(item)}
+            >
+              <View style={styles.avatarContainer}>
+                <Text style={styles.avatarText}>
+                  {item.nombre
+                    .split(' ')
+                    .map((p) => p[0])
+                    .join('')
+                    .toUpperCase()}
+                </Text>
+              </View>
+              <Text style={styles.barberoNombre}>{item.nombre}</Text>
+            </TouchableOpacity>
+          )}
+        />
+      </View>
       <View style={styles.botonesNavegacion}>
         <TouchableOpacity style={styles.botonVolver} onPress={() => setPaso(1)}>
           <Text style={styles.botonTextoVolver}>Volver</Text>
@@ -350,13 +353,10 @@ const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
         </View>
       )}
 
-      {/* Contenedor con altura fija y scroll interno para clientes existentes */}
-      <View style={styles.clientesListContainer}>
-        <Text style={styles.clientesListTitle}>Clientes existentes</Text>
+      <View style={styles.listaContainer}>
         <FlatList
           data={clientesFiltrados}
           keyExtractor={(i) => getId(i)}
-          style={styles.clientesList}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={[
@@ -384,7 +384,6 @@ const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
           )}
         />
       </View>
-
       <View style={styles.botonesNavegacion}>
         <TouchableOpacity style={styles.botonVolver} onPress={() => setPaso(2)}>
           <Text style={styles.botonTextoVolver}>Volver</Text>
@@ -622,8 +621,6 @@ function convertirDuracionAMinutos(duracionStr) {
   return h * 60 + m;
 }
 
-const { height } = Dimensions.get('window');
-
 const styles = StyleSheet.create({
   blurContainer: {
     flex: 1,
@@ -671,6 +668,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#555',
     marginBottom: 16,
+  },
+  listaContainer: {
+    maxHeight: 300, // Altura máxima para las listas
+    marginBottom: 15,
   },
   servicioItem: {
     padding: 14,
@@ -999,25 +1000,6 @@ const styles = StyleSheet.create({
   tempClientTextActive: {
     color: '#222', 
     fontWeight: '700'
-  },
-  // Nuevos estilos para el contenedor de lista de clientes
-  clientesListContainer: {
-    marginTop: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    padding: 10,
-    maxHeight: height * 0.3, // Altura máxima del 30% de la pantalla
-  },
-  clientesListTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#424242',
-    marginBottom: 10,
-  },
-  clientesList: {
-    flexGrow: 0, // Evita que la lista se expanda
   },
 });
 

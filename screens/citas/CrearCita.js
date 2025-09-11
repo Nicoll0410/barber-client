@@ -10,6 +10,7 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Dimensions
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -349,11 +350,13 @@ const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
         </View>
       )}
 
-      {/* Contenedor con scroll para la lista de clientes */}
-      <View style={styles.listaClientesContainer}>
+      {/* Contenedor con altura fija y scroll interno para clientes existentes */}
+      <View style={styles.clientesListContainer}>
+        <Text style={styles.clientesListTitle}>Clientes existentes</Text>
         <FlatList
           data={clientesFiltrados}
           keyExtractor={(i) => getId(i)}
+          style={styles.clientesList}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={[
@@ -618,6 +621,8 @@ function convertirDuracionAMinutos(duracionStr) {
   const [h, m] = duracionStr.split(':').map(Number);
   return h * 60 + m;
 }
+
+const { height } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   blurContainer: {
@@ -995,10 +1000,24 @@ const styles = StyleSheet.create({
     color: '#222', 
     fontWeight: '700'
   },
-  // Nuevo estilo para el contenedor de la lista de clientes
-  listaClientesContainer: {
-    maxHeight: 200, // Altura fija para el contenedor
-    marginBottom: 15,
+  // Nuevos estilos para el contenedor de lista de clientes
+  clientesListContainer: {
+    marginTop: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 10,
+    padding: 10,
+    maxHeight: height * 0.3, // Altura máxima del 30% de la pantalla
+  },
+  clientesListTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#424242',
+    marginBottom: 10,
+  },
+  clientesList: {
+    flexGrow: 0, // Evita que la lista se expanda
   },
 });
 

@@ -211,29 +211,27 @@ const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
   const Paso1 = () => (
     <View style={styles.pasoContainer}>
       <Text style={styles.subtitulo}>Selecciona el servicio</Text>
-      <View style={styles.listaContainer}>
-        <FlatList
-          data={servicios}
-          keyExtractor={(i) => getId(i)}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[
-                styles.servicioItem,
-                servicioSel && getId(servicioSel) === getId(item) && styles.servicioSeleccionado,
-              ]}
-              onPress={() => setServicioSel(item)}
-            >
-              <View>
-                <Text style={styles.servicioNombre}>{item.nombre}</Text>
-                <Text style={styles.servicioDuracion}>
-                  Duración: {item.duracionMaxima} (Reserva: {Math.ceil(convertirDuracionAMinutos(item.duracionMaxima) / 30) * 30} min
-                </Text>
-              </View>
-              <Text style={styles.servicioPrecio}>${item.precio}</Text>
-            </TouchableOpacity>
-          )}
-        />
-      </View>
+      <FlatList
+        data={servicios}
+        keyExtractor={(i) => getId(i)}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={[
+              styles.servicioItem,
+              servicioSel && getId(servicioSel) === getId(item) && styles.servicioSeleccionado,
+            ]}
+            onPress={() => setServicioSel(item)}
+          >
+            <View>
+              <Text style={styles.servicioNombre}>{item.nombre}</Text>
+              <Text style={styles.servicioDuracion}>
+                Duración: {item.duracionMaxima} (Reserva: {Math.ceil(convertirDuracionAMinutos(item.duracionMaxima) / 30) * 30} min
+              </Text>
+            </View>
+            <Text style={styles.servicioPrecio}>${item.precio}</Text>
+          </TouchableOpacity>
+        )}
+      />
       <View style={styles.botonContainerCentrado}>
         <TouchableOpacity
           style={[styles.botonSiguiente, !servicioSel && styles.botonDisabled]}
@@ -265,32 +263,30 @@ const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
           onChangeText={setBusBarbero}
         />
       </View>
-      <View style={styles.listaContainer}>
-        <FlatList
-          data={barberosFiltrados}
-          keyExtractor={(i) => getId(i)}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[
-                styles.barberoItem,
-                barberoSel && getId(barberoSel) === getId(item) && styles.barberoSeleccionado,
-              ]}
-              onPress={() => setBarberoSel(item)}
-            >
-              <View style={styles.avatarContainer}>
-                <Text style={styles.avatarText}>
-                  {item.nombre
-                    .split(' ')
-                    .map((p) => p[0])
-                    .join('')
-                    .toUpperCase()}
-                </Text>
-              </View>
-              <Text style={styles.barberoNombre}>{item.nombre}</Text>
-            </TouchableOpacity>
-          )}
-        />
-      </View>
+      <FlatList
+        data={barberosFiltrados}
+        keyExtractor={(i) => getId(i)}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={[
+              styles.barberoItem,
+              barberoSel && getId(barberoSel) === getId(item) && styles.barberoSeleccionado,
+            ]}
+            onPress={() => setBarberoSel(item)}
+          >
+            <View style={styles.avatarContainer}>
+              <Text style={styles.avatarText}>
+                {item.nombre
+                  .split(' ')
+                  .map((p) => p[0])
+                  .join('')
+                  .toUpperCase()}
+              </Text>
+            </View>
+            <Text style={styles.barberoNombre}>{item.nombre}</Text>
+          </TouchableOpacity>
+        )}
+      />
       <View style={styles.botonesNavegacion}>
         <TouchableOpacity style={styles.botonVolver} onPress={() => setPaso(1)}>
           <Text style={styles.botonTextoVolver}>Volver</Text>
@@ -353,37 +349,35 @@ const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
         </View>
       )}
 
-      <View style={styles.listaContainer}>
-        <FlatList
-          data={clientesFiltrados}
-          keyExtractor={(i) => getId(i)}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[
-                styles.clienteItem,
-                clienteSel && getId(clienteSel) === getId(item) && styles.clienteSeleccionado,
-              ]}
-              onPress={() => {
-                setClienteSel(item);
-                setIsTempClient(false);
-                setTempNombre('');
-                setTempTelefono('');
-              }}
-            >
-              <View style={styles.avatarContainer}>
-                <Text style={styles.avatarText}>
-                  {item.nombre
-                    .split(' ')
-                    .map((p) => p[0])
-                    .join('')
-                    .toUpperCase()}
-                </Text>
-              </View>
-              <Text style={styles.clienteNombre}>{item.nombre}</Text>
-            </TouchableOpacity>
-          )}
-        />
-      </View>
+      <FlatList
+        data={clientesFiltrados}
+        keyExtractor={(i) => getId(i)}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={[
+              styles.clienteItem,
+              clienteSel && getId(clienteSel) === getId(item) && styles.clienteSeleccionado,
+            ]}
+            onPress={() => {
+              setClienteSel(item);
+              setIsTempClient(false);
+              setTempNombre('');
+              setTempTelefono('');
+            }}
+          >
+            <View style={styles.avatarContainer}>
+              <Text style={styles.avatarText}>
+                {item.nombre
+                  .split(' ')
+                  .map((p) => p[0])
+                  .join('')
+                  .toUpperCase()}
+              </Text>
+            </View>
+            <Text style={styles.clienteNombre}>{item.nombre}</Text>
+          </TouchableOpacity>
+        )}
+      />
       <View style={styles.botonesNavegacion}>
         <TouchableOpacity style={styles.botonVolver} onPress={() => setPaso(2)}>
           <Text style={styles.botonTextoVolver}>Volver</Text>
@@ -668,10 +662,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#555',
     marginBottom: 16,
-  },
-  listaContainer: {
-    maxHeight: 300, // Altura máxima para el scroll interno
-    marginBottom: 15,
   },
   servicioItem: {
     padding: 14,

@@ -374,28 +374,33 @@ const CrearCita = ({
       <Text style={styles.subtitle}>
         Selecciona el servicio que se realizará en la cita
       </Text>
-      <FlatList
-        data={servicios}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[
-              styles.servicioItem,
-              servicioSel?.id === item.id && styles.servicioSel,
-            ]}
-            onPress={() => setServicioSel(item)}
-          >
-            <View>
-              <Text style={styles.servicioNombre}>{item.nombre}</Text>
-              <Text style={styles.servicioDuracion}>
-                Duración: {item.duracionMaxima || "1 hora"}
-                (Bloquea todo el horario necesario)
-              </Text>
-            </View>
-            <Text style={styles.servicioPrecio}>${item.precio || "0"}</Text>
-          </TouchableOpacity>
-        )}
-      />
+      
+      {/* Contenedor con scroll interno para servicios */}
+      <View style={styles.scrollContainer}>
+        <FlatList
+          data={servicios}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={[
+                styles.servicioItem,
+                servicioSel?.id === item.id && styles.servicioSel,
+              ]}
+              onPress={() => setServicioSel(item)}
+            >
+              <View>
+                <Text style={styles.servicioNombre}>{item.nombre}</Text>
+                <Text style={styles.servicioDuracion}>
+                  Duración: {item.duracionMaxima || "1 hora"}
+                  (Bloquea todo el horario necesario)
+                </Text>
+              </View>
+              <Text style={styles.servicioPrecio}>${item.precio || "0"}</Text>
+            </TouchableOpacity>
+          )}
+        />
+      </View>
+      
       <View style={styles.centeredBtn}>
         <TouchableOpacity
           style={[
@@ -501,25 +506,29 @@ const CrearCita = ({
                 autoFocus={true}
               />
             </View>
-            <FlatList
-              data={filtrados}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[
-                    styles.clienteItem,
-                    clienteSel?.id === item.id && styles.clienteSel,
-                  ]}
-                  onPress={() => setClienteSel(item)}
-                >
-                  <Image source={item.avatar} style={styles.clienteAvatar} />
-                  <Text style={styles.clienteNombre}>{item.nombre}</Text>
-                </TouchableOpacity>
-              )}
-              initialNumToRender={10}
-              maxToRenderPerBatch={5}
-              windowSize={5}
-            />
+            
+            {/* Contenedor con scroll interno para clientes */}
+            <View style={styles.scrollContainer}>
+              <FlatList
+                data={filtrados}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[
+                      styles.clienteItem,
+                      clienteSel?.id === item.id && styles.clienteSel,
+                    ]}
+                    onPress={() => setClienteSel(item)}
+                  >
+                    <Image source={item.avatar} style={styles.clienteAvatar} />
+                    <Text style={styles.clienteNombre}>{item.nombre}</Text>
+                  </TouchableOpacity>
+                )}
+                initialNumToRender={10}
+                maxToRenderPerBatch={5}
+                windowSize={5}
+              />
+            </View>
           </>
         ) : (
           <>
@@ -602,54 +611,58 @@ const CrearCita = ({
     return (
       <View style={styles.stepContainer}>
         <Text style={styles.subtitle}>Revisa y confirma la información</Text>
-        <View style={styles.infoBox}>
-          <Text style={styles.infoLabel}>Servicio</Text>
-          <Text style={styles.infoText}>{servicioSel.nombre}</Text>
+        
+        {/* Contenedor con scroll interno para la información de confirmación */}
+        <View style={styles.scrollContainer}>
+          <View style={styles.infoBox}>
+            <Text style={styles.infoLabel}>Servicio</Text>
+            <Text style={styles.infoText}>{servicioSel.nombre}</Text>
 
-          <Text style={styles.infoLabel}>Barbero</Text>
-          <Text style={styles.infoText}>{barbero.nombre}</Text>
+            <Text style={styles.infoLabel}>Barbero</Text>
+            <Text style={styles.infoText}>{barbero.nombre}</Text>
 
-          <Text style={styles.infoLabel}>Cliente</Text>
-          <Text style={styles.infoText}>
-            {isTemporal ? temporalNombre : clienteSel?.nombre}
-            {isTemporal && " (Temporal)"}
-          </Text>
+            <Text style={styles.infoLabel}>Cliente</Text>
+            <Text style={styles.infoText}>
+              {isTemporal ? temporalNombre : clienteSel?.nombre}
+              {isTemporal && " (Temporal)"}
+            </Text>
 
-          {isTemporal && (
-            <>
-              <Text style={styles.infoLabel}>Teléfono</Text>
-              <Text style={styles.infoText}>
-                {temporalTelefono || "No especificado"}
-              </Text>
-            </>
-          )}
+            {isTemporal && (
+              <>
+                <Text style={styles.infoLabel}>Teléfono</Text>
+                <Text style={styles.infoText}>
+                  {temporalTelefono || "No especificado"}
+                </Text>
+              </>
+            )}
 
-          <Text style={styles.infoLabel}>Fecha</Text>
-          <Text style={styles.infoText}>
-            {fecha.toLocaleDateString("es-ES", {
-              weekday: "long",
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
-          </Text>
+            <Text style={styles.infoLabel}>Fecha</Text>
+            <Text style={styles.infoText}>
+              {fecha.toLocaleDateString("es-ES", {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </Text>
 
-          <Text style={styles.infoLabel}>Hora de inicio</Text>
-          <Text style={styles.infoText}>
-            {formatearHoraParaMostrar(horaInicio24)}
-          </Text>
+            <Text style={styles.infoLabel}>Hora de inicio</Text>
+            <Text style={styles.infoText}>
+              {formatearHoraParaMostrar(horaInicio24)}
+            </Text>
 
-          <Text style={styles.infoLabel}>Hora de finalización</Text>
-          <Text style={styles.infoText}>
-            {formatearHoraParaMostrar(horaFin24)}
-          </Text>
+            <Text style={styles.infoLabel}>Hora de finalización</Text>
+            <Text style={styles.infoText}>
+              {formatearHoraParaMostrar(horaFin24)}
+            </Text>
 
-          <Text style={styles.infoLabel}>Duración total</Text>
-          <Text style={styles.infoText}>{duracionFormateada}</Text>
+            <Text style={styles.infoLabel}>Duración total</Text>
+            <Text style={styles.infoText}>{duracionFormateada}</Text>
 
-          <Text style={[styles.infoLabel, { color: "#E53935", marginTop: 20 }]}>
-            ¡Todo este horario será reservado!
-          </Text>
+            <Text style={[styles.infoLabel, { color: "#E53935", marginTop: 20 }]}>
+              ¡Todo este horario será reservado!
+            </Text>
+          </View>
         </View>
 
         <View style={styles.navBtns}>
@@ -767,6 +780,12 @@ const styles = StyleSheet.create({
   stepContainer: {
     flexGrow: 1,
     paddingBottom: 10,
+  },
+  // Nuevo estilo para el contenedor con scroll interno
+  scrollContainer: {
+    flex: 1,
+    maxHeight: 300,
+    marginBottom: 15,
   },
   subtitle: {
     fontSize: 15,

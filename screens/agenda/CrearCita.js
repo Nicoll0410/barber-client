@@ -12,7 +12,8 @@ import {
   Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  Dimensions
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
@@ -20,6 +21,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { AuthContext } from "../../contexts/AuthContext";
 import { jwtDecode } from "jwt-decode";
+
+const { width } = Dimensions.get('window');
 
 const CrearCita = ({
   visible,
@@ -388,9 +391,11 @@ const CrearCita = ({
               ]}
               onPress={() => setServicioSel(item)}
             >
-              <View>
-                <Text style={styles.servicioNombre}>{item.nombre}</Text>
-                <Text style={styles.servicioDuracion}>
+              <View style={styles.servicioInfoContainer}>
+                <Text style={styles.servicioNombre} numberOfLines={2} ellipsizeMode="tail">
+                  {item.nombre}
+                </Text>
+                <Text style={styles.servicioDuracion} numberOfLines={1}>
                   Duración: {item.duracionMaxima || "1 hora"}
                   (Bloquea todo el horario necesario)
                 </Text>
@@ -521,7 +526,9 @@ const CrearCita = ({
                     onPress={() => setClienteSel(item)}
                   >
                     <Image source={item.avatar} style={styles.clienteAvatar} />
-                    <Text style={styles.clienteNombre}>{item.nombre}</Text>
+                    <Text style={styles.clienteNombre} numberOfLines={1} ellipsizeMode="tail">
+                      {item.nombre}
+                    </Text>
                   </TouchableOpacity>
                 )}
                 initialNumToRender={10}
@@ -801,26 +808,36 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "##FAFAFA",
+    backgroundColor: "#FAFAFA",
+    minHeight: 80, // Altura mínima para asegurar visibilidad
+  },
+  servicioInfoContainer: {
+    flex: 1,
+    marginRight: 10,
+    justifyContent: 'center',
   },
   servicioSel: {
     borderColor: "#424242",
     backgroundColor: "#D9D9D9",
   },
   servicioNombre: {
-    fontSize: 16,
+    fontSize: width < 400 ? 14 : 16, // Tamaño responsive
     fontWeight: "600",
     color: "#222",
+    flexShrink: 1, // Permite que el texto se ajuste
   },
   servicioDuracion: {
-    fontSize: 12,
+    fontSize: width < 400 ? 11 : 12, // Tamaño responsive
     color: "#666",
     marginTop: 4,
   },
   servicioPrecio: {
-    fontSize: 16,
+    fontSize: width < 400 ? 14 : 16, // Tamaño responsive
     fontWeight: "700",
     color: "#000",
+    marginLeft: 10,
+    minWidth: 60, // Ancho mínimo para precios
+    textAlign: 'right',
   },
   searchBox: {
     flexDirection: "row",
@@ -862,6 +879,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#222",
+    flex: 1,
   },
   infoBox: {
     marginTop: 10,
@@ -953,6 +971,7 @@ const styles = StyleSheet.create({
   },
   optionText: {
     color: "#333",
+    fontSize: width < 400 ? 12 : 14, // Tamaño responsive
   },
   optionTextActive: {
     color: "#fff",

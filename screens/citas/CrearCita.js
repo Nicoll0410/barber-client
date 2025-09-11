@@ -606,9 +606,9 @@ const CrearCita = ({ visible, onClose, onCreate, infoCreacion }) => {
             </TouchableOpacity>
           </View>
 
-          <ScrollView contentContainerStyle={styles.scrollViewContent}>
+          <View style={styles.scrollViewContainer}>
             {renderPaso()}
-          </ScrollView>
+          </View>
         </View>
       </BlurView>
     </Modal>
@@ -656,22 +656,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#222',
   },
-  scrollViewContent: {
-    flexGrow: 1,
-    paddingBottom: 10,
+  scrollViewContainer: {
+    flex: 1,
   },
   pasoContainer: {
-    flexGrow: 1,
+    flex: 1,
     paddingBottom: 10,
+  },
+  listaContainer: {
+    flex: 1,
+    marginBottom: 15,
+    maxHeight: 300,
   },
   subtitulo: {
     fontSize: 15,
     color: '#555',
     marginBottom: 16,
-  },
-  listaContainer: {
-    maxHeight: 300, // Altura máxima para las listas
-    marginBottom: 15,
   },
   servicioItem: {
     padding: 14,

@@ -8,6 +8,11 @@ import { Audio } from "expo-av";
 import io from "socket.io-client";
 
 const BASE_URL = "https://barber-server-6kuo.onrender.com";
+const api = axios.create({
+  baseURL: BASE_URL,
+  timeout: 30000, // espera hasta 30s -> soporta cold start de Railway
+});
+
 
 export const AuthContext = createContext();
 
@@ -252,8 +257,8 @@ export const AuthProvider = ({ children }) => {
           token: authState.token
         },
         reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 2000,
       });
 
       // Eventos del socket

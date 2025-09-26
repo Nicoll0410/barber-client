@@ -616,7 +616,7 @@ const CrearCita = ({
     const horaFin24 = calcularHoraFin(horaInicio24, duracionMinutos);
 
     return (
-      <View style={styles.stepContainer}>
+      <View style={styles.step3Container}>
         <Text style={styles.subtitle}>Revisa y confirma la información</Text>
         
         {/* Contenedor con scroll interno para la información de confirmación */}
@@ -786,6 +786,11 @@ const styles = StyleSheet.create({
   },
   stepContainer: {
     flexGrow: 1,
+    paddingBottom: 10,
+  },
+  // Contenedor específico para el paso 3
+  step3Container: {
+    flex: 1,
     paddingBottom: 10,
   },
   // Nuevo estilo para el contenedor con scroll interno

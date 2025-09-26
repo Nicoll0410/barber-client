@@ -677,9 +677,9 @@ const fetchCitas = async () => {
                 setShowDetalleCita(true);
               }}
             >
-              <Text style={styles.citaCliente}>{cita.cliente.nombre}</Text>
-              <Text style={styles.citaServicio}>{cita.servicio.nombre}</Text>
-              <Text style={styles.citaHora}>
+              <Text style={styles.citaCliente} numberOfLines={1}>{cita.cliente.nombre}</Text>
+              <Text style={styles.citaServicio} numberOfLines={1}>{cita.servicio.nombre}</Text>
+              <Text style={styles.citaHora} numberOfLines={1}>
                 {toAMPM(cita.hora.split(':').slice(0, 2).join(':'))} - {toAMPM(cita.horaFin.split(':').slice(0, 2).join(':'))}
               </Text>
             </TouchableOpacity>
@@ -720,49 +720,6 @@ const fetchCitas = async () => {
         <View style={styles.barberosHeader}>
           <View style={styles.timeColumn} />
           {barberos.map(renderBarberoHeader)}
-        </View>
-      );
-    }
-  };
-
-  const renderMainContent = () => {
-    if (isMobile) {
-      return (
-        <View style={styles.mainContent}>
-          <ScrollView 
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={true}
-          >
-            {generateTimeSlots().map(slot => (
-              <View key={slot.key} style={styles.rowMobile}>
-                <View style={styles.timeCellMobile}>
-                  <Text style={styles.horaText}>{slot.displayTime}</Text>
-                </View>
-                <ScrollView 
-                  horizontal 
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.barberosSlotsScrollContent}
-                >
-                  {barberos.map(b => renderBarberoSlot(slot, b))}
-                </ScrollView>
-              </View>
-            ))}
-          </ScrollView>
-        </View>
-      );
-    } else {
-      return (
-        <View style={styles.mainContent}>
-          <ScrollView contentContainerStyle={styles.scrollContent}>
-            {generateTimeSlots().map(slot => (
-              <View key={slot.key} style={styles.row}>
-                <View style={styles.timeCell}>
-                  <Text style={styles.horaText}>{slot.displayTime}</Text>
-                </View>
-                {barberos.map(b => renderBarberoSlot(slot, b))}
-              </View>
-            ))}
-          </ScrollView>
         </View>
       );
     }
@@ -828,7 +785,18 @@ const fetchCitas = async () => {
       ) : (
         <>
           {renderBarberosHeader()}
-          {renderMainContent()}
+          <View style={styles.mainContent}>
+            <ScrollView contentContainerStyle={styles.scrollContent}>
+              {generateTimeSlots().map(slot => (
+                <View key={slot.key} style={styles.row}>
+                  <View style={styles.timeCell}>
+                    <Text style={styles.horaText}>{slot.displayTime}</Text>
+                  </View>
+                  {barberos.map(b => renderBarberoSlot(slot, b))}
+                </View>
+              ))}
+            </ScrollView>
+          </View>
         </>
       )}
 
@@ -1001,7 +969,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#000',
     paddingVertical: 10,
-    height: 120
+    minHeight: 120
   },
   timeColumnMobile: {
     width: 80,
@@ -1019,11 +987,12 @@ const styles = StyleSheet.create({
     paddingRight: 10
   },
   barberoHeaderMobile: {
-    width: 100,
+    width: 120, // Aumentado para mejor visualización
     alignItems: 'center',
-    paddingHorizontal: 5,
+    paddingHorizontal: 8,
     borderRightWidth: 1,
-    borderRightColor: '#000'
+    borderRightColor: '#000',
+    justifyContent: 'center'
   },
   avatar: {
     width: 40,
@@ -1076,7 +1045,7 @@ const styles = StyleSheet.create({
   horaText: {
     fontSize: 14
   },
-  barberosSlotsScrollContent: {
+  barberosSlotsContainer: {
     flexDirection: 'row'
   },
   // Slots para web
@@ -1085,22 +1054,22 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderRightColor: '#000',
     justifyContent: 'center',
-    height: 60,
+    minHeight: 60,
   },
-  // Slots para móvil
+  // Slots para móvil - MODIFICADO
   slotContainerMobile: {
-    width: 100,
+    width: 120, // Aumentado para mejor visualización
     borderRightWidth: 1,
     borderRightColor: '#000',
     justifyContent: 'center',
-    height: 60,
+    minHeight: 60,
   },
   slot: {
     flex: 1,
-    padding: 5,
+    padding: 4,
     justifyContent: 'center',
     alignItems: 'center',
-    height: '100%'
+    minHeight: 58,
   },
   'slot-no-laboral': {
     backgroundColor: '#FFEBEE'
@@ -1160,22 +1129,32 @@ const styles = StyleSheet.create({
   citaContent: {
     flex: 1,
     justifyContent: 'center', 
-    padding: 5
+    padding: 2,
+    width: '100%',
   },
   citaCliente: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
-    marginBottom: 2
+    marginBottom: 1,
+    textAlign: 'center',
+    numberOfLines: 1,
+    ellipsizeMode: 'tail'
   },
   citaServicio: {
-    fontSize: 10,
-    color: '#555'
+    fontSize: 9,
+    color: '#555',
+    textAlign: 'center',
+    numberOfLines: 1,
+    ellipsizeMode: 'tail'
   },
   citaHora: {
-    fontSize: 10,
+    fontSize: 8,
     color: '#555',
     fontStyle: 'italic',
-    marginTop: 2
+    marginTop: 1,
+    textAlign: 'center',
+    numberOfLines: 1,
+    ellipsizeMode: 'tail'
   },
   scrollContent: {
     paddingBottom: 20
@@ -1275,9 +1254,6 @@ const styles = StyleSheet.create({
     marginBottom: 60
   },
   mobileHorizontalScroll: {
-    flexDirection: 'row'
-  },
-  barberosSlotsContainer: {
     flexDirection: 'row'
   }
 });

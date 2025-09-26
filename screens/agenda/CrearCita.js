@@ -373,12 +373,11 @@ const CrearCita = ({
   };
 
   const Paso1 = () => (
-    <View style={styles.stepContainer}>
+    <View style={styles.stepContent}>
       <Text style={styles.subtitle}>
         Selecciona el servicio que se realizará en la cita
       </Text>
       
-      {/* Contenedor con scroll interno para servicios */}
       <View style={styles.scrollContainer}>
         <FlatList
           data={servicios}
@@ -405,23 +404,6 @@ const CrearCita = ({
           )}
         />
       </View>
-      
-      <View style={styles.centeredBtn}>
-        <TouchableOpacity
-          style={[
-            styles.btnPrimary,
-            styles.btnWide,
-            !servicioSel && styles.btnDisabled,
-          ]}
-          onPress={() => {
-            setStep(2);
-            syncInputsWithState();
-          }}
-          disabled={!servicioSel}
-        >
-          <Text style={styles.btnPrimaryText}>Siguiente</Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 
@@ -431,15 +413,9 @@ const CrearCita = ({
     );
 
     return (
-      <View style={styles.stepContainer}>
+      <View style={styles.stepContent}>
         <Text style={styles.subtitle}>Selecciona el cliente</Text>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            marginBottom: 12,
-          }}
-        >
+        <View style={styles.toggleContainer}>
           <TouchableOpacity
             style={[
               styles.optionToggle,
@@ -450,7 +426,6 @@ const CrearCita = ({
               setClienteSel(null);
               setTemporalNombre("");
               setTemporalTelefono("");
-              // Enfocar el input de búsqueda
               setTimeout(() => {
                 if (searchInputRef.current) {
                   searchInputRef.current.focus();
@@ -471,13 +446,11 @@ const CrearCita = ({
             style={[
               styles.optionToggle,
               isTemporal && styles.optionToggleActive,
-              { marginLeft: 10 },
             ]}
             onPress={() => {
               setIsTemporal(true);
               setClienteSel(null);
               setBusqueda("");
-              // Enfocar el input de nombre
               setTimeout(() => {
                 if (nombreInputRef.current) {
                   nombreInputRef.current.focus();
@@ -512,7 +485,6 @@ const CrearCita = ({
               />
             </View>
             
-            {/* Contenedor con scroll interno para clientes */}
             <View style={styles.scrollContainer}>
               <FlatList
                 data={filtrados}
@@ -566,36 +538,6 @@ const CrearCita = ({
             />
           </>
         )}
-
-        <View style={styles.navBtns}>
-          <TouchableOpacity
-            style={styles.btnSecondary}
-            onPress={() => {
-              setStep(1);
-              syncInputsWithState();
-            }}
-          >
-            <Text style={styles.btnSecondaryText}>Volver</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.btnPrimary,
-              !isTemporal && !clienteSel && styles.btnDisabled,
-              isTemporal && !temporalNombreRef.current.trim() && styles.btnDisabled,
-              { width: "45%" },
-            ]}
-            onPress={() => {
-              syncInputsWithState();
-              setStep(3);
-            }}
-            disabled={
-              (!isTemporal && !clienteSel) ||
-              (isTemporal && !temporalNombreRef.current.trim())
-            }
-          >
-            <Text style={styles.btnPrimaryText}>Siguiente</Text>
-          </TouchableOpacity>
-        </View>
       </View>
     );
   };
@@ -616,11 +558,10 @@ const CrearCita = ({
     const horaFin24 = calcularHoraFin(horaInicio24, duracionMinutos);
 
     return (
-      <View style={styles.step3Container}>
+      <View style={styles.stepContent}>
         <Text style={styles.subtitle}>Revisa y confirma la información</Text>
         
-        {/* Contenedor con scroll interno para la información de confirmación */}
-        <View style={styles.scrollContainer}>
+        <ScrollView style={styles.confirmScrollContainer} showsVerticalScrollIndicator={false}>
           <View style={styles.infoBox}>
             <Text style={styles.infoLabel}>Servicio</Text>
             <Text style={styles.infoText}>{servicioSel.nombre}</Text>
@@ -670,39 +611,12 @@ const CrearCita = ({
               ¡Todo este horario será reservado!
             </Text>
           </View>
-        </View>
-
-        <View style={styles.navBtns}>
-          <TouchableOpacity
-            style={styles.btnSecondary}
-            onPress={() => {
-              setStep(2);
-              syncInputsWithState();
-            }}
-            disabled={isLoading}
-          >
-            <Text style={styles.btnSecondaryText}>Volver</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.btnPrimary, isLoading && styles.btnDisabled]}
-            onPress={() => {
-              syncInputsWithState();
-              handleCrear();
-            }}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.btnPrimaryText}>Confirmar cita</Text>
-            )}
-          </TouchableOpacity>
-        </View>
+        </ScrollView>
       </View>
     );
   };
 
-  const renderStep = () => {
+  const renderStepContent = () => {
     switch (step) {
       case 1:
         return <Paso1 />;
@@ -714,6 +628,56 @@ const CrearCita = ({
         return <Paso1 />;
     }
   };
+
+  const renderButtons = () => (
+    <View style={styles.buttonsContainer}>
+      {step > 1 && (
+        <TouchableOpacity
+          style={styles.btnSecondary}
+          onPress={() => {
+            setStep(step - 1);
+            syncInputsWithState();
+          }}
+          disabled={isLoading}
+        >
+          <Text style={styles.btnSecondaryText}>Volver</Text>
+        </TouchableOpacity>
+      )}
+      
+      <TouchableOpacity
+        style={[
+          styles.btnPrimary,
+          step === 1 && !servicioSel && styles.btnDisabled,
+          step === 2 && ((!isTemporal && !clienteSel) || (isTemporal && !temporalNombreRef.current.trim())) && styles.btnDisabled,
+          isLoading && styles.btnDisabled,
+          step === 1 && styles.btnWide,
+          step !== 1 && { flex: 1 }
+        ]}
+        onPress={() => {
+          if (step < 3) {
+            syncInputsWithState();
+            setStep(step + 1);
+          } else {
+            syncInputsWithState();
+            handleCrear();
+          }
+        }}
+        disabled={
+          (step === 1 && !servicioSel) ||
+          (step === 2 && ((!isTemporal && !clienteSel) || (isTemporal && !temporalNombreRef.current.trim()))) ||
+          isLoading
+        }
+      >
+        {isLoading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.btnPrimaryText}>
+            {step === 3 ? "Confirmar cita" : "Siguiente"}
+          </Text>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
@@ -736,12 +700,12 @@ const CrearCita = ({
                 <MaterialIcons name="close" size={24} color="#000" />
               </TouchableOpacity>
             </View>
-            <ScrollView 
-              contentContainerStyle={{ flexGrow: 1 }}
-              keyboardShouldPersistTaps="handled"
-            >
-              {renderStep()}
-            </ScrollView>
+            
+            <View style={styles.contentContainer}>
+              {renderStepContent()}
+            </View>
+            
+            {renderButtons()}
           </View>
         </KeyboardAvoidingView>
       </BlurView>
@@ -763,7 +727,7 @@ const styles = StyleSheet.create({
   modal: {
     width: "95%",
     maxWidth: 600,
-    maxHeight: "85%",
+    height: "85%",
     backgroundColor: "#fff",
     borderRadius: 15,
     paddingVertical: 20,
@@ -784,25 +748,28 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#222",
   },
-  stepContainer: {
-    flexGrow: 1,
-    paddingBottom: 10,
-  },
-  // Contenedor específico para el paso 3
-  step3Container: {
+  contentContainer: {
     flex: 1,
-    paddingBottom: 10,
+    marginBottom: 15,
   },
-  // Nuevo estilo para el contenedor con scroll interno
+  stepContent: {
+    flex: 1,
+  },
   scrollContainer: {
     flex: 1,
-    maxHeight: 300,
-    marginBottom: 15,
+  },
+  confirmScrollContainer: {
+    flex: 1,
   },
   subtitle: {
     fontSize: 15,
     color: "#555",
     marginBottom: 16,
+  },
+  toggleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
   },
   servicioItem: {
     padding: 14,
@@ -814,7 +781,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     backgroundColor: "#FAFAFA",
-    minHeight: 80, // Altura mínima para asegurar visibilidad
+    minHeight: 80,
   },
   servicioInfoContainer: {
     flex: 1,
@@ -826,22 +793,22 @@ const styles = StyleSheet.create({
     backgroundColor: "#D9D9D9",
   },
   servicioNombre: {
-    fontSize: width < 400 ? 14 : 16, // Tamaño responsive
+    fontSize: width < 400 ? 14 : 16,
     fontWeight: "600",
     color: "#222",
-    flexShrink: 1, // Permite que el texto se ajuste
+    flexShrink: 1,
   },
   servicioDuracion: {
-    fontSize: width < 400 ? 11 : 12, // Tamaño responsive
+    fontSize: width < 400 ? 11 : 12,
     color: "#666",
     marginTop: 4,
   },
   servicioPrecio: {
-    fontSize: width < 400 ? 14 : 16, // Tamaño responsive
+    fontSize: width < 400 ? 14 : 16,
     fontWeight: "700",
     color: "#000",
     marginLeft: 10,
-    minWidth: 60, // Ancho mínimo para precios
+    minWidth: 60,
     textAlign: 'right',
   },
   searchBox: {
@@ -887,8 +854,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   infoBox: {
-    marginTop: 10,
-    marginBottom: 18,
+    paddingBottom: 10,
   },
   infoLabel: {
     fontSize: 16,
@@ -902,17 +868,21 @@ const styles = StyleSheet.create({
     color: "#555",
     marginBottom: 6,
   },
-  navBtns: {
+  buttonsContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 18,
+    alignItems: "center",
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
   },
   btnPrimary: {
     backgroundColor: "#424242",
     paddingVertical: 14,
     borderRadius: 10,
     alignItems: "center",
-    flex: 1,
+    minHeight: 50,
+    justifyContent: 'center',
   },
   btnPrimaryText: {
     fontSize: 16,
@@ -925,10 +895,12 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 10,
     alignItems: "center",
-    flex: 1,
     marginRight: 12,
     borderWidth: 1,
     borderColor: "#D9D9D9",
+    flex: 1,
+    minHeight: 50,
+    justifyContent: 'center',
   },
   btnSecondaryText: {
     fontSize: 16,
@@ -938,12 +910,8 @@ const styles = StyleSheet.create({
   btnDisabled: {
     backgroundColor: "#bbb",
   },
-  centeredBtn: {
-    alignItems: "center",
-    marginTop: 18,
-  },
   btnWide: {
-    width: "80%",
+    width: "100%",
   },
   inputLabel: {
     fontSize: 14,
@@ -969,6 +937,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ddd",
     backgroundColor: "#fff",
+    marginRight: 10,
   },
   optionToggleActive: {
     backgroundColor: "#424242",
@@ -976,7 +945,7 @@ const styles = StyleSheet.create({
   },
   optionText: {
     color: "#333",
-    fontSize: width < 400 ? 12 : 14, // Tamaño responsive
+    fontSize: width < 400 ? 12 : 14,
   },
   optionTextActive: {
     color: "#fff",

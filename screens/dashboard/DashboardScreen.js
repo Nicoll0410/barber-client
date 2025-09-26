@@ -79,11 +79,11 @@ const DashboardScreen = () => {
         topHoras: [],
         topServicios: [],
         tiposDeUsuarios: [
-          { name: 'Clientes', population: 74, color: '#3498db', legendFontColor: '#7F7F7F', legendFontSize: 15 },
-          { name: 'Barberos', population: 4, color: '#e74c3c', legendFontColor: '#7F7F7F', legendFontSize: 15 },
-          { name: 'Admin', population: 2, color: '#044c68ff', legendFontColor: '#7F7F7F', legendFontSize: 15 }
+          { name: 'Clientes', population: 0, color: '#3498db', legendFontColor: '#7F7F7F', legendFontSize: 15 },
+          { name: 'Barberos', population: 0, color: '#e74c3c', legendFontColor: '#7F7F7F', legendFontSize: 15 },
+          { name: 'Administradores', population: 0, color: '#044c68ff', legendFontColor: '#7F7F7F', legendFontSize: 15 }
         ],
-        totalUsuarios: 80,
+        totalUsuarios: 0,
         topBarberos: [],
         citasCompletadasTotales: 0
       }));
@@ -113,12 +113,6 @@ const DashboardScreen = () => {
     return value.toLocaleString('es-CO');
   };
 
-  // Función para acortar etiquetas largas
-  const shortenLabel = (label, maxLength = 12) => {
-    if (label.length <= maxLength) return label;
-    return label.substring(0, maxLength - 3) + '...';
-  };
-
   const chartConfig = {
     backgroundColor: '#ffffff',
     backgroundGradientFrom: '#ffffff',
@@ -146,19 +140,14 @@ const DashboardScreen = () => {
     },
     propsForVerticalLabels: {
       fontWeight: 'bold',
-      fontSize: isMobile ? 10 : 12,
     },
     propsForHorizontalLabels: {
       fontWeight: 'bold',
-      fontSize: isMobile ? 9 : 11,
-      rotation: isMobile ? -45 : 0,
-      width: isMobile ? 60 : 80,
-      textAlign: 'center',
     },
     barRadius: 6,
     yAxisLabel: '',
     yLabelsOffset: 10,
-    xLabelsOffset: isMobile ? 5 : 10,
+    xLabelsOffset: 10,
   };
 
   const pieChartConfig = {
@@ -265,9 +254,9 @@ const DashboardScreen = () => {
                 }}
                 width={Math.max(
                   isMobile ? dimensions.width * 0.9 : dimensions.width * 0.45,
-                  dashboardData.topHoras.length * 80 + 100
+                  dashboardData.topHoras.length * 60 + 100
                 )}
-                height={240}
+                height={220}
                 chartConfig={chartConfig}
                 style={styles.chart}
                 fromZero
@@ -294,7 +283,7 @@ const DashboardScreen = () => {
             >
               <BarChart
                 data={{
-                  labels: dashboardData.topServicios.map(item => shortenLabel(item.label)),
+                  labels: dashboardData.topServicios.map(item => item.label),
                   datasets: [{
                     data: dashboardData.topServicios.map(item => item.value),
                     color: (opacity = 1) => `rgba(52, 152, 219, ${opacity})`,
@@ -305,9 +294,9 @@ const DashboardScreen = () => {
                 }}
                 width={Math.max(
                   isMobile ? dimensions.width * 0.9 : dimensions.width * 0.45,
-                  dashboardData.topServicios.length * 80 + 100
+                  dashboardData.topServicios.length * 60 + 100
                 )}
-                height={240}
+                height={220}
                 chartConfig={chartConfig}
                 style={styles.chart}
                 fromZero
@@ -318,27 +307,6 @@ const DashboardScreen = () => {
                 yAxisSuffix=""
               />
             </ScrollView>
-            {/* Leyenda completa de servicios */}
-            {dashboardData.topServicios.length > 0 && (
-              <View style={styles.servicesLegend}>
-                <Text style={styles.legendTitle}>Servicios:</Text>
-                <ScrollView 
-                  horizontal 
-                  showsHorizontalScrollIndicator={true}
-                  style={styles.legendScroll}
-                >
-                  <View style={styles.legendItems}>
-                    {dashboardData.topServicios.map((item, index) => (
-                      <View key={index} style={styles.legendItem}>
-                        <Text style={styles.legendText}>
-                          {index + 1}. {item.label}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                </ScrollView>
-              </View>
-            )}
           </View>
         </View>
 
@@ -351,30 +319,17 @@ const DashboardScreen = () => {
               <Text style={styles.chartTitle}>Distribución de usuarios</Text>
               <Text style={styles.chartSubtitle}>Total: {formatNumber(dashboardData.totalUsuarios)}</Text>
             </View>
-            <View style={styles.pieChartContainer}>
-              <PieChart
-                data={dashboardData.tiposDeUsuarios}
-                width={isMobile ? dimensions.width * 0.8 : dimensions.width * 0.4}
-                height={180}
-                chartConfig={pieChartConfig}
-                accessor="population"
-                backgroundColor="transparent"
-                paddingLeft="15"
-                absolute
-                hasLegend={false}
-              />
-            </View>
-            {/* Leyenda personalizada debajo del gráfico */}
-            <View style={styles.usersDistribution}>
-              {dashboardData.tiposDeUsuarios.map((tipo, index) => (
-                <View key={index} style={styles.userTypeItem}>
-                  <View style={[styles.colorIndicator, { backgroundColor: tipo.color }]} />
-                  <Text style={styles.userTypeText}>
-                    {tipo.population} {tipo.name}
-                  </Text>
-                </View>
-              ))}
-            </View>
+            <PieChart
+              data={dashboardData.tiposDeUsuarios}
+              width={isMobile ? dimensions.width * 0.9 : dimensions.width * 0.45}
+              height={200}
+              chartConfig={pieChartConfig}
+              accessor="population"
+              backgroundColor="transparent"
+              paddingLeft="15"
+              absolute
+              hasLegend
+            />
           </View>
 
           {/* Top barberos */}
@@ -555,7 +510,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
-    maxHeight: 350,
+    maxHeight: 300, // Altura máxima para contenedores de gráficos
   },
   chartContainerMobile: {
     width: '100%'
@@ -585,66 +540,11 @@ const styles = StyleSheet.create({
   chart: {
     borderRadius: 12,
   },
-  // Estilos para la leyenda de servicios
-  servicesLegend: {
-    marginTop: 10,
-    padding: 10,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
-  },
-  legendTitle: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#424242',
-    marginBottom: 5,
-  },
-  legendScroll: {
-    maxHeight: 60,
-  },
-  legendItems: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  legendItem: {
-    marginRight: 15,
-    marginBottom: 5,
-  },
-  legendText: {
-    fontSize: 10,
-    color: '#666',
-  },
-  // Estilos para la distribución de usuarios
-  pieChartContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  usersDistribution: {
-    marginTop: 10,
-    padding: 10,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
-  },
-  userTypeItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  colorIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 8,
-  },
-  userTypeText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#424242',
-  },
   barberosScrollContainer: {
-    maxHeight: 200,
+    maxHeight: 200, // Altura máxima para la lista de barberos
   },
   barberosContainer: {
-    paddingRight: 5,
+    paddingRight: 5, // Espacio para el scrollbar
   },
   barberoItem: {
     flexDirection: 'row',

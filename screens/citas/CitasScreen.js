@@ -116,6 +116,7 @@ const CitasScreen = () => {
   const [pagina,         setPagina]         = useState(1);
   const porPagina                         = isMobile ? 6 : 4;
   const [search,         setSearch]         = useState('');
+  const [filtroEstado,   setFiltroEstado]   = useState('todos');
 
   /* Modales */
   const [showCrear,      setShowCrear]      = useState(false);
@@ -156,22 +157,31 @@ const CitasScreen = () => {
     fetchCitas(); 
   }, [userRole]));
 
-  /* ------------------ Búsqueda -------------------------- */
+  /* ------------------ Búsqueda y Filtrado -------------------------- */
   useEffect(() => {
-    if (!search.trim()) {
-      setFiltradas(citas);
-    } else {
-      const t = search.toLowerCase();
-      setFiltradas(
-        citas.filter((c) =>
-          (c.barbero?.nombre  || '').toLowerCase().includes(t) ||
-          (c.cliente?.nombre  || '').toLowerCase().includes(t) ||
-          (c.servicio?.nombre || '').toLowerCase().includes(t) ||
-          (c.estado           || '').toLowerCase().includes(t))
+    let resultado = citas;
+
+    // Aplicar filtro por estado
+    if (filtroEstado !== 'todos') {
+      resultado = resultado.filter(cita => 
+        cita.estado?.toLowerCase() === filtroEstado.toLowerCase()
       );
     }
+
+    // Aplicar búsqueda por texto
+    if (search.trim()) {
+      const t = search.toLowerCase();
+      resultado = resultado.filter((c) =>
+        (c.barbero?.nombre  || '').toLowerCase().includes(t) ||
+        (c.cliente?.nombre  || '').toLowerCase().includes(t) ||
+        (c.servicio?.nombre || '').toLowerCase().includes(t) ||
+        (c.estado           || '').toLowerCase().includes(t)
+      );
+    }
+
+    setFiltradas(resultado);
     setPagina(1);
-  }, [search, citas]);
+  }, [search, citas, filtroEstado]);
 
   const idxStart   = (pagina - 1) * porPagina;
   const show       = isMobile ? filtradas : filtradas.slice(idxStart, idxStart + porPagina);
@@ -234,7 +244,44 @@ const cancelarCita = async () => {
             <Text style={styles.contadorTexto}>{filtradas.length}</Text>
           </View>
         </View>
+        
+        {/* Botón de Filtrado */}
+        <TouchableOpacity 
+          style={styles.filtroButton}
+          onPress={() => {
+            // Mostrar opciones de filtrado
+            Alert.alert(
+              'Filtrar por Estado',
+              'Selecciona el estado de las citas:',
+              [
+                { text: 'Todos', onPress: () => setFiltroEstado('todos') },
+                { text: 'Confirmada', onPress: () => setFiltroEstado('Confirmada') },
+                { text: 'Completa', onPress: () => setFiltroEstado('Completa') },
+                { text: 'Cancelada', onPress: () => setFiltroEstado('Cancelada') },
+                { text: 'Cancelar', style: 'cancel' }
+              ]
+            );
+          }}
+        >
+          <MaterialIcons name="filter-list" size={20} color="#fff" />
+          <Text style={styles.filtroButtonText}>Filtrado</Text>
+        </TouchableOpacity>
       </View>
+
+      {/* Indicador de filtro activo */}
+      {filtroEstado !== 'todos' && (
+        <View style={styles.filtroActivoContainer}>
+          <Text style={styles.filtroActivoText}>
+            Filtrado por: <Text style={styles.filtroEstadoText}>{filtroEstado}</Text>
+          </Text>
+          <TouchableOpacity 
+            onPress={() => setFiltroEstado('todos')}
+            style={styles.quitarFiltroButton}
+          >
+            <AntDesign name="close" size={16} color="#424242" />
+          </TouchableOpacity>
+        </View>
+      )}
 
       <Buscador
         placeholder="Buscar cita por barbero, servicio, estado…"
@@ -429,6 +476,40 @@ const styles = StyleSheet.create({
   contadorTexto: {
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  filtroButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#424242',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+  },
+  filtroButtonText: {
+    marginLeft: 8,
+    color: 'white',
+    fontWeight: '500',
+    fontSize: 14,
+  },
+  filtroActivoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+    padding: 8,
+    borderRadius: 8,
+    marginBottom: 8,
+    justifyContent: 'space-between',
+  },
+  filtroActivoText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  filtroEstadoText: {
+    fontWeight: 'bold',
+    color: '#424242',
+  },
+  quitarFiltroButton: {
+    padding: 4,
   },
   addButton: {
     flexDirection: 'row',

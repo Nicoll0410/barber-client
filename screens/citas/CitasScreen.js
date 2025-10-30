@@ -9,7 +9,7 @@ import {
   Alert, ActivityIndicator, Dimensions, Modal,
 } from 'react-native';
 import {
-  MaterialIcons, FontAwesome, AntDesign,
+  MaterialIcons, FontAwesome, AntDesign, Ionicons,
 } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import axios from 'axios';
@@ -383,40 +383,64 @@ const cancelarCita = async () => {
 
       {/* -------- Modales -------- */}
       
-      {/* Modal de Filtrado */}
+      {/* Modal de Filtrado Mejorado */}
       <Modal
         visible={showFiltroModal}
         transparent={true}
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setShowFiltroModal(false)}
       >
-        <TouchableOpacity 
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowFiltroModal(false)}
-        >
-          <BlurView intensity={10} style={styles.blurContainer}>
-            <TouchableOpacity 
-              style={styles.modalFiltroContent}
-              activeOpacity={1}
-              onPress={(e) => e.stopPropagation()}
-            >
+        <View style={styles.modalOverlay}>
+          <BlurView intensity={20} tint="dark" style={styles.blurContainer}>
+            <View style={styles.modalFiltroContent}>
+              {/* Header del Modal */}
               <View style={styles.modalFiltroHeader}>
-                <Text style={styles.modalFiltroTitle}>Filtrar por Estado</Text>
+                <View style={styles.modalHeaderIcon}>
+                  <Ionicons name="options" size={28} color="#424242" />
+                </View>
+                <View style={styles.modalHeaderText}>
+                  <Text style={styles.modalFiltroTitle}>Filtrar por Estado</Text>
+                  <Text style={styles.modalFiltroSubtitle}>Selecciona el estado que deseas visualizar</Text>
+                </View>
                 <TouchableOpacity 
                   onPress={() => setShowFiltroModal(false)}
                   style={styles.closeButton}
                 >
-                  <AntDesign name="close" size={24} color="#424242" />
+                  <Ionicons name="close-circle" size={28} color="#666" />
                 </TouchableOpacity>
               </View>
               
+              {/* Opciones de Filtrado */}
               <View style={styles.filtroOptionsContainer}>
                 {[
-                  { key: 'todos', label: 'Todos los estados', icon: 'list' },
-                  { key: 'Confirmada', label: 'Confirmada', icon: 'checkcircle' },
-                  { key: 'Completa', label: 'Completa', icon: 'checkcircleo' },
-                  { key: 'Cancelada', label: 'Cancelada', icon: 'closecircle' },
+                  { 
+                    key: 'todos', 
+                    label: 'Todos los estados', 
+                    icon: 'grid-outline',
+                    color: '#424242',
+                    description: 'Mostrar todas las citas'
+                  },
+                  { 
+                    key: 'Confirmada', 
+                    label: 'Confirmada', 
+                    icon: 'checkmark-done-circle',
+                    color: '#007BFF',
+                    description: 'Citas confirmadas por el cliente'
+                  },
+                  { 
+                    key: 'Completa', 
+                    label: 'Completa', 
+                    icon: 'checkmark-circle',
+                    color: '#4CAF50',
+                    description: 'Citas finalizadas exitosamente'
+                  },
+                  { 
+                    key: 'Cancelada', 
+                    label: 'Cancelada', 
+                    icon: 'close-circle',
+                    color: '#FF4444',
+                    description: 'Citas canceladas'
+                  },
                 ].map((option) => (
                   <TouchableOpacity
                     key={option.key}
@@ -430,27 +454,59 @@ const cancelarCita = async () => {
                     }}
                   >
                     <View style={styles.filtroOptionLeft}>
-                      <AntDesign 
-                        name={option.icon} 
-                        size={20} 
-                        color={filtroEstado === option.key ? '#424242' : '#666'} 
-                      />
-                      <Text style={[
-                        styles.filtroOptionText,
-                        filtroEstado === option.key && styles.filtroOptionTextSelected
+                      <View style={[
+                        styles.optionIconContainer,
+                        { backgroundColor: filtroEstado === option.key ? option.color : '#f0f0f0' }
                       ]}>
-                        {option.label}
-                      </Text>
+                        <Ionicons 
+                          name={option.icon} 
+                          size={22} 
+                          color={filtroEstado === option.key ? '#fff' : option.color} 
+                        />
+                      </View>
+                      <View style={styles.optionTextContainer}>
+                        <Text style={[
+                          styles.filtroOptionText,
+                          filtroEstado === option.key && styles.filtroOptionTextSelected
+                        ]}>
+                          {option.label}
+                        </Text>
+                        <Text style={styles.filtroOptionDescription}>
+                          {option.description}
+                        </Text>
+                      </View>
                     </View>
-                    {filtroEstado === option.key && (
-                      <AntDesign name="check" size={20} color="#424242" />
-                    )}
+                    <View style={styles.optionRight}>
+                      {filtroEstado === option.key ? (
+                        <View style={[styles.selectedIndicator, { backgroundColor: option.color }]}>
+                          <Ionicons name="checkmark" size={16} color="#fff" />
+                        </View>
+                      ) : (
+                        <View style={styles.unselectedIndicator}>
+                          <View style={[styles.radioOuter, { borderColor: option.color }]} />
+                        </View>
+                      )}
+                    </View>
                   </TouchableOpacity>
                 ))}
               </View>
-            </TouchableOpacity>
+
+              {/* Footer del Modal */}
+              <View style={styles.modalFiltroFooter}>
+                <TouchableOpacity 
+                  style={styles.resetButton}
+                  onPress={() => {
+                    setFiltroEstado('todos');
+                    setShowFiltroModal(false);
+                  }}
+                >
+                  <Ionicons name="refresh" size={18} color="#666" />
+                  <Text style={styles.resetButtonText}>Restablecer</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </BlurView>
-        </TouchableOpacity>
+        </View>
       </Modal>
 
       <DetalleCita
@@ -571,46 +627,59 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   
-  /* Estilos para el Modal de Filtrado */
+  /* Estilos Mejorados para el Modal de Filtrado */
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
   },
   blurContainer: {
     width: '100%',
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
   },
   modalFiltroContent: {
     backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 0,
-    width: '85%',
-    maxWidth: 400,
+    borderRadius: 20,
+    width: '100%',
+    maxWidth: 450,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
+    overflow: 'hidden',
   },
   modalFiltroHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
+    alignItems: 'flex-start',
+    padding: 24,
+    backgroundColor: '#f8f9fa',
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: '#e9ecef',
+  },
+  modalHeaderIcon: {
+    marginRight: 12,
+    marginTop: 2,
+  },
+  modalHeaderText: {
+    flex: 1,
   },
   modalFiltroTitle: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#424242',
+    marginBottom: 4,
+  },
+  modalFiltroSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 18,
   },
   closeButton: {
     padding: 4,
+    marginTop: 2,
   },
   filtroOptionsContainer: {
     padding: 8,
@@ -619,26 +688,92 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 12,
     marginVertical: 4,
+    borderWidth: 2,
+    borderColor: 'transparent',
   },
   filtroOptionSelected: {
-    backgroundColor: 'rgba(66, 66, 66, 0.1)',
+    backgroundColor: 'rgba(66, 66, 66, 0.05)',
+    borderColor: '#e9ecef',
   },
   filtroOptionLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
+  },
+  optionIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  optionTextContainer: {
+    flex: 1,
   },
   filtroOptionText: {
-    marginLeft: 12,
     fontSize: 16,
-    color: '#666',
+    fontWeight: '600',
+    color: '#424242',
+    marginBottom: 2,
   },
   filtroOptionTextSelected: {
     color: '#424242',
+  },
+  filtroOptionDescription: {
+    fontSize: 13,
+    color: '#666',
+    lineHeight: 16,
+  },
+  optionRight: {
+    marginLeft: 12,
+  },
+  selectedIndicator: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  unselectedIndicator: {
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  radioOuter: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    backgroundColor: 'transparent',
+  },
+  modalFiltroFooter: {
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#e9ecef',
+    backgroundColor: '#f8f9fa',
+  },
+  resetButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#dee2e6',
+  },
+  resetButtonText: {
+    marginLeft: 8,
+    fontSize: 14,
     fontWeight: '500',
+    color: '#666',
   },
 
   addButton: {
@@ -852,72 +987,6 @@ const styles = StyleSheet.create({
   },
   paginacionContainer: {
     marginBottom: 35,
-  },
-  /* Nuevos estilos para los modales compactos con blur */
-  modalBlurContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
-  },
-  modalCompactContent: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 24,
-    width: '85%',
-    maxWidth: 400,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 5,
-  },
-  modalCompactTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 12,
-    textAlign: 'center',
-    color: '#424242',
-  },
-  modalCompactText: {
-    fontSize: 15,
-    marginBottom: 24,
-    textAlign: 'center',
-    color: '#666',
-    lineHeight: 22,
-  },
-  modalCompactButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
-  modalCompactButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginHorizontal: 4,
-  },
-  modalCompactConfirmButton: {
-    backgroundColor: '#4CAF50',
-  },
-  modalCompactDangerButton: {
-    backgroundColor: '#F44336',
-  },
-  modalCompactCancelButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: '#D9D9D9',
-  },
-  modalCompactButtonText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 15,
-  },
-  modalCompactCancelButtonText: {
-    color: '#424242',
-    fontWeight: '600',
-    fontSize: 15,
   },
 });
 

@@ -113,6 +113,13 @@ const DashboardScreen = () => {
     return value.toLocaleString('es-CO');
   };
 
+  // Función para acortar los nombres de los servicios
+  const truncateServiceName = (name, maxLength = 15) => {
+    if (!name) return '';
+    if (name.length <= maxLength) return name;
+    return name.substring(0, maxLength) + '...';
+  };
+
   const chartConfig = {
     backgroundColor: '#ffffff',
     backgroundGradientFrom: '#ffffff',
@@ -269,7 +276,7 @@ const DashboardScreen = () => {
             </ScrollView>
           </View>
 
-          {/* Servicios más solicitados */}
+          {/* Servicios más solicitados - CORREGIDO */}
           <View style={[styles.chartContainer, isMobile && styles.chartContainerMobile]}>
             <View style={styles.chartHeader}>
               <Icon name="content-cut" size={20} color="#3498db" />
@@ -283,7 +290,7 @@ const DashboardScreen = () => {
             >
               <BarChart
                 data={{
-                  labels: dashboardData.topServicios.map(item => item.label),
+                  labels: dashboardData.topServicios.map(item => truncateServiceName(item.label)),
                   datasets: [{
                     data: dashboardData.topServicios.map(item => item.value),
                     color: (opacity = 1) => `rgba(52, 152, 219, ${opacity})`,
@@ -294,10 +301,21 @@ const DashboardScreen = () => {
                 }}
                 width={Math.max(
                   isMobile ? dimensions.width * 0.9 : dimensions.width * 0.45,
-                  dashboardData.topServicios.length * 60 + 100
+                  dashboardData.topServicios.length * 80 + 100 // Aumenté el ancho por barra para mejor visualización
                 )}
-                height={220}
-                chartConfig={chartConfig}
+                height={240} // Aumenté la altura para dar más espacio a las etiquetas
+                chartConfig={{
+                  ...chartConfig,
+                  propsForLabels: {
+                    fontSize: isMobile ? 9 : 11, // Reducí ligeramente el tamaño de fuente
+                    fontWeight: 'bold'
+                  },
+                  propsForHorizontalLabels: {
+                    fontSize: isMobile ? 9 : 11,
+                    fontWeight: 'bold',
+                    rotation: isMobile ? -45 : 0, // Rotación para móviles si es necesario
+                  }
+                }}
                 style={styles.chart}
                 fromZero
                 showValuesOnTopOfBars
@@ -305,6 +323,7 @@ const DashboardScreen = () => {
                 flatColor
                 yAxisLabel=""
                 yAxisSuffix=""
+                verticalLabelRotation={isMobile ? -45 : 0} // Rotación de etiquetas para mejor visualización
               />
             </ScrollView>
           </View>
@@ -510,7 +529,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
-    maxHeight: 300, // Altura máxima para contenedores de gráficos
+    maxHeight: 320, // Aumenté la altura máxima para el gráfico de servicios
   },
   chartContainerMobile: {
     width: '100%'

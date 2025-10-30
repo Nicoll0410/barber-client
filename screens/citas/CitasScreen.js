@@ -6,7 +6,7 @@ import React, {
 } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList, ScrollView,
-  Alert, ActivityIndicator, Dimensions,
+  Alert, ActivityIndicator, Dimensions, Modal,
 } from 'react-native';
 import {
   MaterialIcons, FontAwesome, AntDesign,
@@ -117,6 +117,7 @@ const CitasScreen = () => {
   const porPagina                         = isMobile ? 6 : 4;
   const [search,         setSearch]         = useState('');
   const [filtroEstado,   setFiltroEstado]   = useState('todos');
+  const [showFiltroModal, setShowFiltroModal] = useState(false);
 
   /* Modales */
   const [showCrear,      setShowCrear]      = useState(false);
@@ -248,20 +249,7 @@ const cancelarCita = async () => {
         {/* Botón de Filtrado */}
         <TouchableOpacity 
           style={styles.filtroButton}
-          onPress={() => {
-            // Mostrar opciones de filtrado
-            Alert.alert(
-              'Filtrar por Estado',
-              'Selecciona el estado de las citas:',
-              [
-                { text: 'Todos', onPress: () => setFiltroEstado('todos') },
-                { text: 'Confirmada', onPress: () => setFiltroEstado('Confirmada') },
-                { text: 'Completa', onPress: () => setFiltroEstado('Completa') },
-                { text: 'Cancelada', onPress: () => setFiltroEstado('Cancelada') },
-                { text: 'Cancelar', style: 'cancel' }
-              ]
-            );
-          }}
+          onPress={() => setShowFiltroModal(true)}
         >
           <MaterialIcons name="filter-list" size={20} color="#fff" />
           <Text style={styles.filtroButtonText}>Filtrado</Text>
@@ -394,6 +382,77 @@ const cancelarCita = async () => {
       )}
 
       {/* -------- Modales -------- */}
+      
+      {/* Modal de Filtrado */}
+      <Modal
+        visible={showFiltroModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowFiltroModal(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowFiltroModal(false)}
+        >
+          <BlurView intensity={10} style={styles.blurContainer}>
+            <TouchableOpacity 
+              style={styles.modalFiltroContent}
+              activeOpacity={1}
+              onPress={(e) => e.stopPropagation()}
+            >
+              <View style={styles.modalFiltroHeader}>
+                <Text style={styles.modalFiltroTitle}>Filtrar por Estado</Text>
+                <TouchableOpacity 
+                  onPress={() => setShowFiltroModal(false)}
+                  style={styles.closeButton}
+                >
+                  <AntDesign name="close" size={24} color="#424242" />
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.filtroOptionsContainer}>
+                {[
+                  { key: 'todos', label: 'Todos los estados', icon: 'list' },
+                  { key: 'Confirmada', label: 'Confirmada', icon: 'checkcircle' },
+                  { key: 'Completa', label: 'Completa', icon: 'checkcircleo' },
+                  { key: 'Cancelada', label: 'Cancelada', icon: 'closecircle' },
+                ].map((option) => (
+                  <TouchableOpacity
+                    key={option.key}
+                    style={[
+                      styles.filtroOption,
+                      filtroEstado === option.key && styles.filtroOptionSelected
+                    ]}
+                    onPress={() => {
+                      setFiltroEstado(option.key);
+                      setShowFiltroModal(false);
+                    }}
+                  >
+                    <View style={styles.filtroOptionLeft}>
+                      <AntDesign 
+                        name={option.icon} 
+                        size={20} 
+                        color={filtroEstado === option.key ? '#424242' : '#666'} 
+                      />
+                      <Text style={[
+                        styles.filtroOptionText,
+                        filtroEstado === option.key && styles.filtroOptionTextSelected
+                      ]}>
+                        {option.label}
+                      </Text>
+                    </View>
+                    {filtroEstado === option.key && (
+                      <AntDesign name="check" size={20} color="#424242" />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </TouchableOpacity>
+          </BlurView>
+        </TouchableOpacity>
+      </Modal>
+
       <DetalleCita
         visible={showDetalle}
         onClose={() => setShowDetalle(false)}
@@ -511,6 +570,77 @@ const styles = StyleSheet.create({
   quitarFiltroButton: {
     padding: 4,
   },
+  
+  /* Estilos para el Modal de Filtrado */
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  blurContainer: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalFiltroContent: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 0,
+    width: '85%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  modalFiltroHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  modalFiltroTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#424242',
+  },
+  closeButton: {
+    padding: 4,
+  },
+  filtroOptionsContainer: {
+    padding: 8,
+  },
+  filtroOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginVertical: 4,
+  },
+  filtroOptionSelected: {
+    backgroundColor: 'rgba(66, 66, 66, 0.1)',
+  },
+  filtroOptionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  filtroOptionText: {
+    marginLeft: 12,
+    fontSize: 16,
+    color: '#666',
+  },
+  filtroOptionTextSelected: {
+    color: '#424242',
+    fontWeight: '500',
+  },
+
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
